@@ -1,5 +1,6 @@
 import { Queue } from "bullmq";
 import type { QuestionConfig } from "../modules/assignment/assignment.types";
+import { logInfo } from "../utils/logger";
 import { queueConnection } from "./redis";
 
 export const ASSIGNMENT_QUEUE_NAME = "assignment-generation";
@@ -37,7 +38,7 @@ export function initAssignmentQueue(): void {
     },
   );
 
-  console.log("[QUEUE] Assignment queue initialized");
+  logInfo("[QUEUE] Assignment queue initialized");
 }
 
 export async function enqueueAssignmentGeneration(
@@ -47,11 +48,6 @@ export async function enqueueAssignmentGeneration(
     jobId: data.assignmentId,
   });
 
-  console.log("[QUEUE] Job enqueued", {
-    assignmentId: data.assignmentId,
-    jobId: job.id,
-  });
-
   return String(job.id);
 }
 
@@ -59,5 +55,5 @@ export async function closeAssignmentQueue(): Promise<void> {
   if (!assignmentQueue) return;
 
   await assignmentQueue.close();
-  console.log("[QUEUE] Assignment queue closed");
+  logInfo("[QUEUE] Assignment queue closed");
 }

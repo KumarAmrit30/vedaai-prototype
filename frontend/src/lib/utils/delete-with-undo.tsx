@@ -17,11 +17,6 @@ export function deleteAssignmentsWithUndo(
 
   let committed = false;
 
-  console.log("[DELETE] Optimistic remove", {
-    count: removed.length,
-    ids: removed.map((item) => item._id),
-  });
-
   toast(
     (t) => (
       <div className="flex items-center gap-3">
@@ -31,9 +26,6 @@ export function deleteAssignmentsWithUndo(
           className="outline-pill-btn !px-3 !py-1.5 text-[11px]"
           onClick={() => {
             committed = true;
-            console.log("[DELETE] Undo triggered", {
-              ids: removed.map((item) => item._id),
-            });
             onUndo(removed);
             toast.dismiss(t.id);
             toast.success("Assignment restored.");
@@ -50,17 +42,9 @@ export function deleteAssignmentsWithUndo(
     if (committed) return;
 
     void (async () => {
-      console.log("[DELETE] Commit started", {
-        ids: removed.map((item) => item._id),
-      });
-
       try {
         await onCommit?.();
-        console.log("[DELETE] API success", {
-          ids: removed.map((item) => item._id),
-        });
-      } catch (error) {
-        console.error("[DELETE] API failure — rolling back", error);
+      } catch {
         onUndo(removed);
         toast.error("Failed to delete assignment. Changes were restored.");
       }

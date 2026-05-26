@@ -19,13 +19,10 @@ interface BulkStatusResponse {
 }
 
 export async function deleteAssignment(id: string): Promise<void> {
-  console.log("[DELETE] API DELETE /assignments/:id", { id });
-  const response = await apiClient.delete<DeleteResponse>(`/assignments/${id}`);
-  console.log("[DELETE] API response", response.data);
+  await apiClient.delete<DeleteResponse>(`/assignments/${id}`);
 }
 
 export async function bulkDeleteAssignments(ids: string[]): Promise<void> {
-  console.log("[DELETE] API POST /assignments/bulk-delete", { ids });
   await apiClient.post("/assignments/bulk-delete", { assignmentIds: ids });
 }
 

@@ -1,6 +1,7 @@
 import type { AssignmentDocument } from "./assignment.model";
 import { isDeletedAssignment } from "./assignment.queries";
 import type { AssignmentStatus } from "./assignment.types";
+import { logWarn } from "../../utils/logger";
 
 const FRONTEND_STATUS_MAP: Partial<Record<AssignmentStatus, AssignmentStatus>> =
   {
@@ -9,7 +10,7 @@ const FRONTEND_STATUS_MAP: Partial<Record<AssignmentStatus, AssignmentStatus>> =
 
 export function serializeAssignment(assignment: AssignmentDocument) {
   if (isDeletedAssignment(assignment)) {
-    console.warn("[ASSIGNMENT] Blocked serialization of deleted assignment", {
+    logWarn("[ASSIGNMENT] Blocked serialization of deleted assignment", {
       id: assignment._id.toString(),
     });
     throw new Error(
@@ -54,10 +55,8 @@ export function serializeAssignments(assignments: AssignmentDocument[]) {
   const filteredCount = assignments.length - activeAssignments.length;
 
   if (filteredCount > 0) {
-    console.warn("[ASSIGNMENT] Serializer excluded deleted assignments", {
+    logWarn("[ASSIGNMENT] Serializer excluded deleted assignments", {
       filteredCount,
-      inputCount: assignments.length,
-      outputCount: activeAssignments.length,
     });
   }
 

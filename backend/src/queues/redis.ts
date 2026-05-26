@@ -1,34 +1,30 @@
 import Redis, { type RedisOptions } from "ioredis";
+import { env } from "../config/env";
+import { logError, logInfo, logWarn } from "../utils/logger";
 
 export let sharedConnection: Redis;
 export let queueConnection: Redis;
 export let workerConnection: Redis;
 
 function buildRedisOptions(): RedisOptions {
-  const url = process.env.REDIS_URL;
-
-  if (url) {
+  if (env.redisUrl) {
     return { maxRetriesPerRequest: null };
   }
 
-  const host = process.env.REDIS_HOST ?? "127.0.0.1";
-  const port = Number(process.env.REDIS_PORT ?? 6379);
-
   return {
-    host,
-    port,
+    host: env.redisHost,
+    port: env.redisPort,
     maxRetriesPerRequest: null,
   };
 }
 
 function createClient(label: string, options?: RedisOptions): Redis {
-  const url = process.env.REDIS_URL;
-  const client = url
-    ? new Redis(url, { maxRetriesPerRequest: null, ...options })
+  const client = env.redisUrl
+    ? new Redis(env.redisUrl, { maxRetriesPerRequest: null, ...options })
     : new Redis({ ...buildRedisOptions(), ...options });
 
   client.on("error", (error: Error) => {
-    console.error(`[REDIS] ${label} error:`, error.message);
+    logError(`[REDIS] ${label} error`, { message: error.message });
   });
 
   return client;
@@ -44,10 +40,10 @@ export async function connectRedis(): Promise<void> {
 
   try {
     await sharedConnection.ping();
-    console.log("[REDIS] Connected successfully");
+    logInfo("[REDIS] Connected successfully");
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    console.error("[REDIS] Connection failed:", message);
+    logError("[REDIS] Connection failed", { message });
     throw error;
   }
 }
@@ -60,9 +56,9 @@ export async function disconnectRedis(): Promise<void> {
       await client.quit();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
-      console.warn("[REDIS] Disconnect warning:", message);
+      logWarn("[REDIS] Disconnect warning", { message });
     }
   }
 
-  console.log("[REDIS] Connections closed");
+  logInfo("[REDIS] Connections closed");
 }

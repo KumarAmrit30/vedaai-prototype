@@ -14,22 +14,6 @@ export function connectSocket(): Socket {
       transports: ["websocket", "polling"],
     });
 
-    socket.on("connect", () => {
-      console.log("[SOCKET] Connected", socket?.id);
-    });
-
-    socket.on("disconnect", (reason) => {
-      console.log("[SOCKET] Disconnected", reason);
-    });
-
-    socket.io.on("reconnect", (attempt) => {
-      console.log("[SOCKET] Reconnected after attempt", attempt);
-    });
-
-    socket.io.on("reconnect_attempt", (attempt) => {
-      console.log("[SOCKET] Reconnect attempt", attempt);
-    });
-
     socket.io.on("reconnect_error", (error) => {
       console.warn("[SOCKET] Reconnect error", error.message);
     });

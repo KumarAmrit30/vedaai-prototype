@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import multer from "multer";
 import { MAX_UPLOAD_BYTES } from "../services/material-parser.service";
+import { logWarn } from "../utils/logger";
 
 export function uploadErrorHandler(
   err: Error,
@@ -33,7 +34,7 @@ export function uploadErrorHandler(
   }
 
   if (isMaterialUploadError(err)) {
-    console.warn("[UPLOAD] Rejected material upload", { message: err.message });
+    logWarn("[UPLOAD] Rejected material upload", { message: err.message });
     res.status(400).json({
       success: false,
       message: err.message,

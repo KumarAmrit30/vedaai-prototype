@@ -1,7 +1,7 @@
 "use client";
 
 import axios from "axios";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import apiClient from "@/lib/api/axios";
 import { deriveWorkspaceStatus } from "@/lib/utils/assignment-status";
@@ -15,22 +15,25 @@ interface AssignmentsResponse {
 
 export function useAssignmentsLoader(enabled = true): {
   retry: () => Promise<void>;
+  loadError: string | null;
 } {
   const loadedOnce = useAssignmentStore((state) => state.loadedOnce);
   const setAssignments = useAssignmentStore((state) => state.setAssignments);
+  const setLoadedOnce = useAssignmentStore((state) => state.setLoadedOnce);
   const loading = useAssignmentStore((state) => state.loading);
   const setLoading = useAssignmentStore((state) => state.setLoading);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const loadAssignments = useCallback(async (): Promise<void> => {
-    console.log("[LOADER] Fetch started");
     setLoading(true);
+    setLoadError(null);
 
     try {
       const response = await apiClient.get<AssignmentsResponse>("/assignments");
-      const data = Array.isArray(response.data.data) ? response.data.data : [];
+      const payload = response.data;
+      const data = Array.isArray(payload?.data) ? payload.data : [];
 
       setAssignments(data);
-      console.log("[LOADER] Fetch resolved", { count: data.length });
     } catch (error) {
       let message = "We couldn’t load your assignments. Please try again.";
 
@@ -41,22 +44,23 @@ export function useAssignmentsLoader(enabled = true): {
         message = responseMessage?.message ?? message;
       }
 
-      console.error("[LOADER] Fetch failed", error);
+      setLoadError(message);
+      setLoadedOnce(true);
       toast.error(message);
       throw error;
     } finally {
       setLoading(false);
-      console.log("[LOADER] Loading flag cleared");
     }
-  }, [setAssignments, setLoading]);
+  }, [setAssignments, setLoadedOnce, setLoading]);
 
   useEffect(() => {
     if (!enabled || loadedOnce || loading) return;
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- bootstrap fetch on first mount
     void loadAssignments().catch(() => undefined);
   }, [enabled, loadedOnce, loadAssignments, loading]);
 
-  return { retry: loadAssignments };
+  return { retry: loadAssignments, loadError };
 }
 
 export function useDashboardStats(assignments: Assignment[]): {

@@ -11,6 +11,7 @@ import {
   emitAssignmentFailed,
   emitAssignmentProcessing,
 } from "../socket/assignment.socket";
+import { logError, logInfo, logWarn } from "../utils/logger";
 import {
   ASSIGNMENT_QUEUE_NAME,
   type AssignmentGenerationJobData,
@@ -29,13 +30,7 @@ async function updateAssignmentProgress(
     { new: true },
   );
 
-  if (!updated) {
-    console.warn("[WORKER] Skipped progress update for deleted assignment", {
-      assignmentId,
-      progress,
-    });
-    return;
-  }
+  if (!updated) return;
 
   emitAssignmentProcessing(assignmentId, progress);
 }
@@ -44,23 +39,15 @@ async function processAssignmentJob(
   job: Job<AssignmentGenerationJobData>,
 ): Promise<void> {
   const { assignmentId, uploadPaths, ...formData } = job.data;
-  const startedAt = Date.now();
 
   if (!assignmentId) {
     throw new Error("Assignment job missing assignmentId");
   }
 
-  console.log("[WORKER] Processing job", {
-    assignmentId,
-    jobId: job.id,
-    attempt: job.attemptsMade + 1,
-    hasMaterial: Boolean(formData.materialText),
-  });
-
   const assignment = await findActiveAssignmentById(assignmentId);
 
   if (!assignment) {
-    console.warn("[WORKER] Assignment not found or deleted, skipping job", {
+    logWarn("[WORKER] Assignment not found or deleted, skipping job", {
       assignmentId,
       jobId: job.id,
     });
@@ -101,51 +88,35 @@ async function processAssignmentJob(
     emitAssignmentCompleted(assignmentId, generatedPaper);
     await job.updateProgress(100);
 
-    const durationMs = Date.now() - startedAt;
-    console.log("[WORKER] Assignment completed", {
-      assignmentId,
-      jobId: job.id,
-      durationMs,
-    });
+    logInfo("[WORKER] Assignment completed", { assignmentId, jobId: job.id });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     const maxAttempts = job.opts.attempts ?? 3;
     const isFinalAttempt = job.attemptsMade + 1 >= maxAttempts;
 
-    console.error("[WORKER] Job attempt failed", {
+    logError("[WORKER] Job attempt failed", {
       assignmentId,
       jobId: job.id,
       attempt: job.attemptsMade + 1,
       maxAttempts,
-      isFinalAttempt,
-      error: message,
+      message,
     });
 
     if (isFinalAttempt) {
       try {
         const failedAssignment = await findActiveAssignmentById(assignmentId);
-        if (!failedAssignment) {
-          console.warn("[WORKER] Skipped failure persist for deleted assignment", {
-            assignmentId,
-          });
-          return;
+        if (failedAssignment) {
+          failedAssignment.status = "failed";
+          failedAssignment.failureReason = message;
+          failedAssignment.progress = 0;
+          failedAssignment.completedAt = new Date();
+          await failedAssignment.save();
+          emitAssignmentFailed(assignmentId, message);
         }
-
-        failedAssignment.status = "failed";
-        failedAssignment.failureReason = message;
-        failedAssignment.progress = 0;
-        failedAssignment.completedAt = new Date();
-        await failedAssignment.save();
-        emitAssignmentFailed(assignmentId, message);
-
-        console.log("[ASSIGNMENT] Marked failed after retries", {
-          assignmentId,
-          failureReason: message,
-        });
       } catch (saveError) {
         const saveMessage =
           saveError instanceof Error ? saveError.message : "Unknown save error";
-        console.error("[ASSIGNMENT] Failed to persist failure state:", saveMessage);
+        logError("[WORKER] Failed to persist failure state", { saveMessage });
       }
     }
 
@@ -167,32 +138,24 @@ export async function startAssignmentWorker(): Promise<void> {
   );
 
   assignmentWorker.on("error", (error: Error) => {
-    console.error("[WORKER] Worker error:", error.message);
+    logError("[WORKER] Worker error", { message: error.message });
   });
 
   assignmentWorker.on("failed", (job, error) => {
-    console.error("[WORKER] Job failed event", {
+    logError("[WORKER] Job failed", {
       jobId: job?.id ?? "unknown",
       assignmentId: job?.data.assignmentId,
-      attempts: job?.attemptsMade,
-      error: error.message,
-    });
-  });
-
-  assignmentWorker.on("completed", (job) => {
-    console.log("[WORKER] Job completed event", {
-      jobId: job.id,
-      assignmentId: job.data.assignmentId,
+      message: error.message,
     });
   });
 
   await assignmentWorker.waitUntilReady();
-  console.log("[WORKER] Assignment worker ready");
+  logInfo("[WORKER] Assignment worker ready");
 }
 
 export async function closeAssignmentWorker(): Promise<void> {
   if (!assignmentWorker) return;
 
   await assignmentWorker.close();
-  console.log("[WORKER] Assignment worker closed");
+  logInfo("[WORKER] Assignment worker closed");
 }

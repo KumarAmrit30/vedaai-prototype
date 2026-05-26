@@ -35,7 +35,6 @@ export function BulkActionBar() {
 
   function handleDelete(): void {
     const ids = [...selectedIds];
-    console.log("[DELETE] Bulk delete started", { ids });
 
     const removed = removeAssignmentsById(ids);
     clearSelection();

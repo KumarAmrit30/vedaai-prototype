@@ -3,12 +3,14 @@ import path from "node:path";
 import type { Request } from "express";
 import multer, { type FileFilterCallback } from "multer";
 import { randomUUID } from "node:crypto";
+import { UPLOADS_DIR } from "../config/uploads";
 import {
   isAllowedMaterialUpload,
   MAX_UPLOAD_BYTES,
 } from "../services/material-parser.service";
+import { logWarn } from "../utils/logger";
 
-export const UPLOADS_DIR = path.join("/tmp", "uploads");
+export { UPLOADS_DIR } from "../config/uploads";
 
 function ensureUploadsDir(): void {
   if (!fs.existsSync(UPLOADS_DIR)) {
@@ -35,7 +37,7 @@ function fileFilter(
   callback: FileFilterCallback,
 ): void {
   if (!isAllowedMaterialUpload(file.originalname, file.mimetype)) {
-    console.warn("[UPLOAD] Rejected unsupported file type", {
+    logWarn("[UPLOAD] Rejected unsupported file type", {
       fileName: file.originalname,
       mimeType: file.mimetype,
     });
@@ -44,11 +46,6 @@ function fileFilter(
     );
     return;
   }
-
-  console.log("[UPLOAD] Accepted file", {
-    fileName: file.originalname,
-    mimeType: file.mimetype,
-  });
 
   callback(null, true);
 }

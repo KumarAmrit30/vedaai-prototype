@@ -35,20 +35,3 @@ export async function findActiveAssignmentsByIds(
     isDeleted: { $ne: true },
   });
 }
-
-export async function logAssignmentQueryStats(
-  context: string,
-  activeCount: number,
-): Promise<void> {
-  const [totalCount, deletedCount] = await Promise.all([
-    Assignment.countDocuments({}),
-    Assignment.countDocuments({ isDeleted: true }),
-  ]);
-
-  console.log(`[ASSIGNMENT] ${context}`, {
-    activeCount,
-    deletedCount,
-    totalCount,
-    excludedDeleted: deletedCount,
-  });
-}

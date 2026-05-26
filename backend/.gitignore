@@ -1,4 +1,7 @@
 node_modules
 dist
 .env
-uploads/
+uploads
+tmp
+dump.rdb
+*.log

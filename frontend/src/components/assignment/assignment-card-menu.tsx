@@ -63,10 +63,6 @@ export function AssignmentCardMenu({ assignment }: AssignmentCardMenuProps) {
   }
 
   function handleDeleteConfirm(): void {
-    console.log("[DELETE] Card menu delete started", {
-      id: assignment._id,
-    });
-
     const removed = removeAssignmentsById([assignment._id]);
     removeAssignmentMeta(assignment._id);
     setConfirmDelete(false);

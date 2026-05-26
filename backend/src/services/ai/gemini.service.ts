@@ -1,17 +1,13 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { env } from "../../config/env";
+import { logError } from "../../utils/logger";
 
 const MODEL_NAME = "gemini-2.5-flash";
 let genAI: GoogleGenerativeAI | undefined;
 
 function getClient(): GoogleGenerativeAI {
-  const apiKey = process.env.GEMINI_API_KEY;
-
-  if (!apiKey) {
-    throw new Error("GEMINI_API_KEY environment variable is not defined");
-  }
-
   if (!genAI) {
-    genAI = new GoogleGenerativeAI(apiKey);
+    genAI = new GoogleGenerativeAI(env.geminiApiKey);
   }
 
   return genAI;
@@ -31,7 +27,7 @@ export async function generateContent(prompt: string): Promise<string> {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unknown Gemini error";
-    console.error("[AI] Gemini generateContent failed:", message);
+    logError("[AI] Gemini generateContent failed", { message });
     throw error instanceof Error ? error : new Error(message);
   }
 }

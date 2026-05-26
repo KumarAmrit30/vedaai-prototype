@@ -24,7 +24,6 @@ import {
   findActiveAssignmentById,
   findActiveAssignments,
   findActiveAssignmentsByIds,
-  logAssignmentQueryStats,
   NOT_DELETED_FILTER,
 } from "./assignment.queries";
 import {
@@ -135,26 +134,11 @@ export async function createAssignment(
     let originalFileName: string | undefined;
 
     if (uploadedFiles?.length) {
-      console.log("[UPLOAD] Received files", {
-        count: uploadedFiles.length,
-        files: uploadedFiles.map((file) => ({
-          name: file.originalname,
-          size: file.size,
-          mimeType: file.mimetype,
-        })),
-      });
-
       const parsed = await parseMaterialFiles(uploadedFiles);
       materialText = parsed.materialText;
       materialSource = parsed.materialSource;
       materialSourceType = parsed.materialSourceType;
       originalFileName = parsed.originalFileName;
-
-      console.log("[UPLOAD] Material stored for assignment", {
-        originalFileName,
-        materialSourceType,
-        textLength: materialText.length,
-      });
     }
 
     const assignment = await Assignment.create({
@@ -192,12 +176,6 @@ export async function createAssignment(
     assignment.jobId = jobId;
     await assignment.save();
 
-    console.log("[ASSIGNMENT] Created and enqueued", {
-      assignmentId: assignment._id.toString(),
-      jobId,
-      hasMaterial: Boolean(materialText),
-    });
-
     res.status(201).json({
       success: true,
       message: "Assignment created successfully",
@@ -208,9 +186,6 @@ export async function createAssignment(
     });
   } catch (error) {
     if (isMaterialUploadError(error)) {
-      console.warn("[UPLOAD] Material extraction rejected", {
-        message: error.message,
-      });
       res.status(400).json({
         success: false,
         message: error.message,
@@ -248,7 +223,6 @@ export async function getAssignments(
 ): Promise<void> {
   try {
     const assignments = await findActiveAssignments();
-    await logAssignmentQueryStats("GET /assignments", assignments.length);
 
     res.json({
       success: true,
@@ -274,9 +248,6 @@ export async function getAssignmentById(
     const assignment = await findActiveAssignmentById(id);
 
     if (!assignment) {
-      console.warn("[ASSIGNMENT] GET /assignments/:id not found (deleted or missing)", {
-        id,
-      });
       res.status(404).json({
         success: false,
         message: "Assignment not found",
@@ -300,7 +271,6 @@ export async function deleteAssignment(
 ): Promise<void> {
   try {
     const id = getRouteParam(req.params.id);
-    console.log("[DELETE] Route entered", { id, params: req.params });
 
     if (!id) {
       res.status(400).json({ success: false, message: "Invalid assignment id" });
@@ -310,7 +280,6 @@ export async function deleteAssignment(
     const assignment = await findActiveAssignmentById(id);
 
     if (!assignment) {
-      console.warn("[DELETE] Assignment not found or already deleted", { id });
       res.status(404).json({
         success: false,
         message: "Assignment not found",
@@ -318,34 +287,19 @@ export async function deleteAssignment(
       return;
     }
 
-    console.log("[DELETE] Assignment found", {
-      id: assignment._id.toString(),
-      title: assignment.title,
-      isDeleted: assignment.isDeleted,
-    });
-
     assignment.isDeleted = true;
     assignment.deletedAt = new Date();
     await assignment.save();
 
     const assignmentId = assignment._id.toString();
-    console.log("[DELETE] MongoDB update success", {
-      assignmentId,
-      isDeleted: assignment.isDeleted,
-      deletedAt: assignment.deletedAt,
-    });
-
     emitAssignmentDeleted({ assignmentId });
-    console.log("[DELETE] WebSocket emit success", { assignmentId });
 
     res.json({
       success: true,
       message: "Assignment deleted",
       assignmentId,
     });
-    console.log("[DELETE] Response sent", { assignmentId });
   } catch (error) {
-    console.error("[DELETE] Route failed", error);
     next(error);
   }
 }
@@ -375,11 +329,6 @@ export async function bulkDeleteAssignments(
 
     ids.forEach((assignmentId) => {
       emitAssignmentDeleted({ assignmentId });
-    });
-
-    console.log("[ASSIGNMENT] Bulk soft deleted", {
-      requested: ids.length,
-      modified: result.modifiedCount,
     });
 
     res.json({
@@ -473,12 +422,6 @@ export async function bulkUpdateAssignmentStatus(
 
     updatedAssignments.forEach((assignment) => {
       emitAssignmentUpdated(buildUpdatedSocketPayload(assignment));
-    });
-
-    console.log("[ASSIGNMENT] Bulk status updated", {
-      requested: ids.length,
-      modified: result.modifiedCount,
-      status,
     });
 
     res.json({

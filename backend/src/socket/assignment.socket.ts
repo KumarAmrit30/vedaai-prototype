@@ -59,47 +59,38 @@ export function emitAssignmentProcessing(
   assignmentId: string,
   progress: number,
 ): void {
-  const payload = buildPayload(assignmentId, "generating", progress);
-  getIO().emit("assignment:processing", payload);
-  console.log("[SOCKET] assignment:processing", {
-    assignmentId,
-    progress,
-  });
+  getIO().emit(
+    "assignment:processing",
+    buildPayload(assignmentId, "generating", progress),
+  );
 }
 
 export function emitAssignmentCompleted(
   assignmentId: string,
   generatedPaper: GeneratedPaper,
 ): void {
-  const payload = buildPayload(assignmentId, "completed", 100, {
-    generatedPaper,
-  });
-  getIO().emit("assignment:completed", payload);
-  console.log("[SOCKET] assignment:completed", { assignmentId });
+  getIO().emit(
+    "assignment:completed",
+    buildPayload(assignmentId, "completed", 100, { generatedPaper }),
+  );
 }
 
 export function emitAssignmentFailed(
   assignmentId: string,
   failureReason: string,
 ): void {
-  const payload = buildPayload(assignmentId, "failed", 0, {
-    failureReason,
-  });
-  getIO().emit("assignment:failed", payload);
-  console.log("[SOCKET] assignment:failed", {
-    assignmentId,
-    failureReason,
-  });
+  getIO().emit(
+    "assignment:failed",
+    buildPayload(assignmentId, "failed", 0, { failureReason }),
+  );
 }
 
 export function emitAssignmentUpdated(payload: AssignmentUpdatedPayload): void {
   getIO().emit("assignment:updated", payload);
-  console.log("[SOCKET] assignment:updated", payload);
 }
 
 export function emitAssignmentDeleted(payload: AssignmentDeletedPayload): void {
   getIO().emit("assignment:deleted", payload);
-  console.log("[SOCKET] assignment:deleted", payload);
 }
 
 export function mapStatusForFrontend(

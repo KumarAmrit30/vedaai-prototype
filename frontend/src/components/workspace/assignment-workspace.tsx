@@ -28,7 +28,11 @@ export function AssignmentWorkspace({
 }: AssignmentWorkspaceProps) {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const assignments = useAssignmentStore((state) => state.assignments) ?? [];
+  const rawAssignments = useAssignmentStore((state) => state.assignments);
+  const assignments = useMemo(
+    () => rawAssignments ?? [],
+    [rawAssignments],
+  );
   const loading = useAssignmentStore((state) => state.loading);
   const loadedOnce = useAssignmentStore((state) => state.loadedOnce);
 

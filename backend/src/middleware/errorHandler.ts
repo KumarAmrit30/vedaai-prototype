@@ -1,5 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import multer from "multer";
+import { env } from "../config/env";
+import { logError } from "../utils/logger";
 
 export function errorHandler(
   err: Error,
@@ -20,10 +22,14 @@ export function errorHandler(
     return;
   }
 
-  console.error(err);
+  logError("[SERVER] Unhandled error", {
+    message: err.message,
+    ...(env.isProduction ? {} : { stack: err.stack }),
+  });
 
   res.status(500).json({
     success: false,
-    message: err.message || "Internal server error",
+    message: env.isProduction ? "Internal server error" : err.message,
+    ...(!env.isProduction ? { error: err.message } : {}),
   });
 }

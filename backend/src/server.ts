@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { createServer, type Server as HttpServer } from "node:http";
 import app from "./app";
+import { env, validateEnv } from "./config/env";
 import { connectDB, disconnectDB } from "./db/connect";
 import {
   closeAssignmentQueue,
@@ -11,9 +12,11 @@ import {
   startAssignmentWorker,
 } from "./queues/assignment.worker";
 import { connectRedis, disconnectRedis } from "./queues/redis";
+import { cleanupStaleUploads } from "./services/material-parser.service";
 import { closeSocket, initSocket } from "./socket/index";
+import { logError, logInfo } from "./utils/logger";
 
-const PORT = Number(process.env.PORT) || 8000;
+validateEnv();
 
 let server: HttpServer | undefined;
 let isShuttingDown = false;
@@ -22,7 +25,7 @@ async function shutdown(signal: string): Promise<void> {
   if (isShuttingDown) return;
   isShuttingDown = true;
 
-  console.log(`[SERVER] Received ${signal}, shutting down gracefully...`);
+  logInfo(`[SERVER] Received ${signal}, shutting down gracefully...`);
 
   try {
     await closeAssignmentWorker();
@@ -36,18 +39,18 @@ async function shutdown(signal: string): Promise<void> {
       }
 
       server.close(() => {
-        console.log("[SERVER] HTTP server closed");
+        logInfo("[SERVER] HTTP server closed");
         resolve();
       });
     });
 
     await disconnectRedis();
     await disconnectDB();
-    console.log("[SERVER] Shutdown complete");
+    logInfo("[SERVER] Shutdown complete");
     process.exit(0);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    console.error("[SERVER] Shutdown error:", message);
+    logError("[SERVER] Shutdown error", { message });
     process.exit(1);
   }
 }
@@ -56,6 +59,7 @@ async function startServer(): Promise<void> {
   try {
     await connectDB();
     await connectRedis();
+    await cleanupStaleUploads();
 
     initAssignmentQueue();
 
@@ -63,14 +67,16 @@ async function startServer(): Promise<void> {
     initSocket(server);
     await startAssignmentWorker();
 
-    server.listen(PORT, () => {
-      console.log(`[SERVER] VedaAI backend started on http://localhost:${PORT}`);
-      console.log(`[SERVER] Health check: http://localhost:${PORT}/api/health`);
-      console.log(`[SERVER] WebSocket ready on http://localhost:${PORT}`);
+    server.listen(env.port, () => {
+      logInfo("[SERVER] VedaAI backend started", {
+        port: env.port,
+        clientUrl: env.clientUrl,
+        healthCheck: `/api/health`,
+      });
     });
 
     server.on("error", (error: NodeJS.ErrnoException) => {
-      console.error("[SERVER] Failed to start server:", error.message);
+      logError("[SERVER] Failed to start server", { message: error.message });
       process.exit(1);
     });
 
@@ -83,7 +89,7 @@ async function startServer(): Promise<void> {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    console.error("[SERVER] Failed to start application:", message);
+    logError("[SERVER] Failed to start application", { message });
     process.exit(1);
   }
 }

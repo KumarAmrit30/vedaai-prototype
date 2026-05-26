@@ -1,25 +1,22 @@
 import type { Server as HttpServer } from "node:http";
-import { Server, type Socket } from "socket.io";
+import { Server } from "socket.io";
+import { getCorsOrigins } from "../config/env";
+import { logInfo } from "../utils/logger";
 
 let io: Server | undefined;
 
 export function initSocket(httpServer: HttpServer): Server {
   io = new Server(httpServer, {
     cors: {
-      origin: true,
+      origin: getCorsOrigins(),
       methods: ["GET", "POST"],
+      credentials: true,
     },
+    pingInterval: 25000,
+    pingTimeout: 20000,
   });
 
-  io.on("connection", (socket: Socket) => {
-    console.log("[SOCKET] Client connected:", socket.id);
-
-    socket.on("disconnect", (reason) => {
-      console.log("[SOCKET] Client disconnected:", socket.id, reason);
-    });
-  });
-
-  console.log("[SOCKET] Server initialized");
+  logInfo("[SOCKET] Server initialized");
   return io;
 }
 
@@ -36,5 +33,5 @@ export async function closeSocket(): Promise<void> {
 
   await io.close();
   io = undefined;
-  console.log("[SOCKET] Server closed");
+  logInfo("[SOCKET] Server closed");
 }

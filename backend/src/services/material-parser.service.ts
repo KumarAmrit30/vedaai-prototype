@@ -2,9 +2,12 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import pdf from "pdf-parse";
 import type { MaterialSource } from "../modules/assignment/assignment.types";
+import { UPLOADS_DIR } from "../config/uploads";
+import { logDebug, logError, logInfo, logWarn } from "../utils/logger";
 
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 export const MAX_MATERIAL_CHARS = 50_000;
+const STALE_UPLOAD_MAX_AGE_MS = 60 * 60 * 1000;
 
 const ALLOWED_MIME_TYPES = new Set(["application/pdf", "text/plain"]);
 const ALLOWED_EXTENSIONS = new Set([".pdf", ".txt"]);
@@ -50,17 +53,14 @@ async function parsePdfFile(
   filePath: string,
   originalName: string,
 ): Promise<string> {
-  console.log("[PDF] Extracting text", { fileName: originalName, filePath });
-
   try {
     const buffer = await fs.readFile(filePath);
     const result = await pdf(buffer);
     const text = normalizeMaterialText(result.text ?? "");
 
-    console.log("[PDF] Extraction complete", {
+    logDebug("[PDF] Extraction complete", {
       fileName: originalName,
       textLength: text.length,
-      pages: result.numpages,
     });
 
     if (!text.trim()) {
@@ -70,10 +70,7 @@ async function parsePdfFile(
     return text;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown PDF error";
-    console.error("[PDF] Extraction failed", {
-      fileName: originalName,
-      error: message,
-    });
+    logError("[PDF] Extraction failed", { fileName: originalName, message });
     throw new Error(
       `Failed to extract text from PDF "${originalName}": ${message}`,
     );
@@ -84,13 +81,11 @@ async function parseTxtFile(
   filePath: string,
   originalName: string,
 ): Promise<string> {
-  console.log("[TXT] Reading file", { fileName: originalName, filePath });
-
   try {
     const content = await fs.readFile(filePath, "utf-8");
     const text = normalizeMaterialText(content);
 
-    console.log("[TXT] Read complete", {
+    logDebug("[TXT] Read complete", {
       fileName: originalName,
       textLength: text.length,
     });
@@ -102,10 +97,7 @@ async function parseTxtFile(
     return text;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown TXT error";
-    console.error("[TXT] Read failed", {
-      fileName: originalName,
-      error: message,
-    });
+    logError("[TXT] Read failed", { fileName: originalName, message });
     throw new Error(`Failed to read text file "${originalName}": ${message}`);
   }
 }
@@ -128,13 +120,6 @@ export async function parseMaterialFile(file: {
   if (!fileType) {
     throw new Error(`Unsupported file type: ${file.originalname}`);
   }
-
-  console.log("[UPLOAD] Parsing material file", {
-    fileName: file.originalname,
-    fileType,
-    size: file.size,
-    mimeType: file.mimetype,
-  });
 
   const text =
     fileType === "pdf"
@@ -163,13 +148,47 @@ export async function deleteUploadedFiles(filePaths: string[]): Promise<void> {
     filePaths.map(async (filePath) => {
       try {
         await fs.unlink(filePath);
-        console.log("[UPLOAD] Deleted temp file", { filePath });
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown error";
-        console.warn("[UPLOAD] Failed to delete temp file", { filePath, error: message });
+        logWarn("[UPLOAD] Failed to delete temp file", { filePath, message });
       }
     }),
   );
+}
+
+/** Remove orphaned temp uploads left from crashed or interrupted requests. */
+export async function cleanupStaleUploads(
+  maxAgeMs = STALE_UPLOAD_MAX_AGE_MS,
+): Promise<void> {
+  try {
+    const entries = await fs.readdir(UPLOADS_DIR);
+    const cutoff = Date.now() - maxAgeMs;
+    let removed = 0;
+
+    for (const entry of entries) {
+      const filePath = path.join(UPLOADS_DIR, entry);
+      try {
+        const stat = await fs.stat(filePath);
+        if (!stat.isFile()) continue;
+        if (stat.mtimeMs >= cutoff) continue;
+
+        await fs.unlink(filePath);
+        removed += 1;
+      } catch {
+        // Ignore per-file cleanup errors.
+      }
+    }
+
+    if (removed > 0) {
+      logInfo("[UPLOAD] Cleaned stale temp files", { removed });
+    }
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code === "ENOENT") return;
+
+    const message = error instanceof Error ? error.message : "Unknown error";
+    logWarn("[UPLOAD] Stale cleanup skipped", { message });
+  }
 }
 
 export interface ParsedMaterialResult {
@@ -191,8 +210,6 @@ export async function parseMaterialFiles(
     throw new Error("No material files were uploaded.");
   }
 
-  console.log("[UPLOAD] Processing batch", { fileCount: files.length });
-
   const parsed = await Promise.all(files.map((file) => parseMaterialFile(file)));
   const materialText = normalizeMaterialText(
     parsed.map((item) => item.text).join("\n\n---\n\n"),
@@ -213,11 +230,9 @@ export async function parseMaterialFiles(
     charCount: materialText.length,
   };
 
-  console.log("[UPLOAD] Batch parsed", {
-    originalFileName: materialSource.fileName,
-    materialSourceType: primary.materialSourceType,
-    textLength: materialText.length,
+  logInfo("[UPLOAD] Material parsed", {
     fileCount: parsed.length,
+    textLength: materialText.length,
   });
 
   return {

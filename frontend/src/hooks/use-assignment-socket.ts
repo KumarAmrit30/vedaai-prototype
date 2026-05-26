@@ -25,6 +25,8 @@ export function useAssignmentSocket(): void {
     const socket = connectSocket();
 
     function handleProcessing(payload: AssignmentSocketPayload): void {
+      if (!payload?.assignmentId) return;
+
       useAssignmentStore.getState().updateAssignment(payload.assignmentId, {
         status: ASSIGNMENT_STATUS.GENERATING,
         progress: payload.progress,
@@ -32,6 +34,8 @@ export function useAssignmentSocket(): void {
     }
 
     function handleCompleted(payload: AssignmentSocketPayload): void {
+      if (!payload?.assignmentId) return;
+
       useAssignmentStore.getState().updateAssignment(payload.assignmentId, {
         status: ASSIGNMENT_STATUS.COMPLETED,
         progress: payload.progress,
@@ -42,6 +46,8 @@ export function useAssignmentSocket(): void {
     }
 
     function handleFailed(payload: AssignmentSocketPayload): void {
+      if (!payload?.assignmentId) return;
+
       useAssignmentStore.getState().updateAssignment(payload.assignmentId, {
         status: ASSIGNMENT_STATUS.FAILED,
         progress: payload.progress,
@@ -49,6 +55,8 @@ export function useAssignmentSocket(): void {
     }
 
     function handleUpdated(payload: AssignmentUpdatedPayload): void {
+      if (!payload?.assignmentId) return;
+
       useAssignmentStore.getState().updateAssignment(payload.assignmentId, {
         ...(payload.status ? { status: payload.status } : {}),
         ...(payload.progress !== undefined ? { progress: payload.progress } : {}),
@@ -59,21 +67,14 @@ export function useAssignmentSocket(): void {
     }
 
     function handleDeleted(payload: AssignmentDeletedPayload): void {
+      if (!payload?.assignmentId) return;
+
       const store = useAssignmentStore.getState();
       const exists = store.assignments.some(
         (item) => item._id === payload.assignmentId,
       );
 
-      if (!exists) {
-        console.log("[SOCKET] assignment:deleted ignored (already removed)", {
-          assignmentId: payload.assignmentId,
-        });
-        return;
-      }
-
-      console.log("[SOCKET] assignment:deleted", {
-        assignmentId: payload.assignmentId,
-      });
+      if (!exists) return;
 
       store.removeAssignmentsById([payload.assignmentId]);
       pruneSelection(payload.assignmentId);
