@@ -46,7 +46,7 @@ export function deleteAssignmentsWithUndo(
         await onCommit?.();
       } catch {
         onUndo(removed);
-        toast.error("Failed to delete assignment. Changes were restored.");
+        toast.error("Unable to delete assignment. Changes were restored.");
       }
     })();
   }, UNDO_DURATION_MS + 50);

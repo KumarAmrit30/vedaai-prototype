@@ -1,7 +1,8 @@
 "use client";
 
-import { CheckSquare, Copy, Trash2, X } from "lucide-react";
+import { CheckSquare, Copy, Loader2, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import toast from "react-hot-toast";
 import {
   bulkUpdateAssignmentStatus,
@@ -10,6 +11,7 @@ import {
 import { ASSIGNMENT_STATUS } from "@/lib/constants";
 import { ROUTES } from "@/lib/navigation/routes";
 import { deleteAssignmentsWithUndo } from "@/lib/utils/delete-with-undo";
+import { getApiErrorMessage } from "@/lib/utils/get-api-error-message";
 import { removeManyAssignmentMeta } from "@/lib/workspace/assignment-meta";
 import { storeDuplicateAssignment } from "@/lib/utils/duplicate-assignment";
 import { useAssignmentStore } from "@/store/assignment.store";
@@ -18,6 +20,7 @@ import type { Assignment } from "@/types/assignment";
 
 export function BulkActionBar() {
   const router = useRouter();
+  const [isUpdating, setIsUpdating] = useState(false);
   const selectedIds = useWorkspaceStore((state) => state.selectedIds);
   const clearSelection = useWorkspaceStore((state) => state.clearSelection);
   const removeAssignmentsById = useAssignmentStore(
@@ -50,6 +53,8 @@ export function BulkActionBar() {
   }
 
   async function handleMarkCompleted(): Promise<void> {
+    if (isUpdating) return;
+
     const ids = [...selectedIds];
     const snapshots = ids
       .map((id) => assignments.find((item) => item._id === id))
@@ -63,20 +68,25 @@ export function BulkActionBar() {
     });
 
     clearSelection();
+    setIsUpdating(true);
 
     try {
       await bulkUpdateAssignmentStatus(ids, "completed");
       toast.success(
         `${ids.length} assignment${ids.length === 1 ? "" : "s"} marked completed.`,
       );
-    } catch {
+    } catch (error) {
       snapshots.forEach((assignment) => {
         updateAssignment(assignment._id, {
           status: assignment.status,
           generatedPaper: assignment.generatedPaper,
         });
       });
-      toast.error("Failed to update assignments. Changes were restored.");
+      toast.error(
+        getApiErrorMessage(error, "Unable to update assignments. Changes were restored."),
+      );
+    } finally {
+      setIsUpdating(false);
     }
   }
 
@@ -107,8 +117,13 @@ export function BulkActionBar() {
         <button
           type="button"
           onClick={() => void handleMarkCompleted()}
+          disabled={isUpdating}
           className="outline-pill-btn !px-3 !py-1.5 text-[11px]"
+          aria-busy={isUpdating}
         >
+          {isUpdating ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={2} />
+          ) : null}
           Mark completed
         </button>
         <button type="button" onClick={handleDuplicate} className="outline-pill-btn !px-3 !py-1.5 text-[11px]">

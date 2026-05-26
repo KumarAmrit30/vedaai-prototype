@@ -15,9 +15,9 @@ const messages: Record<
   { title: string; description: string }
 > = {
   failed: {
-    title: "Generation couldn’t complete",
+    title: "Generation couldn't complete",
     description:
-      "Something went wrong while building this assessment. You can retry generation or adjust your inputs.",
+      "Unable to generate this assignment. Please retry or adjust your inputs and try again.",
   },
   timeout: {
     title: "Generation is taking longer than expected",

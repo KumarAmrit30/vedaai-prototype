@@ -10,8 +10,8 @@ import { useAssignmentStore } from "@/store/assignment.store";
 export default function DashboardPage() {
   const { handleNavigate, navigateToCreate } = useShellNavigation();
   const loading = useAssignmentStore((state) => state.loading);
+  const { retry, loadError } = useAssignmentsLoader();
 
-  useAssignmentsLoader();
   useScrollRestore(".app-shell__workspace", "veda:home-scroll");
 
   return (
@@ -22,7 +22,11 @@ export default function DashboardPage() {
       onNavigate={handleNavigate}
       onCreateClick={navigateToCreate}
     >
-      <HomeDashboard loading={loading} />
+      <HomeDashboard
+        loading={loading}
+        loadError={loadError}
+        onRetry={() => void retry()}
+      />
     </AppShell>
   );
 }

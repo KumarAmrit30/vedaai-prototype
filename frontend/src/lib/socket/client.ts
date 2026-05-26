@@ -14,8 +14,8 @@ export function connectSocket(): Socket {
       transports: ["websocket", "polling"],
     });
 
-    socket.io.on("reconnect_error", (error) => {
-      console.warn("[SOCKET] Reconnect error", error.message);
+    socket.io.on("reconnect_error", () => {
+      // Reconnection feedback is handled in useAssignmentSocket via toasts.
     });
   } else if (!socket.connected) {
     socket.connect();

@@ -67,7 +67,7 @@ export function AssignmentPreview({
       toast.success("PDF downloaded successfully.");
     } catch (error) {
       console.error("PDF ERROR:", error);
-      toast.error("Failed to generate PDF. Please try again.");
+      toast.error("Unable to generate PDF. Please try again.");
     } finally {
       setIsGeneratingPdf(false);
     }
@@ -131,6 +131,7 @@ export function AssignmentPreview({
           disabled={isGeneratingPdf}
           className="preview-action-btn"
           aria-busy={isGeneratingPdf}
+          aria-label={downloadLabel}
         >
           {isGeneratingPdf ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={2} />
@@ -171,6 +172,7 @@ export function AssignmentPreview({
           disabled={isGeneratingPdf}
           className="preview-action-btn"
           aria-busy={isGeneratingPdf}
+          aria-label={downloadLabel}
         >
           {isGeneratingPdf ? (
             <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />

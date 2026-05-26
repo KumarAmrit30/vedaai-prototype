@@ -11,6 +11,7 @@ import { PageTransition } from "@/components/layout/page-transition";
 import { useShellNavigation } from "@/hooks/use-shell-navigation";
 import apiClient from "@/lib/api/axios";
 import { ROUTES } from "@/lib/navigation/routes";
+import { getApiErrorMessage } from "@/lib/utils/get-api-error-message";
 import { storeDuplicateAssignment } from "@/lib/utils/duplicate-assignment";
 import { markAssignmentOpened } from "@/lib/workspace/assignment-meta";
 import { useAssignmentStore } from "@/store/assignment.store";
@@ -72,22 +73,21 @@ export default function AssignmentDetailPage() {
       } catch (fetchError) {
         if (cancelled) return;
 
-        let message = "We couldn’t load this assignment right now.";
+        const isNotFound =
+          axios.isAxiosError(fetchError) && fetchError.response?.status === 404;
 
-        if (axios.isAxiosError(fetchError)) {
-          if (fetchError.response?.status === 404) {
-            message = "This assignment could not be found. It may have been deleted.";
-            removeAssignmentsById([params.id]);
-          } else {
-            const responseMessage = fetchError.response?.data as
-              | { message?: string }
-              | undefined;
-            message = responseMessage?.message ?? message;
-          }
+        let message = getApiErrorMessage(
+          fetchError,
+          "Unable to load this assignment. Please try again.",
+        );
+
+        if (isNotFound) {
+          message = "This assignment could not be found. It may have been deleted.";
+          removeAssignmentsById([params.id]);
         }
 
         setError(message);
-        if (!axios.isAxiosError(fetchError) || fetchError.response?.status !== 404) {
+        if (!isNotFound) {
           toast.error(message);
         }
       } finally {
@@ -112,9 +112,13 @@ export default function AssignmentDetailPage() {
       .then((response) => {
         setAssignment(response.data.data);
       })
-      .catch(() => {
-        setError("We couldn’t load this assignment right now.");
-        toast.error("Unable to reload assignment.");
+      .catch((retryError) => {
+        const message = getApiErrorMessage(
+          retryError,
+          "Unable to reload assignment. Please try again.",
+        );
+        setError(message);
+        toast.error(message);
       })
       .finally(() => setLoading(false));
   }

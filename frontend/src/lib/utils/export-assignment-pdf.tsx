@@ -122,9 +122,6 @@ async function captureChunk(
 }
 
 async function captureElementInChunks(element: HTMLElement): Promise<HTMLCanvasElement[]> {
-  console.log("PDF GENERATION START");
-  console.log("PDF TARGET:", element);
-
   await waitForLayout();
 
   const totalHeight = Math.max(element.scrollHeight, element.offsetHeight);

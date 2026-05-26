@@ -17,6 +17,8 @@ import type { Assignment } from "@/types/assignment";
 
 interface HomeDashboardProps {
   loading: boolean;
+  loadError?: string | null;
+  onRetry?: () => void;
 }
 
 function StatCard({
@@ -92,12 +94,36 @@ function RecentCards({ assignments }: { assignments: Assignment[] }) {
   );
 }
 
-export function HomeDashboard({ loading }: HomeDashboardProps) {
+export function HomeDashboard({
+  loading,
+  loadError = null,
+  onRetry,
+}: HomeDashboardProps) {
   const assignments = useAssignmentStore((state) => state.assignments);
   const stats = useDashboardStats(assignments);
 
   const recentlyOpened = getRecentlyOpenedAssignments(assignments, 5);
   const pendingSnapshot = getPendingAssignmentsSnapshot(assignments, 4);
+
+  if (loadError && assignments.length === 0) {
+    return (
+      <PageTransition>
+        <div className="product-state-card surface-card-compact mx-auto max-w-xl px-6 py-8 text-center">
+          <h3 className="text-[15px] font-semibold text-[var(--text-primary)]">
+            Couldn&apos;t load dashboard
+          </h3>
+          <p className="mt-2 text-[13px] leading-relaxed text-[var(--text-secondary)]">
+            {loadError}
+          </p>
+          {onRetry ? (
+            <button type="button" onClick={onRetry} className="submit-pill-btn mt-5">
+              Try again
+            </button>
+          ) : null}
+        </div>
+      </PageTransition>
+    );
+  }
 
   if (loading && assignments.length === 0) {
     return (

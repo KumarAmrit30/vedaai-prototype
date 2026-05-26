@@ -1,6 +1,5 @@
 "use client";
 
-import axios from "axios";
 import { ChevronDown, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
@@ -18,6 +17,7 @@ import {
 } from "@/components/assignment/assignment-upload";
 import apiClient from "@/lib/api/axios";
 import { ASSIGNMENT_STATUS } from "@/lib/constants";
+import { getApiErrorMessage } from "@/lib/utils/get-api-error-message";
 import {
   inputClassName,
   labelClassName,
@@ -73,7 +73,8 @@ const questionTypeOptions = [
 const GENERATION_TIMEOUT_MS = 5 * 60 * 1000;
 const GENERATION_QUEUED_TOAST = "Assignment queued for generation";
 const GENERATION_SUCCESS_TOAST = "Assignment generated successfully";
-const GENERATION_FAILURE_TOAST = "Generation couldn't complete";
+const GENERATION_FAILURE_TOAST =
+  "Unable to generate assignment. Please try again or adjust your inputs.";
 
 interface AssignmentCreateFlowProps {
   assignments: Assignment[];
@@ -241,16 +242,9 @@ export function AssignmentCreateFlow({
         icon: "◷",
       });
     } catch (error) {
-      let message = "Failed to create assignment";
-
-      if (axios.isAxiosError(error)) {
-        const responseMessage = error.response?.data as
-          | { message?: string }
-          | undefined;
-        message = responseMessage?.message ?? error.message;
-      }
-
-      toast.error(message);
+      toast.error(
+        getApiErrorMessage(error, "Unable to create assignment. Please try again."),
+      );
     } finally {
       setIsSubmitting(false);
     }

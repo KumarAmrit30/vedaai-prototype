@@ -183,6 +183,10 @@ export function AssignmentUpload({
 
       {dropError ? (
         <p className="text-[12px] font-medium text-[var(--danger)]">{dropError}</p>
+      ) : files.length === 0 ? (
+        <p className="text-[12px] text-[var(--text-muted)]">
+          Upload is optional — skip this step if you don&apos;t have reference files.
+        </p>
       ) : null}
 
       {files.length > 0 ? (

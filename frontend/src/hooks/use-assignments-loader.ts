@@ -1,9 +1,9 @@
 "use client";
 
-import axios from "axios";
 import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import apiClient from "@/lib/api/axios";
+import { getApiErrorMessage } from "@/lib/utils/get-api-error-message";
 import { deriveWorkspaceStatus } from "@/lib/utils/assignment-status";
 import { useAssignmentStore } from "@/store/assignment.store";
 import type { Assignment } from "@/types/assignment";
@@ -35,14 +35,10 @@ export function useAssignmentsLoader(enabled = true): {
 
       setAssignments(data);
     } catch (error) {
-      let message = "We couldn’t load your assignments. Please try again.";
-
-      if (axios.isAxiosError(error)) {
-        const responseMessage = error.response?.data as
-          | { message?: string }
-          | undefined;
-        message = responseMessage?.message ?? message;
-      }
+      const message = getApiErrorMessage(
+        error,
+        "Unable to load assignments. Please try again.",
+      );
 
       setLoadError(message);
       setLoadedOnce(true);

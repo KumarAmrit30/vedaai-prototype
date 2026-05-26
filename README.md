@@ -18,12 +18,15 @@
 - [PDF/TXT Upload Grounding](#pdftxt-upload-grounding)
 - [Soft Delete Architecture](#soft-delete-architecture)
 - [PDF Export System](#pdf-export-system)
+- [Mobile Support](#mobile-support)
 - [Getting Started](#getting-started)
 - [Environment Variables](#environment-variables)
 - [API Overview](#api-overview)
 - [Engineering Highlights](#engineering-highlights)
 - [Deployment](#deployment)
+- [Known Limitations](#known-limitations)
 - [Screenshots](#screenshots)
+- [QA Checklist](#qa-checklist)
 - [Project Structure](#project-structure)
 
 ---
@@ -54,7 +57,7 @@ The system separates **fast API responses** from **slow AI work**, keeping the U
 | **Lifecycle** | `pending` → `generating` → `completed` / `failed` |
 | **Soft delete** | Recoverable MongoDB records; hidden from all active queries |
 | **Optimistic UI** | Instant delete with undo; socket-confirmed state |
-| **PDF export** | Print-optimized layout via browser print-to-PDF |
+| **PDF export** | Client-side html2canvas + jsPDF download (no print dialog) |
 | **Responsive shell** | Desktop sidebar, tablet layout, mobile bottom nav |
 
 ---
@@ -136,6 +139,7 @@ Preview + PDF export available
 | **Axios** | REST client |
 | **Socket.IO Client** | Realtime generation & mutation sync |
 | **react-hot-toast** | Non-blocking notifications |
+| **jspdf + html2canvas** | Client-side PDF export |
 | **lucide-react** | Icons |
 
 ### Backend (`/backend`)
@@ -231,14 +235,32 @@ Assignments are never hard-deleted from MongoDB during normal operation.
 
 ## PDF Export System
 
-Export uses a **print-to-PDF** approach (no server-side PDF library):
+Export uses a **client-side capture pipeline** (no server PDF library, no browser print dialog):
 
-1. Renders a dedicated `AssignmentPrintRoot` off-screen
-2. Applies print-optimized CSS (`@media print`)
-3. Opens the browser print dialog with a sanitized filename
-4. User saves as PDF from the dialog
+1. Renders a dedicated `AssignmentPdfExport` component inside an isolated iframe
+2. Uses **inline hex colors only** — safe for html2canvas (no CSS variables or `color-mix()`)
+3. Captures the document in vertical chunks via **html2canvas**
+4. Assembles multi-page **A4 PDF** with **jsPDF** (10 mm margins, JPEG 0.92 quality)
+5. Triggers a direct file download with a sanitized filename (e.g. `penetration-testing-assignment.pdf`)
 
-This keeps the export pipeline lightweight and produces clean, branded output without additional backend dependencies.
+The on-screen preview (`AssignmentPaper`) is unchanged; export runs off-screen so theme styles never break capture.
+
+**Key files:** `assignment-pdf-export.tsx`, `export-assignment-pdf.tsx`, `export-pdf-colors.ts`
+
+---
+
+## Mobile Support
+
+| Area | Behavior |
+|------|----------|
+| **Navigation** | Bottom nav + floating create button on small screens; sidebar on desktop |
+| **Safe areas** | `env(safe-area-inset-*)` padding for iPhone notch/home indicator |
+| **Layout** | Single-column assignment detail; sticky sidebar only at `lg+` breakpoints |
+| **Overflow** | Horizontal scroll prevented on shell; filter/sort pills scroll horizontally when needed |
+| **PDF export** | Same download pipeline on mobile Safari and Chrome — no print dialog |
+| **Touch** | Long-press to enter selection mode; adequate tap targets on action buttons |
+
+Test at **375px**, **768px**, and **1280px** widths before submission.
 
 ---
 
@@ -307,6 +329,7 @@ npm run dev            # http://localhost:3000
 | `MONGODB_URI` | Yes | MongoDB connection string |
 | `REDIS_URL` | Yes* | Redis URL (`redis://localhost:6379` or Upstash `rediss://...`) |
 | `GEMINI_API_KEY` | Yes | Google Gemini API key |
+| `CLIENT_URL` | No | Frontend origin for CORS + Socket.IO (default `http://localhost:3000`) |
 | `PORT` | No | HTTP port (default `8000`) |
 | `REDIS_HOST` | No | Fallback if `REDIS_URL` unset (default `127.0.0.1`) |
 | `REDIS_PORT` | No | Fallback if `REDIS_URL` unset (default `6379`) |
@@ -377,6 +400,15 @@ Fields:
 
 ## Deployment
 
+### Live demo
+
+| Service | URL |
+|---------|-----|
+| **Frontend (Vercel)** | _Add your production URL_ |
+| **Backend (Render)** | _Add your production API URL_ |
+
+### Platform guide
+
 | Service | Recommended platform | Notes |
 |---------|---------------------|-------|
 | **Frontend** | [Vercel](https://vercel.com) | Set `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_SOCKET_URL` to production backend |
@@ -384,14 +416,38 @@ Fields:
 | **MongoDB** | [MongoDB Atlas](https://www.mongodb.com/atlas) | Free tier works for demos |
 | **Redis** | [Upstash](https://upstash.com) | Use `rediss://` URL in `REDIS_URL` |
 
+### Render cold-start note
+
+Render free/starter tiers **spin down after inactivity**. The first request after idle can take **30–60+ seconds** while the service wakes up. During cold start:
+
+- API health checks may time out briefly
+- Assignment creation may appear slow until the backend is warm
+- Socket.IO reconnects automatically once the server is available
+
+For demos, hit `/api/health` once before presenting, or upgrade to a always-on plan.
+
 ### Production checklist
 
-- [ ] Set all backend env vars on host
+- [ ] Set all backend env vars on host (including `CLIENT_URL` for CORS)
 - [ ] Set frontend `NEXT_PUBLIC_*` vars on Vercel
-- [ ] Enable CORS for frontend origin on backend
 - [ ] Use TLS (`https` / `wss`) in production URLs
 - [ ] Confirm Redis and MongoDB are reachable from backend host
 - [ ] Run a test assignment end-to-end after deploy
+- [ ] Verify PDF export on mobile Safari
+
+---
+
+## Known Limitations
+
+| Limitation | Detail |
+|------------|--------|
+| **AI output** | Quality depends on Gemini; occasional retries may be needed |
+| **Material size** | Uploaded text truncated to 50,000 characters in prompts |
+| **PDF parsing** | Scanned/image-only PDFs may extract little or no text |
+| **PDF export** | Very long papers use chunked capture; extremely large assignments may take longer |
+| **Realtime** | Requires WebSocket connectivity; brief disconnects show a reconnect toast |
+| **Cold start** | Render free tier adds latency on first request after idle |
+| **Concurrent jobs** | Single worker process; heavy parallel generation queues sequentially |
 
 ---
 
@@ -408,6 +464,12 @@ Fields:
 |:---------------:|:---------:|
 | ![Paper placeholder](./docs/screenshots/paper.png) | ![Mobile placeholder](./docs/screenshots/mobile.png) |
 | Structured sections & PDF export | Responsive shell with bottom nav |
+
+---
+
+## QA Checklist
+
+See **[QA_CHECKLIST.md](./QA_CHECKLIST.md)** for the full pre-submission testing matrix covering assignments, uploads, realtime, PDF export, responsive layouts, and deployment verification.
 
 ---
 

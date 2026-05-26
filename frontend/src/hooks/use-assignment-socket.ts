@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import toast from "react-hot-toast";
 import { ASSIGNMENT_STATUS } from "@/lib/constants";
 import { connectSocket } from "@/lib/socket/client";
 import { useAssignmentStore } from "@/store/assignment.store";
@@ -10,6 +11,8 @@ import type {
   AssignmentSocketPayload,
   AssignmentUpdatedPayload,
 } from "@/types/assignment-socket";
+
+const SOCKET_DISCONNECT_TOAST_ID = "socket-disconnect";
 
 function pruneSelection(assignmentId: string): void {
   const workspace = useWorkspaceStore.getState();
@@ -21,6 +24,8 @@ function pruneSelection(assignmentId: string): void {
 }
 
 export function useAssignmentSocket(): void {
+  const wasConnectedRef = useRef(false);
+
   useEffect(() => {
     const socket = connectSocket();
 
@@ -80,6 +85,31 @@ export function useAssignmentSocket(): void {
       pruneSelection(payload.assignmentId);
     }
 
+    function handleConnect(): void {
+      if (wasConnectedRef.current) {
+        toast.dismiss(SOCKET_DISCONNECT_TOAST_ID);
+        toast.success("Realtime connection restored.", {
+          id: "socket-reconnected",
+          duration: 2500,
+        });
+      }
+
+      wasConnectedRef.current = true;
+    }
+
+    function handleDisconnect(reason: string): void {
+      if (!wasConnectedRef.current || reason === "io client disconnect") return;
+
+      toast("Connection lost. Reconnecting…", {
+        id: SOCKET_DISCONNECT_TOAST_ID,
+        duration: Infinity,
+        className: "app-toast app-toast--info",
+        icon: "◷",
+      });
+    }
+
+    socket.on("connect", handleConnect);
+    socket.on("disconnect", handleDisconnect);
     socket.on("assignment:processing", handleProcessing);
     socket.on("assignment:completed", handleCompleted);
     socket.on("assignment:failed", handleFailed);
@@ -87,6 +117,8 @@ export function useAssignmentSocket(): void {
     socket.on("assignment:deleted", handleDeleted);
 
     return () => {
+      socket.off("connect", handleConnect);
+      socket.off("disconnect", handleDisconnect);
       socket.off("assignment:processing", handleProcessing);
       socket.off("assignment:completed", handleCompleted);
       socket.off("assignment:failed", handleFailed);
