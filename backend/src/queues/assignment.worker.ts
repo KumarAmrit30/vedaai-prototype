@@ -27,7 +27,7 @@ async function updateAssignmentProgress(
   const updated = await Assignment.findOneAndUpdate(
     { _id: assignmentId, ...NOT_DELETED_FILTER },
     { progress },
-    { new: true },
+    { returnDocument: "after" },
   );
 
   if (!updated) return;
