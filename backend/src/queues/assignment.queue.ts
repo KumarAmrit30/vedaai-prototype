@@ -1,10 +1,63 @@
 import { Queue } from "bullmq";
-import { redis } from "../redis/client";
+import type { QuestionConfig } from "../modules/assignment/assignment.types";
+import { queueConnection } from "./redis";
 
-export let assignmentQueue: Queue;
+export const ASSIGNMENT_QUEUE_NAME = "assignment-generation";
+
+export interface AssignmentGenerationJobData {
+  assignmentId: string;
+  title: string;
+  topic: string;
+  dueDate: string;
+  instructions: string;
+  questionConfig: QuestionConfig;
+  materialText?: string;
+  metadata?: Record<string, unknown>;
+  uploadPaths?: string[];
+}
+
+export let assignmentQueue: Queue<AssignmentGenerationJobData>;
 
 export function initAssignmentQueue(): void {
-  assignmentQueue = new Queue("assignment-generation", {
-    connection: redis,
+  assignmentQueue = new Queue<AssignmentGenerationJobData>(
+    ASSIGNMENT_QUEUE_NAME,
+    {
+      connection: queueConnection,
+      defaultJobOptions: {
+        attempts: 3,
+        backoff: {
+          type: "exponential",
+          delay: 5000,
+        },
+        removeOnComplete: true,
+        removeOnFail: {
+          count: 100,
+        },
+      },
+    },
+  );
+
+  console.log("[QUEUE] Assignment queue initialized");
+}
+
+export async function enqueueAssignmentGeneration(
+  data: AssignmentGenerationJobData,
+): Promise<string> {
+  const job = await assignmentQueue.add("generate-assignment", data, {
+    jobId: data.assignmentId,
   });
+
+  console.log("[QUEUE] Job enqueued", {
+    assignmentId: data.assignmentId,
+    jobId: job.id,
+  });
+
+  return String(job.id);
+}
+
+export async function closeAssignmentQueue(): Promise<void> {
+  if (!assignmentQueue) return;
+
+  await assignmentQueue.close();
+  console.log("[QUEUE] Assignment queue closed");
 }

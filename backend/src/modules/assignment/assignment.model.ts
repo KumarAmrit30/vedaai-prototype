@@ -39,6 +39,16 @@ const questionConfigSchema = new Schema(
   { _id: false },
 );
 
+const materialSourceSchema = new Schema(
+  {
+    fileName: { type: String, required: true, trim: true },
+    fileType: { type: String, enum: ["pdf", "txt"], required: true },
+    fileSize: { type: Number, required: true, min: 0 },
+    charCount: { type: Number, required: true, min: 0 },
+  },
+  { _id: false },
+);
+
 const assignmentSchema = new Schema(
   {
     title: { type: String, required: true, trim: true },
@@ -53,6 +63,17 @@ const assignmentSchema = new Schema(
     },
     questionConfig: { type: questionConfigSchema, required: true },
     generatedPaper: { type: generatedPaperSchema, required: false },
+    jobId: { type: String, trim: true },
+    progress: { type: Number, min: 0, max: 100, default: 0 },
+    startedAt: { type: Date },
+    completedAt: { type: Date },
+    failureReason: { type: String, trim: true },
+    materialText: { type: String, trim: true },
+    materialSourceType: { type: String, enum: ["pdf", "txt"], required: false },
+    originalFileName: { type: String, trim: true },
+    materialSource: { type: materialSourceSchema, required: false },
+    isDeleted: { type: Boolean, default: false, index: true },
+    deletedAt: { type: Date },
   },
   { timestamps: true },
 );

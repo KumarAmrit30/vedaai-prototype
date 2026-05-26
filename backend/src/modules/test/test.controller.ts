@@ -7,14 +7,24 @@ export async function createTestJob(
   next: NextFunction,
 ): Promise<void> {
   try {
-    await assignmentQueue.add("test-assignment", {
+    const job = await assignmentQueue.add("test-assignment", {
+      assignmentId: "test-assignment-id",
+      title: "Test Assignment",
       topic: "DBMS",
-      message: "Test assignment generation",
+      dueDate: new Date().toISOString(),
+      instructions: "Test assignment generation",
+      questionConfig: {
+        questionType: "short-answer",
+        numberOfQuestions: 3,
+        marksPerQuestion: 2,
+      },
+      metadata: { source: "test-job" },
     });
 
     res.json({
       success: true,
       message: "Test job added successfully",
+      jobId: job.id,
     });
   } catch (error) {
     next(error);

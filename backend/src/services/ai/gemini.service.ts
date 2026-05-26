@@ -31,7 +31,7 @@ export async function generateContent(prompt: string): Promise<string> {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unknown Gemini error";
-    console.error("Gemini generateContent failed:", message);
+    console.error("[AI] Gemini generateContent failed:", message);
     throw error instanceof Error ? error : new Error(message);
   }
 }

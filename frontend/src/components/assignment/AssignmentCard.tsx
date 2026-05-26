@@ -1,61 +1,148 @@
-import { ASSIGNMENT_STATUS } from "@/lib/constants";
-import type { Assignment, AssignmentStatus } from "@/types/assignment";
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { memo, useRef } from "react";
+import { Calendar, Clock3, HelpCircle } from "lucide-react";
+import { AssignmentCardMenu } from "@/components/assignment/assignment-card-menu";
+import { ROUTES } from "@/lib/navigation/routes";
+import {
+  formatAssignmentDate,
+  formatQuestionType,
+} from "@/lib/utils/format-assignment";
+import {
+  getWorkspaceStatusDetail,
+  getWorkspaceStatusLabel,
+} from "@/lib/utils/assignment-status";
+import { markAssignmentOpened } from "@/lib/workspace/assignment-meta";
+import { useWorkspaceStore } from "@/store/workspace.store";
+import type { Assignment } from "@/types/assignment";
 
 interface AssignmentCardProps {
   assignment: Assignment;
-  onClick?: () => void;
+  index?: number;
+  isRecentlyOpened?: boolean;
+  isSelected?: boolean;
+  selectionMode?: boolean;
+  onToggleSelect?: (id: string) => void;
+  onLongPressSelect?: (id: string) => void;
 }
 
-const statusStyles: Record<AssignmentStatus, string> = {
-  [ASSIGNMENT_STATUS.PENDING]: "bg-yellow-500/10 text-yellow-400 ring-yellow-500/20",
-  [ASSIGNMENT_STATUS.GENERATING]: "bg-blue-500/10 text-blue-400 ring-blue-500/20",
-  [ASSIGNMENT_STATUS.COMPLETED]: "bg-green-500/10 text-green-400 ring-green-500/20",
-  [ASSIGNMENT_STATUS.FAILED]: "bg-red-500/10 text-red-400 ring-red-500/20",
-};
+const statusBadgeClassMap = {
+  pending: "status-badge status-badge--pending",
+  generating: "status-badge status-badge--generating",
+  completed: "status-badge status-badge--completed",
+  failed: "status-badge status-badge--failed",
+  draft: "status-badge status-badge--pending",
+  incomplete: "status-badge status-badge--pending",
+} as const;
 
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
+function AssignmentCardComponent({
+  assignment,
+  index = 0,
+  isRecentlyOpened = false,
+  isSelected = false,
+  selectionMode = false,
+  onToggleSelect,
+  onLongPressSelect,
+}: AssignmentCardProps) {
+  const router = useRouter();
+  const longPressTimerRef = useRef<number | null>(null);
+  const detailHref = ROUTES.assignmentDetail(assignment._id);
+  const statusDetail = getWorkspaceStatusDetail(assignment);
+  const statusLabel = getWorkspaceStatusLabel(statusDetail);
 
-export function AssignmentCard({ assignment, onClick }: AssignmentCardProps) {
+  function clearLongPressTimer(): void {
+    if (longPressTimerRef.current !== null) {
+      window.clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }
+
+  function handleOpen(): void {
+    markAssignmentOpened(assignment._id);
+    useWorkspaceStore.getState().setRecentlyOpenedHighlightId(assignment._id);
+    router.push(detailHref);
+  }
+
+  function handlePointerDown(): void {
+    clearLongPressTimer();
+    longPressTimerRef.current = window.setTimeout(() => {
+      onLongPressSelect?.(assignment._id);
+    }, 480);
+  }
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="group w-full rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 text-left shadow-sm transition hover:border-zinc-700 hover:bg-zinc-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-600"
+    <article
+      className={`assignment-card flow-step-panel${
+        isSelected ? " assignment-card--selected" : ""
+      }${isRecentlyOpened ? " assignment-card--recent" : ""}`}
+      style={{ animationDelay: `${Math.min(index, 8) * 45}ms` }}
+      onPointerDown={handlePointerDown}
+      onPointerUp={clearLongPressTimer}
+      onPointerLeave={clearLongPressTimer}
+      onPointerCancel={clearLongPressTimer}
     >
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="truncate text-base font-medium text-zinc-100 transition group-hover:text-white">
-            {assignment.title}
-          </h3>
-          <p className="mt-1 truncate text-sm text-zinc-500">{assignment.topic}</p>
-        </div>
-        <span
-          className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium capitalize ring-1 ring-inset ${statusStyles[assignment.status]}`}
+      <div className="assignment-card__top">
+        <label
+          className={`assignment-card__checkbox${
+            selectionMode ? " assignment-card__checkbox--visible" : ""
+          }`}
         >
-          {assignment.status}
-        </span>
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => onToggleSelect?.(assignment._id)}
+            aria-label={`Select ${assignment.title}`}
+          />
+        </label>
+
+        <Link
+          href={detailHref}
+          onClick={() => markAssignmentOpened(assignment._id)}
+          className="flex min-w-0 flex-1 items-start justify-between gap-3 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--orange-primary)]/20 focus-visible:ring-offset-1"
+        >
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h3 className="assignment-card__title truncate">{assignment.title}</h3>
+              {isRecentlyOpened ? (
+                <span className="assignment-card__recent-hint">Recently opened</span>
+              ) : null}
+            </div>
+            <p className="assignment-card__meta truncate">
+              {assignment.topic}
+              <span className="mx-1.5 opacity-40">·</span>
+              {formatQuestionType(assignment.questionConfig.questionType)}
+            </p>
+          </div>
+          <span className={statusBadgeClassMap[statusDetail]}>{statusLabel}</span>
+        </Link>
       </div>
 
-      <dl className="grid grid-cols-2 gap-3 text-sm">
-        <div>
-          <dt className="text-zinc-500">Questions</dt>
-          <dd className="mt-0.5 font-medium text-zinc-200">
-            {assignment.questionConfig.numberOfQuestions}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-zinc-500">Created</dt>
-          <dd className="mt-0.5 font-medium text-zinc-200">
-            {formatDate(assignment.createdAt)}
-          </dd>
-        </div>
-      </dl>
-    </button>
+      <div className="assignment-card__footer">
+        <button
+          type="button"
+          onClick={handleOpen}
+          className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3.5 gap-y-0.5 text-left"
+        >
+          <span className="inline-flex items-center gap-1 text-[11px] text-[var(--text-muted)]">
+            <Calendar className="h-3 w-3 shrink-0 opacity-50" strokeWidth={2} />
+            {formatAssignmentDate(assignment.dueDate)}
+          </span>
+          <span className="inline-flex items-center gap-1 text-[11px] text-[var(--text-muted)]">
+            <HelpCircle className="h-3 w-3 shrink-0 opacity-50" strokeWidth={2} />
+            {assignment.questionConfig.numberOfQuestions} questions
+          </span>
+          <span className="inline-flex items-center gap-1 text-[11px] text-[var(--text-muted)]">
+            <Clock3 className="h-3 w-3 shrink-0 opacity-50" strokeWidth={2} />
+            Updated {formatAssignmentDate(assignment.updatedAt)}
+          </span>
+        </button>
+
+        <AssignmentCardMenu assignment={assignment} />
+      </div>
+    </article>
   );
 }
+
+export const AssignmentCard = memo(AssignmentCardComponent);

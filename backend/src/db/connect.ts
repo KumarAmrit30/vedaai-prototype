@@ -9,10 +9,15 @@ export async function connectDB(): Promise<void> {
 
   try {
     await mongoose.connect(uri);
-    console.log("MongoDB connected successfully");
+    console.log("[SERVER] MongoDB connected successfully");
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    console.error("MongoDB connection failed:", message);
+    console.error("[SERVER] MongoDB connection failed:", message);
     throw error;
   }
+}
+
+export async function disconnectDB(): Promise<void> {
+  await mongoose.disconnect();
+  console.log("[SERVER] MongoDB disconnected");
 }

@@ -1,5 +1,6 @@
 export const ASSIGNMENT_STATUSES = [
   "pending",
+  "processing",
   "generating",
   "completed",
   "failed",
@@ -33,6 +34,13 @@ export interface QuestionConfig {
   marksPerQuestion: number;
 }
 
+export interface MaterialSource {
+  fileName: string;
+  fileType: "pdf" | "txt";
+  fileSize: number;
+  charCount: number;
+}
+
 export interface Assignment {
   title: string;
   topic: string;
@@ -41,6 +49,17 @@ export interface Assignment {
   status: AssignmentStatus;
   questionConfig: QuestionConfig;
   generatedPaper?: GeneratedPaper;
+  jobId?: string;
+  progress?: number;
+  startedAt?: Date;
+  completedAt?: Date;
+  failureReason?: string;
+  materialText?: string;
+  materialSourceType?: "pdf" | "txt";
+  originalFileName?: string;
+  materialSource?: MaterialSource;
+  isDeleted?: boolean;
+  deletedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
