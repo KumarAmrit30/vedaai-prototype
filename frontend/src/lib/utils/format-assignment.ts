@@ -27,10 +27,12 @@ export function formatAssignmentDate(
 export function buildAssignmentPdfFilename(title: string): string {
   const slug = title
     .trim()
+    .toLowerCase()
     .replace(/[^\w\s-]/g, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "")
     .slice(0, 64);
 
-  return `Assignment-${slug || "Export"}.pdf`;
+  return `${slug || "export"}-assignment.pdf`;
 }

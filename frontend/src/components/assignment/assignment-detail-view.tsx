@@ -54,7 +54,7 @@ export function AssignmentDetailView({
       </div>
 
       <div className="assignment-detail-view__layout">
-        <aside className="assignment-detail-view__meta surface-card-compact assignment-detail-view__meta--sticky">
+        <aside className="assignment-detail-view__meta surface-card-compact lg:sticky lg:top-6">
           <h2 className="text-[13px] font-semibold text-[var(--text-primary)]">
             Workspace overview
           </h2>

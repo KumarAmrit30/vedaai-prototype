@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, Pencil, RefreshCw } from "lucide-react";
+import { Download, Loader2, Pencil, RefreshCw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { AssignmentPaper } from "@/components/assignment/assignment-paper";
@@ -35,6 +35,7 @@ export function AssignmentPreview({
 }: AssignmentPreviewProps) {
   const stageRef = useRef<HTMLDivElement>(null);
   const [toolbarElevated, setToolbarElevated] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -56,15 +57,20 @@ export function AssignmentPreview({
     return () => scrollTarget.removeEventListener("scroll", handleScroll);
   }, []);
 
-  function handleDownloadPdf(): void {
-    toast(
-      "Tip: disable browser headers and footers in the print dialog for a clean export.",
-      { duration: 5000, icon: "💡" },
-    );
+  async function handleDownloadPdf(): Promise<void> {
+    if (isGeneratingPdf) return;
 
-    void exportAssignmentPdf(assignment, () => {
-      toast.success("PDF export ready — save from the print dialog.");
-    });
+    setIsGeneratingPdf(true);
+
+    try {
+      await exportAssignmentPdf(assignment);
+      toast.success("PDF downloaded successfully.");
+    } catch (error) {
+      console.error("PDF ERROR:", error);
+      toast.error("Failed to generate PDF. Please try again.");
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   }
 
   function handleRegenerate(): void {
@@ -110,15 +116,28 @@ export function AssignmentPreview({
     .filter(Boolean)
     .join(" ");
 
+  const downloadLabel = isGeneratingPdf ? "Generating PDF..." : "Download PDF";
+  const mobileDownloadLabel = isGeneratingPdf ? "Generating..." : "Download";
+
   return (
     <div
       ref={stageRef}
       className="preview-document-stage preview-document-stage--enter"
     >
       <div className={toolbarClassName}>
-        <button type="button" onClick={handleDownloadPdf} className="preview-action-btn">
-          <Download className="h-3.5 w-3.5" strokeWidth={2} />
-          Download PDF
+        <button
+          type="button"
+          onClick={() => void handleDownloadPdf()}
+          disabled={isGeneratingPdf}
+          className="preview-action-btn"
+          aria-busy={isGeneratingPdf}
+        >
+          {isGeneratingPdf ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={2} />
+          ) : (
+            <Download className="h-3.5 w-3.5" strokeWidth={2} />
+          )}
+          {downloadLabel}
         </button>
         <button type="button" onClick={handleRegenerate} className="preview-action-btn">
           <RefreshCw className="h-3.5 w-3.5" strokeWidth={2} />
@@ -146,9 +165,19 @@ export function AssignmentPreview({
       </div>
 
       <div className={mobileToolbarClassName}>
-        <button type="button" onClick={handleDownloadPdf} className="preview-action-btn">
-          <Download className="h-4 w-4" strokeWidth={2} />
-          Download
+        <button
+          type="button"
+          onClick={() => void handleDownloadPdf()}
+          disabled={isGeneratingPdf}
+          className="preview-action-btn"
+          aria-busy={isGeneratingPdf}
+        >
+          {isGeneratingPdf ? (
+            <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
+          ) : (
+            <Download className="h-4 w-4" strokeWidth={2} />
+          )}
+          {mobileDownloadLabel}
         </button>
         {onRegenerate ? (
           <button type="button" onClick={handleRegenerate} className="preview-action-btn">

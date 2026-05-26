@@ -41,8 +41,9 @@ export function AssignmentPaper({
 
   return (
     <article
+      id={variant === "preview" ? "assignment-preview" : undefined}
       className={paperClassName}
-      {...(variant === "preview" ? { "data-assignment-paper": true } : {})}
+      data-assignment-paper
     >
       <div className={innerClassName}>
         <header className="preview-exam-header">
