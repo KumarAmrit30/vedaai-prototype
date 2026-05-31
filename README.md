@@ -447,6 +447,7 @@ For demos, hit `/api/health` once before presenting, or upgrade to a always-on p
 | **PDF export** | Very long papers use chunked capture; extremely large assignments may take longer |
 | **Realtime** | Requires WebSocket connectivity; brief disconnects show a reconnect toast |
 | **Cold start** | Render free tier adds latency on first request after idle |
+| **Upstash Redis** | BullMQ idle polling is costly on pay-per-command Redis; worker pauses when idle and stops on quota errors |
 | **Concurrent jobs** | Single worker process; heavy parallel generation queues sequentially |
 
 ---

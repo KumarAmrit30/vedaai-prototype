@@ -1,6 +1,8 @@
 import { Queue } from "bullmq";
 import type { QuestionConfig } from "../modules/assignment/assignment.types";
-import { logInfo } from "../utils/logger";
+import { logError, logInfo } from "../utils/logger";
+import { isRedisQuotaExceeded, isRedisQuotaError } from "./redis-quota";
+import { resumeWorkerIfPaused } from "./worker-lifecycle";
 import { queueConnection } from "./redis";
 
 export const ASSIGNMENT_QUEUE_NAME = "assignment-generation";
@@ -38,12 +40,31 @@ export function initAssignmentQueue(): void {
     },
   );
 
+  assignmentQueue.on("error", (error: Error) => {
+    if (isRedisQuotaError(error)) {
+      logError("[QUEUE] Redis quota exceeded — queue errors suppressed", {
+        message: error.message,
+      });
+      return;
+    }
+
+    logError("[QUEUE] Queue error", { message: error.message });
+  });
+
   logInfo("[QUEUE] Assignment queue initialized");
 }
 
 export async function enqueueAssignmentGeneration(
   data: AssignmentGenerationJobData,
 ): Promise<string> {
+  if (isRedisQuotaExceeded()) {
+    throw new Error(
+      "Assignment queue is temporarily unavailable (Redis quota exceeded). Please try again later.",
+    );
+  }
+
+  await resumeWorkerIfPaused();
+
   const job = await assignmentQueue.add("generate-assignment", data, {
     jobId: data.assignmentId,
   });

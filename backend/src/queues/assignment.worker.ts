@@ -13,12 +13,67 @@ import {
 } from "../socket/assignment.socket";
 import { logError, logInfo, logWarn } from "../utils/logger";
 import {
+  assignmentQueue,
   ASSIGNMENT_QUEUE_NAME,
   type AssignmentGenerationJobData,
 } from "./assignment.queue";
+import {
+  isRedisQuotaError,
+  isRedisQuotaExceeded,
+  markRedisQuotaExceeded,
+} from "./redis-quota";
 import { workerConnection } from "./redis";
+import {
+  clearIdlePauseTimer,
+  closeRegisteredWorker,
+  registerAssignmentWorker,
+  schedulePauseWhenIdle,
+} from "./worker-lifecycle";
 
 export let assignmentWorker: Worker<AssignmentGenerationJobData>;
+
+/** Longer blocking interval when worker is active — default 5s burns ~500k Upstash cmds/month idle. */
+const WORKER_DRAIN_DELAY_SEC = 60;
+/** Single Render instance — stalled recovery is optional; disabling saves periodic Redis scans. */
+const WORKER_SKIP_STALLED_CHECK = true;
+
+let quotaShutdownPromise: Promise<void> | null = null;
+let workerErrorLoggedAfterQuota = false;
+
+async function shutdownOnQuotaExceeded(): Promise<void> {
+  if (quotaShutdownPromise) return quotaShutdownPromise;
+
+  quotaShutdownPromise = (async () => {
+    markRedisQuotaExceeded();
+    clearIdlePauseTimer();
+
+    try {
+      await closeRegisteredWorker(true);
+      logInfo("[WORKER] Closed after Redis quota exceeded");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      logWarn("[WORKER] Quota shutdown warning", { message });
+    }
+  })();
+
+  return quotaShutdownPromise;
+}
+
+function handleWorkerError(error: Error): void {
+  if (isRedisQuotaError(error)) {
+    if (!workerErrorLoggedAfterQuota) {
+      workerErrorLoggedAfterQuota = true;
+      logError("[WORKER] Redis quota exceeded — stopping worker", {
+        message: error.message,
+      });
+    }
+
+    void shutdownOnQuotaExceeded();
+    return;
+  }
+
+  logError("[WORKER] Worker error", { message: error.message });
+}
 
 async function updateAssignmentProgress(
   assignmentId: string,
@@ -129,17 +184,23 @@ async function processAssignmentJob(
 }
 
 export async function startAssignmentWorker(): Promise<void> {
+  if (isRedisQuotaExceeded()) {
+    logWarn("[WORKER] Skipping worker start — Redis quota already exceeded");
+    return;
+  }
+
   assignmentWorker = new Worker<AssignmentGenerationJobData>(
     ASSIGNMENT_QUEUE_NAME,
     processAssignmentJob,
     {
       connection: workerConnection,
+      autorun: false,
+      drainDelay: WORKER_DRAIN_DELAY_SEC,
+      skipStalledCheck: WORKER_SKIP_STALLED_CHECK,
     },
   );
 
-  assignmentWorker.on("error", (error: Error) => {
-    logError("[WORKER] Worker error", { message: error.message });
-  });
+  assignmentWorker.on("error", handleWorkerError);
 
   assignmentWorker.on("failed", (job, error) => {
     logError("[WORKER] Job failed", {
@@ -149,13 +210,30 @@ export async function startAssignmentWorker(): Promise<void> {
     });
   });
 
+  assignmentWorker.on("drained", () => {
+    schedulePauseWhenIdle();
+  });
+
+  assignmentWorker.on("active", () => {
+    clearIdlePauseTimer();
+  });
+
+  registerAssignmentWorker(assignmentWorker);
+
   await assignmentWorker.waitUntilReady();
-  logInfo("[WORKER] Assignment worker ready");
+
+  const pending = await assignmentQueue.getJobCounts("wait", "delayed");
+  const pendingCount = (pending.wait ?? 0) + (pending.delayed ?? 0);
+
+  if (pendingCount > 0) {
+    await assignmentWorker.run();
+    logInfo("[WORKER] Assignment worker ready", { pendingJobs: pendingCount });
+  } else {
+    logInfo("[WORKER] Assignment worker ready (idle — no Redis polling until next job)");
+  }
 }
 
 export async function closeAssignmentWorker(): Promise<void> {
-  if (!assignmentWorker) return;
-
-  await assignmentWorker.close();
+  await closeRegisteredWorker();
   logInfo("[WORKER] Assignment worker closed");
 }
