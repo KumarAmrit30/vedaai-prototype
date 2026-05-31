@@ -26,6 +26,7 @@ import { workerConnection } from "./redis";
 import {
   clearIdlePauseTimer,
   closeRegisteredWorker,
+  isExpectedWorkerControlError,
   registerAssignmentWorker,
   schedulePauseWhenIdle,
 } from "./worker-lifecycle";
@@ -69,6 +70,13 @@ function handleWorkerError(error: Error): void {
     }
 
     void shutdownOnQuotaExceeded();
+    return;
+  }
+
+  if (isExpectedWorkerControlError(error)) {
+    logInfo("[WORKER] Blocking Redis wait ended during idle pause (expected)", {
+      message: error.message,
+    });
     return;
   }
 
