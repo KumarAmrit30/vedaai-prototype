@@ -2,7 +2,10 @@
 
 import { Clock3 } from "lucide-react";
 import { useEffect, useRef } from "react";
-import { COMING_SOON_TITLE } from "@/lib/navigation/coming-soon";
+import {
+  COMING_SOON_SUBTITLE,
+  COMING_SOON_TITLE,
+} from "@/lib/navigation/coming-soon";
 
 interface ComingSoonDialogProps {
   open: boolean;
@@ -10,26 +13,58 @@ interface ComingSoonDialogProps {
   onClose: () => void;
 }
 
+const FOCUSABLE_SELECTOR =
+  'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
 export function ComingSoonDialog({
   open,
   message,
   onClose,
 }: ComingSoonDialogProps) {
+  const panelRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) return;
 
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     closeRef.current?.focus();
 
     function handleKeyDown(event: KeyboardEvent): void {
       if (event.key === "Escape") {
+        event.preventDefault();
         onClose();
+        return;
+      }
+
+      if (event.key !== "Tab" || !panelRef.current) return;
+
+      const focusable = Array.from(
+        panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+      ).filter((element) => !element.hasAttribute("disabled"));
+
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+
+      if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
       }
     }
 
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
   }, [open, onClose]);
 
   if (!open) return null;
@@ -37,6 +72,7 @@ export function ComingSoonDialog({
   return (
     <div className="confirm-dialog" role="presentation" onClick={onClose}>
       <div
+        ref={panelRef}
         className="confirm-dialog__panel surface-card-compact"
         role="dialog"
         aria-modal="true"
@@ -60,6 +96,9 @@ export function ComingSoonDialog({
               className="mt-2 text-[13px] leading-relaxed text-[var(--text-secondary)]"
             >
               {message}
+            </p>
+            <p className="mt-2 text-[12px] text-[var(--text-muted)]">
+              {COMING_SOON_SUBTITLE}
             </p>
           </div>
         </div>

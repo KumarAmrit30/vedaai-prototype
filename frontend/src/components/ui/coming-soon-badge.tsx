@@ -16,7 +16,10 @@ export function ComingSoonBadge({ compact = false }: ComingSoonBadgeProps) {
       }`}
       aria-hidden="true"
     >
-      {!compact ? <Clock3 className="h-2.5 w-2.5" strokeWidth={2} /> : null}
+      <Clock3
+        className={compact ? "h-2 w-2" : "h-2.5 w-2.5"}
+        strokeWidth={2}
+      />
       Soon
     </span>
   );

@@ -1248,6 +1248,10 @@ body {
   outline: none;
 }
 
+.topbar-search--coming-soon {
+  padding-right: 52px;
+}
+
 .topbar-icon-btn {
   display: flex;
   height: 34px;

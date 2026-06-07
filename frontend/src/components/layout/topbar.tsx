@@ -2,6 +2,7 @@
 
 import type { KeyboardEvent } from "react";
 import { Bell, Menu, Search } from "lucide-react";
+import { ComingSoonBadge } from "@/components/ui/coming-soon-badge";
 
 interface TopbarProps {
   title?: string;
@@ -20,6 +21,10 @@ export function Topbar({
     onSearchInteract?.();
   }
 
+  function handleNotificationsClick(): void {
+    onNotificationsClick?.();
+  }
+
   function handleSearchKeyDown(event: KeyboardEvent<HTMLInputElement>): void {
     if (event.key === "Escape") return;
     event.preventDefault();
@@ -35,6 +40,7 @@ export function Topbar({
             <Search
               className="pointer-events-none absolute left-3.5 top-1/2 h-[15px] w-[15px] -translate-y-1/2 text-[var(--text-secondary)] opacity-70"
               strokeWidth={2}
+              aria-hidden="true"
             />
             <input
               type="search"
@@ -42,21 +48,27 @@ export function Topbar({
               placeholder="Search assignments, groups, library..."
               aria-label="Global search (coming soon)"
               aria-describedby="topbar-search-hint"
-              className="topbar-search cursor-pointer placeholder:text-[var(--text-secondary)] placeholder:opacity-70"
+              className="topbar-search topbar-search--coming-soon cursor-pointer placeholder:text-[var(--text-secondary)] placeholder:opacity-70"
               onFocus={handleSearchInteract}
               onClick={handleSearchInteract}
               onKeyDown={handleSearchKeyDown}
             />
+            <span
+              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2"
+              aria-hidden="true"
+            >
+              <ComingSoonBadge compact />
+            </span>
             <span id="topbar-search-hint" className="sr-only">
-              Global search is planned for a future release.
+              Global Search is planned for a future release.
             </span>
           </div>
 
           <button
             type="button"
             aria-label="Notifications (coming soon)"
-            className="topbar-icon-btn"
-            onClick={onNotificationsClick}
+            className="topbar-icon-btn relative"
+            onClick={handleNotificationsClick}
           >
             <Bell className="h-[16px] w-[16px]" strokeWidth={2} />
           </button>
@@ -94,9 +106,17 @@ export function Topbar({
           <div className="flex items-center gap-1.5">
             <button
               type="button"
+              aria-label="Global search (coming soon)"
+              className="topbar-icon-btn h-8 w-8"
+              onClick={handleSearchInteract}
+            >
+              <Search className="h-[15px] w-[15px]" strokeWidth={2} />
+            </button>
+            <button
+              type="button"
               aria-label="Notifications (coming soon)"
               className="topbar-icon-btn h-8 w-8"
-              onClick={onNotificationsClick}
+              onClick={handleNotificationsClick}
             >
               <Bell className="h-[15px] w-[15px]" strokeWidth={2} />
             </button>
