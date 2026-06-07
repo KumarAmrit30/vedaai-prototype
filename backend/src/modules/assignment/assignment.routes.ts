@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { validateRequest } from "../../middleware/validate-request";
 import {
   bulkDeleteAssignments,
   bulkUpdateAssignmentStatus,
@@ -9,15 +10,38 @@ import {
   getAssignments,
   patchAssignmentStatus,
 } from "./assignment.controller";
+import {
+  bulkDeleteSchema,
+  bulkStatusSchema,
+  createAssignmentSchema,
+  patchStatusSchema,
+} from "./assignment.validation";
 
 const assignmentRouter = Router();
 
 assignmentRouter.get("/", getAssignments);
-assignmentRouter.post("/bulk-delete", bulkDeleteAssignments);
-assignmentRouter.post("/bulk-status", bulkUpdateAssignmentStatus);
+assignmentRouter.post(
+  "/bulk-delete",
+  validateRequest(bulkDeleteSchema),
+  bulkDeleteAssignments,
+);
+assignmentRouter.post(
+  "/bulk-status",
+  validateRequest(bulkStatusSchema),
+  bulkUpdateAssignmentStatus,
+);
 assignmentRouter.get("/:id", getAssignmentById);
-assignmentRouter.post("/", createAssignmentUploadMiddleware, createAssignment);
-assignmentRouter.patch("/:id/status", patchAssignmentStatus);
+assignmentRouter.post(
+  "/",
+  createAssignmentUploadMiddleware,
+  validateRequest(createAssignmentSchema),
+  createAssignment,
+);
+assignmentRouter.patch(
+  "/:id/status",
+  validateRequest(patchStatusSchema),
+  patchAssignmentStatus,
+);
 assignmentRouter.delete("/:id", deleteAssignment);
 
 export default assignmentRouter;
