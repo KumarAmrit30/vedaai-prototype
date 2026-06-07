@@ -72,11 +72,20 @@ const assignmentSchema = new Schema(
     materialSourceType: { type: String, enum: ["pdf", "txt"], required: false },
     originalFileName: { type: String, trim: true },
     materialSource: { type: materialSourceSchema, required: false },
-    isDeleted: { type: Boolean, default: false, index: true },
+    isDeleted: { type: Boolean, default: false },
     deletedAt: { type: Date },
   },
   { timestamps: true },
 );
+
+/**
+ * Active assignment listing (newest first).
+ * Supports findActiveAssignments() in assignment.queries.ts:
+ *   find({ isDeleted: { $ne: true } }).sort({ createdAt: -1 })
+ * Lets MongoDB filter by isDeleted and return results in createdAt order
+ * without an in-memory sort stage.
+ */
+assignmentSchema.index({ isDeleted: 1, createdAt: -1 });
 
 export type AssignmentDocument = HydratedDocument<AssignmentEntity>;
 export type AssignmentModel = Model<AssignmentEntity>;
