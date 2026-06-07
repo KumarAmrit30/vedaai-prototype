@@ -140,6 +140,24 @@ export function startWorkerProcessingIfNeeded(): void {
   ensureWorkerProcessing(false);
 }
 
+export type WorkerHealthState = "running" | "idle" | "paused" | "stopped";
+
+export function getWorkerHealthState(): WorkerHealthState {
+  if (!workerRef || workerRef.closing) {
+    return "stopped";
+  }
+
+  if (workerRef.isPaused()) {
+    return "paused";
+  }
+
+  if (workerRef.isRunning() || loopStartInFlight) {
+    return "running";
+  }
+
+  return "idle";
+}
+
 export async function closeRegisteredWorker(force = false): Promise<void> {
   clearIdlePauseTimer();
 

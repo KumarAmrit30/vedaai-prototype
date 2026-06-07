@@ -21,6 +21,10 @@ export interface AssignmentGenerationJobData {
 
 export let assignmentQueue: Queue<AssignmentGenerationJobData>;
 
+export function isAssignmentQueueReady(): boolean {
+  return Boolean(assignmentQueue && !assignmentQueue.closing);
+}
+
 export function initAssignmentQueue(): void {
   assignmentQueue = new Queue<AssignmentGenerationJobData>(
     ASSIGNMENT_QUEUE_NAME,
