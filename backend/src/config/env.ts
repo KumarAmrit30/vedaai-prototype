@@ -1,5 +1,10 @@
 const DEFAULT_CLIENT_URL = "http://localhost:3000";
 const DEFAULT_PORT = 8000;
+const DEFAULT_AI_PROVIDER = "groq";
+const DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile";
+
+export const AI_PROVIDERS = ["gemini", "groq"] as const;
+export type AIProviderName = (typeof AI_PROVIDERS)[number];
 
 function readRequired(name: string): string {
   const value = process.env[name]?.trim();
@@ -17,12 +22,27 @@ function readOptional(name: string, fallback: string): string {
   return value && value.length > 0 ? value : fallback;
 }
 
+function readAIProvider(): AIProviderName {
+  const value = readOptional("AI_PROVIDER", DEFAULT_AI_PROVIDER).toLowerCase();
+
+  if (!AI_PROVIDERS.includes(value as AIProviderName)) {
+    throw new Error(
+      `[ENV] AI_PROVIDER must be one of: ${AI_PROVIDERS.join(", ")}. Got: ${value}`,
+    );
+  }
+
+  return value as AIProviderName;
+}
+
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? "development",
   isProduction: process.env.NODE_ENV === "production",
   port: Number(process.env.PORT ?? DEFAULT_PORT),
   mongodbUri: readRequired("MONGODB_URI"),
-  geminiApiKey: readRequired("GEMINI_API_KEY"),
+  aiProvider: readAIProvider(),
+  geminiApiKey: process.env.GEMINI_API_KEY?.trim() || undefined,
+  groqApiKey: process.env.GROQ_API_KEY?.trim() || undefined,
+  groqModel: readOptional("GROQ_MODEL", DEFAULT_GROQ_MODEL),
   clientUrl: readOptional("CLIENT_URL", DEFAULT_CLIENT_URL),
   redisUrl: process.env.REDIS_URL?.trim() || undefined,
   redisHost: process.env.REDIS_HOST?.trim() || "127.0.0.1",
@@ -31,7 +51,16 @@ export const env = {
 
 export function validateEnv(): void {
   readRequired("MONGODB_URI");
-  readRequired("GEMINI_API_KEY");
+
+  if (env.aiProvider === "gemini" && !env.geminiApiKey) {
+    throw new Error(
+      "[ENV] GEMINI_API_KEY is required when AI_PROVIDER=gemini.",
+    );
+  }
+
+  if (env.aiProvider === "groq" && !env.groqApiKey) {
+    throw new Error("[ENV] GROQ_API_KEY is required when AI_PROVIDER=groq.");
+  }
 
   if (!env.redisUrl && !env.redisHost) {
     throw new Error(

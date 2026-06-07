@@ -41,7 +41,7 @@ VedaAI lets educators create assessment papers through a guided workflow:
 4. **Track** live progress over WebSockets
 5. **Review, export, and manage** completed papers from a responsive workspace
 
-The system separates **fast API responses** from **slow AI work**, keeping the UI responsive while Gemini generates structured assessments in the background.
+The system separates **fast API responses** from **slow AI work**, keeping the UI responsive while the configured AI provider (Groq or Gemini) generates structured assessments in the background.
 
 ---
 
@@ -50,7 +50,7 @@ The system separates **fast API responses** from **slow AI work**, keeping the U
 | Area | Capabilities |
 |------|-------------|
 | **Assignment creation** | Multi-step flow: details → upload → generate → preview |
-| **AI generation** | Google Gemini with Zod-validated JSON output |
+| **AI generation** | Pluggable provider (Groq default, Gemini optional) with Zod-validated JSON output |
 | **Source grounding** | PDF/TXT upload → text extraction → prompt injection |
 | **Realtime updates** | Socket.IO progress, completion, failure, delete events |
 | **Workspace** | Dashboard stats, search, filters, sort, bulk actions |
@@ -87,7 +87,7 @@ The system separates **fast API responses** from **slow AI work**, keeping the U
         ▼
 ┌───────────────┐     generate      ┌───────────────┐
 │    Worker     │ ────────────────► │  AI Service   │
-│  (BullMQ)     │ ◄──────────────── │  (Gemini)     │
+│  (BullMQ)     │ ◄──────────────── │  (Provider)   │
 └───────┬───────┘   structured JSON └───────────────┘
         │
         │ emit events
@@ -114,7 +114,7 @@ POST /api/assignments  ──►  Parse PDF/TXT  ──►  Save to MongoDB (pen
 201 + assignmentId                          Worker picks up job
         │                                              │
         ▼                                              ▼
-Socket: assignment:processing (5→20→85→100)   Gemini + Zod parse
+Socket: assignment:processing (5→20→85→100)   LLM + Zod parse
         │                                              │
         ▼                                              ▼
 Socket: assignment:completed                  Save generatedPaper
@@ -151,7 +151,9 @@ Preview + PDF export available
 | **MongoDB + Mongoose** | Assignment persistence |
 | **Redis + BullMQ** | Async job queue & workers |
 | **Socket.IO** | Realtime event broadcast |
-| **Google Gemini** | LLM question generation |
+| **Groq / Gemini** | Pluggable LLM providers (`AI_PROVIDER`) |
+| **groq-sdk** | Groq chat completions (default) |
+| **@google/generative-ai** | Gemini completions (optional) |
 | **Zod** | AI response schema validation |
 | **Multer** | Multipart file upload |
 | **pdf-parse** | PDF text extraction |
@@ -165,12 +167,26 @@ Preview + PDF export available
    > *Use the following study material while generating questions:*
    >
    > Material is truncated to **50,000 characters** before injection.
-3. **Gemini call** — Single completion request via `@google/generative-ai`.
+3. **Provider call** — `ai.service.ts` selects the active provider via `AI_PROVIDER`:
+   - **Groq (default):** `groq-sdk` → `llama-3.3-70b-versatile`, temperature `0.4`, JSON-only output
+   - **Gemini:** `@google/generative-ai` → `gemini-2.5-flash`
 4. **Response parsing** — Raw text is cleaned (strips markdown fences) and validated with Zod:
    - Sections with titles and instructions
    - Questions with difficulty (`easy` | `medium` | `hard`) and marks
 5. **Persistence** — Validated `generatedPaper` JSON is saved to MongoDB; status → `completed`.
 6. **Failure handling** — Up to 3 retries with exponential backoff; final failure sets `status: failed` and emits `assignment:failed`.
+
+### Provider architecture
+
+```
+ai.service.ts
+    │
+    ├── buildAssignmentPrompt()
+    ├── getAIProvider()  ← AI_PROVIDER env
+    │       ├── GroqProvider   (groq-provider.ts)
+    │       └── GeminiProvider (gemini-provider.ts)
+    └── parseAIResponse()  ← response-parser.ts (unchanged)
+```
 
 ---
 
@@ -271,7 +287,8 @@ Test at **375px**, **768px**, and **1280px** widths before submission.
 - **Node.js** 20+
 - **MongoDB** (local or [MongoDB Atlas](https://www.mongodb.com/atlas))
 - **Redis** (local or [Upstash](https://upstash.com/))
-- **Google Gemini API key** ([Google AI Studio](https://aistudio.google.com/))
+- **Groq API key** ([Groq Console](https://console.groq.com/)) — default provider  
+  _or_ **Google Gemini API key** ([Google AI Studio](https://aistudio.google.com/)) if using `AI_PROVIDER=gemini`
 
 ### 1. Clone and install
 
@@ -328,13 +345,17 @@ npm run dev            # http://localhost:3000
 |----------|----------|-------------|
 | `MONGODB_URI` | Yes | MongoDB connection string |
 | `REDIS_URL` | Yes* | Redis URL (`redis://localhost:6379` or Upstash `rediss://...`) |
-| `GEMINI_API_KEY` | Yes | Google Gemini API key |
+| `AI_PROVIDER` | No | `groq` (default) or `gemini` |
+| `GROQ_API_KEY` | Yes** | Groq API key (when `AI_PROVIDER=groq`) |
+| `GROQ_MODEL` | No | Groq model (default `llama-3.3-70b-versatile`) |
+| `GEMINI_API_KEY` | Yes** | Google Gemini API key (when `AI_PROVIDER=gemini`) |
 | `CLIENT_URL` | No | Frontend origin for CORS + Socket.IO (default `http://localhost:3000`) |
 | `PORT` | No | HTTP port (default `8000`) |
 | `REDIS_HOST` | No | Fallback if `REDIS_URL` unset (default `127.0.0.1`) |
 | `REDIS_PORT` | No | Fallback if `REDIS_URL` unset (default `6379`) |
 
-\* Use either `REDIS_URL` **or** `REDIS_HOST` + `REDIS_PORT`.
+\* Use either `REDIS_URL` **or** `REDIS_HOST` + `REDIS_PORT`.  
+\** Provider-specific: set `GROQ_API_KEY` for Groq, or `GEMINI_API_KEY` for Gemini.
 
 ### Frontend — `frontend/.env.local`
 
@@ -441,7 +462,7 @@ For demos, hit `/api/health` once before presenting, or upgrade to a always-on p
 
 | Limitation | Detail |
 |------------|--------|
-| **AI output** | Quality depends on Gemini; occasional retries may be needed |
+| **AI output** | Quality depends on the active provider; occasional retries may be needed |
 | **Material size** | Uploaded text truncated to 50,000 characters in prompts |
 | **PDF parsing** | Scanned/image-only PDFs may extract little or no text |
 | **PDF export** | Very long papers use chunked capture; extremely large assignments may take longer |
@@ -483,6 +504,7 @@ vedaAI_prototype/
 │   │   ├── modules/assignment/   # Routes, controller, model, serializer
 │   │   ├── queues/               # BullMQ queue + worker
 │   │   ├── services/             # AI, material parser
+│   │   │   └── ai/providers/     # Groq + Gemini provider abstraction
 │   │   ├── socket/               # Socket.IO events
 │   │   └── middleware/           # Upload, error handling
 │   └── .env.example

@@ -1,6 +1,6 @@
 import type { GeneratedPaper, QuestionConfig } from "../modules/assignment/assignment.types";
 import { MAX_MATERIAL_CHARS } from "./material-parser.service";
-import { generateContent } from "./ai/gemini.service";
+import { getAIProvider } from "./ai/providers";
 import { parseAIResponse } from "./ai/response-parser";
 import { logDebug, logInfo } from "../utils/logger";
 
@@ -81,17 +81,19 @@ export async function generateAssignmentPaper(
 ): Promise<GeneratedPaper> {
   const materialChars = input.materialText?.trim().length ?? 0;
 
-  logInfo("[AI] Generating assignment paper", {
+  const provider = getAIProvider();
+
+  logInfo(`[AI][${provider.name}] Generating assignment paper`, {
     topic: input.topic,
     questions: input.questionConfig.numberOfQuestions,
     materialTextLength: materialChars,
   });
 
   const prompt = buildAssignmentPrompt(input);
-  const rawResponse = await generateContent(prompt);
+  const rawResponse = await provider.generateAssignment(prompt);
   const structured = parseAIResponse(rawResponse);
 
-  logDebug("[AI] Structured response validated", {
+  logDebug(`[AI][${provider.name}] Structured response validated`, {
     sections: structured.sections.length,
     questions: structured.sections.reduce(
       (total, section) => total + section.questions.length,
