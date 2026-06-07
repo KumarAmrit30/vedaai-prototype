@@ -21,6 +21,13 @@ export interface GeneratedPaper {
   sections: QuestionSection[];
 }
 
+export interface AnswerKeyEntry {
+  questionNumber: number;
+  answer: string;
+  explanation: string;
+  markingGuide: string;
+}
+
 export interface QuestionConfig {
   questionType: string;
   numberOfQuestions: number;
@@ -43,6 +50,7 @@ export interface Assignment {
   status: AssignmentStatus;
   questionConfig: QuestionConfig;
   generatedPaper?: GeneratedPaper;
+  answerKey?: AnswerKeyEntry[];
   materialSource?: MaterialSource;
   materialSourceType?: "pdf" | "txt";
   originalFileName?: string;

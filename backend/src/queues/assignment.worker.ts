@@ -139,17 +139,18 @@ async function processAssignmentJob(
       ...(materialText ? { materialText } : {}),
     };
 
-    const generatedPaper = await generateAssignmentPaper(aiInput);
+    const generationResult = await generateAssignmentPaper(aiInput);
 
     await updateAssignmentProgress(assignmentId, 85);
     await job.updateProgress(85);
 
-    assignment.generatedPaper = generatedPaper;
+    assignment.generatedPaper = generationResult.generatedPaper;
+    assignment.answerKey = generationResult.answerKey;
     assignment.status = "completed";
     assignment.progress = 100;
     assignment.completedAt = new Date();
     await assignment.save();
-    emitAssignmentCompleted(assignmentId, generatedPaper);
+    emitAssignmentCompleted(assignmentId, generationResult.generatedPaper);
     await job.updateProgress(100);
 
     logInfo("[WORKER] Assignment completed", { assignmentId, jobId: job.id });

@@ -30,15 +30,9 @@ export function AssignmentPdfExport({ assignment }: AssignmentPdfExportProps) {
   const totalMarks =
     questionConfig.numberOfQuestions * questionConfig.marksPerQuestion;
 
-  const allQuestions =
-    generatedPaper?.sections.flatMap((section, sectionIndex) =>
-      section.questions.map((question, questionIndex) => ({
-        key: `${sectionIndex}-${questionIndex}`,
-        label: `Q${questionIndex + 1}`,
-        marks: question.marks,
-        difficulty: question.difficulty,
-      })),
-    ) ?? [];
+  const answerKey = [...(assignment.answerKey ?? [])].sort(
+    (a, b) => a.questionNumber - b.questionNumber,
+  );
 
   const metaItems = [
     `Subject: ${assignment.topic}`,
@@ -283,63 +277,64 @@ export function AssignmentPdfExport({ assignment }: AssignmentPdfExportProps) {
             </section>
           ))}
 
-          {allQuestions.length > 0 ? (
+          {answerKey.length > 0 ? (
             <section
               style={{
                 ...box,
-                marginTop: 32,
-                paddingTop: 20,
-                borderTop: `1px solid ${PDF_COLORS.border}`,
+                marginTop: 36,
+                paddingTop: 24,
+                borderTop: `2px solid ${PDF_COLORS.borderStrong}`,
+                pageBreakBefore: "auto",
               }}
             >
               <h3
                 style={{
                   ...box,
                   margin: 0,
-                  fontSize: 12,
+                  fontSize: 14,
                   fontWeight: 700,
-                  letterSpacing: "0.08em",
+                  letterSpacing: "0.06em",
                   textTransform: "uppercase",
-                  color: PDF_COLORS.textMuted,
+                  color: PDF_COLORS.text,
                 }}
               >
-                Answer Key Summary
+                Answer Key
               </h3>
-              <div
-                style={{
-                  ...box,
-                  display: "grid",
-                  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-                  gap: 8,
-                  marginTop: 12,
-                }}
-              >
-                {allQuestions.map((item) => (
+              <div style={{ ...box, marginTop: 16, display: "flex", flexDirection: "column", gap: 16 }}>
+                {answerKey.map((entry) => (
                   <div
-                    key={item.key}
+                    key={entry.questionNumber}
                     style={{
                       ...box,
-                      padding: "8px 10px",
+                      padding: "12px 14px",
                       border: `1px solid ${PDF_COLORS.border}`,
-                      borderRadius: 6,
-                      fontSize: 11,
-                      color: PDF_COLORS.textSecondary,
+                      borderRadius: 8,
                       backgroundColor: PDF_COLORS.keyBackground,
                     }}
                   >
-                    <strong
+                    <p
                       style={{
                         ...box,
-                        display: "block",
-                        marginBottom: 2,
+                        margin: "0 0 10px",
+                        fontSize: 12,
+                        fontWeight: 700,
                         color: PDF_COLORS.text,
                       }}
                     >
-                      {item.label}
-                    </strong>
-                    <span>
-                      {item.marks}m · {item.difficulty}
-                    </span>
+                      Question {entry.questionNumber}
+                    </p>
+                    <p style={{ ...box, margin: "0 0 8px", fontSize: 11, color: PDF_COLORS.textMuted }}>
+                      <strong style={{ color: PDF_COLORS.text }}>Expected Answer: </strong>
+                      {entry.answer}
+                    </p>
+                    <p style={{ ...box, margin: "0 0 8px", fontSize: 11, color: PDF_COLORS.textSecondary }}>
+                      <strong style={{ color: PDF_COLORS.text }}>Explanation: </strong>
+                      {entry.explanation}
+                    </p>
+                    <p style={{ ...box, margin: 0, fontSize: 11, color: PDF_COLORS.textSecondary }}>
+                      <strong style={{ color: PDF_COLORS.text }}>Marking Guide: </strong>
+                      {entry.markingGuide}
+                    </p>
                   </div>
                 ))}
               </div>

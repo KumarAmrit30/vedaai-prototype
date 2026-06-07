@@ -16,15 +16,72 @@ export const sectionSchema = z.object({
     .min(1, "Each section must contain at least one question"),
 });
 
-export const assignmentResponseSchema = z.object({
-  sections: z
-    .array(sectionSchema)
-    .min(1, "Assignment must contain at least one section"),
+export const answerKeyEntrySchema = z.object({
+  questionNumber: z
+    .number()
+    .int()
+    .positive("questionNumber must be a positive integer"),
+  answer: z.string().min(1, "answer is required"),
+  explanation: z.string().min(1, "explanation is required"),
+  markingGuide: z.string().min(1, "markingGuide is required"),
 });
+
+export const assignmentResponseSchema = z
+  .object({
+    sections: z
+      .array(sectionSchema)
+      .min(1, "Assignment must contain at least one section"),
+    answerKey: z
+      .array(answerKeyEntrySchema)
+      .min(1, "answerKey must contain at least one entry"),
+  })
+  .superRefine((data, ctx) => {
+    const totalQuestions = data.sections.reduce(
+      (sum, section) => sum + section.questions.length,
+      0,
+    );
+
+    if (data.answerKey.length !== totalQuestions) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `answerKey must contain exactly ${totalQuestions} entries (one per question)`,
+        path: ["answerKey"],
+      });
+      return;
+    }
+
+    const numbers = data.answerKey.map((entry) => entry.questionNumber);
+    const uniqueNumbers = new Set(numbers);
+
+    if (uniqueNumbers.size !== numbers.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "answerKey questionNumber values must be unique",
+        path: ["answerKey"],
+      });
+      return;
+    }
+
+    const expected = Array.from({ length: totalQuestions }, (_, index) => index + 1);
+    const sorted = [...numbers].sort((a, b) => a - b);
+
+    for (let index = 0; index < expected.length; index += 1) {
+      if (sorted[index] !== expected[index]) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            "answerKey questionNumber values must be sequential from 1 to the total question count (section order)",
+          path: ["answerKey"],
+        });
+        return;
+      }
+    }
+  });
 
 export type Difficulty = z.infer<typeof difficultySchema>;
 export type Question = z.infer<typeof questionSchema>;
 export type Section = z.infer<typeof sectionSchema>;
+export type AnswerKeyEntry = z.infer<typeof answerKeyEntrySchema>;
 export type AssignmentResponse = z.infer<typeof assignmentResponseSchema>;
 
 function cleanRawText(rawText: string): string {

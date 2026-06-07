@@ -3,7 +3,7 @@ import { isDeletedAssignment } from "./assignment.queries";
 import { normalizeAssignmentStatus } from "./assignment.status";
 import { logWarn } from "../../utils/logger";
 
-export function serializeAssignment(assignment: AssignmentDocument) {
+function serializeAssignmentCore(assignment: AssignmentDocument) {
   if (isDeletedAssignment(assignment)) {
     logWarn("[ASSIGNMENT] Blocked serialization of deleted assignment", {
       id: assignment._id.toString(),
@@ -43,6 +43,18 @@ export function serializeAssignment(assignment: AssignmentDocument) {
   };
 }
 
+/** Full assignment payload for detail and mutation responses. */
+export function serializeAssignment(assignment: AssignmentDocument) {
+  return serializeAssignmentCore(assignment);
+}
+
+/** List payload — omits answerKey to reduce response size. */
+export function serializeAssignmentForList(assignment: AssignmentDocument) {
+  const serialized = serializeAssignmentCore(assignment);
+  const { answerKey: _answerKey, ...withoutAnswerKey } = serialized;
+  return withoutAnswerKey;
+}
+
 export function serializeAssignments(assignments: AssignmentDocument[]) {
   const activeAssignments = assignments.filter(
     (assignment) => !isDeletedAssignment(assignment),
@@ -55,5 +67,7 @@ export function serializeAssignments(assignments: AssignmentDocument[]) {
     });
   }
 
-  return activeAssignments.map((assignment) => serializeAssignment(assignment));
+  return activeAssignments.map((assignment) =>
+    serializeAssignmentForList(assignment),
+  );
 }

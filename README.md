@@ -173,7 +173,8 @@ Preview + PDF export available
 4. **Response parsing** — Raw text is cleaned (strips markdown fences) and validated with Zod:
    - Sections with titles and instructions
    - Questions with difficulty (`easy` | `medium` | `hard`) and marks
-5. **Persistence** — Validated `generatedPaper` JSON is saved to MongoDB; status → `completed`.
+   - `answerKey` entries (one per question): expected answer, explanation, marking guide
+5. **Persistence** — Validated `generatedPaper` and `answerKey` are saved to MongoDB in one step; status → `completed`.
 6. **Failure handling** — Up to 3 retries with exponential backoff; final failure sets `status: failed` and emits `assignment:failed`.
 
 ### Provider architecture

@@ -22,16 +22,6 @@ export function AssignmentPaper({
   const totalMarks =
     questionConfig.numberOfQuestions * questionConfig.marksPerQuestion;
 
-  const allQuestions =
-    generatedPaper?.sections.flatMap((section, sectionIndex) =>
-      section.questions.map((question, questionIndex) => ({
-        key: `${sectionIndex}-${questionIndex}`,
-        label: `Q${questionIndex + 1}`,
-        marks: question.marks,
-        difficulty: question.difficulty,
-      })),
-    ) ?? [];
-
   const paperClassName =
     variant === "print" ? "assignment-print-paper" : "preview-a4-paper";
   const innerClassName =
@@ -127,22 +117,6 @@ export function AssignmentPaper({
                 </ol>
               </section>
             ))}
-
-            {allQuestions.length > 0 ? (
-              <section className="preview-exam-answer-key">
-                <h3 className="preview-exam-answer-key__title">Answer Key Summary</h3>
-                <div className="preview-exam-answer-key__grid">
-                  {allQuestions.map((item) => (
-                    <div key={item.key} className="preview-exam-answer-key__item">
-                      <strong>{item.label}</strong>
-                      <span>
-                        {item.marks}m · {item.difficulty}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            ) : null}
           </>
         ) : (
           <div className="preview-exam-empty">

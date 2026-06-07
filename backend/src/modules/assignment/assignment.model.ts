@@ -30,6 +30,16 @@ const generatedPaperSchema = new Schema(
   { _id: false },
 );
 
+const answerKeyEntrySchema = new Schema(
+  {
+    questionNumber: { type: Number, required: true, min: 1 },
+    answer: { type: String, required: true, trim: true },
+    explanation: { type: String, required: true, trim: true },
+    markingGuide: { type: String, required: true, trim: true },
+  },
+  { _id: false },
+);
+
 const questionConfigSchema = new Schema(
   {
     questionType: { type: String, required: true, trim: true },
@@ -63,6 +73,7 @@ const assignmentSchema = new Schema(
     },
     questionConfig: { type: questionConfigSchema, required: true },
     generatedPaper: { type: generatedPaperSchema, required: false },
+    answerKey: { type: [answerKeyEntrySchema], required: false },
     jobId: { type: String, trim: true },
     progress: { type: Number, min: 0, max: 100, default: 0 },
     startedAt: { type: Date },

@@ -2368,57 +2368,62 @@ select option {
   padding: 18px;
 }
 
-.assignment-answer-key__sections {
+.assignment-answer-key__header {
+  margin-bottom: 4px;
+}
+
+.assignment-answer-key__entries {
   display: grid;
-  gap: 16px;
-  margin-top: 16px;
-}
-
-.assignment-answer-key__section {
-  page-break-inside: avoid;
-  break-inside: avoid;
-}
-
-.assignment-answer-key__section-title {
-  font-size: 12px;
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-primary);
-}
-
-.assignment-answer-key__list {
-  display: grid;
-  gap: 10px;
-  margin-top: 10px;
+  gap: 14px;
+  margin: 16px 0 0;
   padding: 0;
   list-style: none;
 }
 
-.assignment-answer-key__item {
-  padding: 10px 12px;
+.assignment-answer-key__entry {
+  page-break-inside: avoid;
+  break-inside: avoid;
+  padding: 14px 16px;
   border: 1px solid var(--border-subtle);
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--surface-muted);
 }
 
-.assignment-answer-key__item-head {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 6px;
-  font-size: 11px;
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-secondary);
+.assignment-answer-key__entry-head {
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
-.assignment-answer-key__item p {
+.assignment-answer-key__question-num {
   font-size: 13px;
-  line-height: 1.5;
+  font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
 }
 
-.assignment-answer-key__guidance {
-  margin-top: 6px;
+.assignment-answer-key__field + .assignment-answer-key__field {
+  margin-top: 12px;
+}
+
+.assignment-answer-key__label {
+  display: block;
+  margin-bottom: 4px;
   font-size: 11px;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--text-muted);
+}
+
+.assignment-answer-key__value {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-primary);
+}
+
+.assignment-answer-key__value--guide {
+  color: var(--text-secondary);
 }
 
 /* Phase 19 — dashboard vs workspace */

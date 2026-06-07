@@ -1,4 +1,8 @@
-import type { GeneratedPaper, QuestionConfig } from "../modules/assignment/assignment.types";
+import type {
+  AnswerKeyEntry,
+  GeneratedPaper,
+  QuestionConfig,
+} from "../modules/assignment/assignment.types";
 import { MAX_MATERIAL_CHARS } from "./material-parser.service";
 import { getAIProvider } from "./ai/providers";
 import { parseAIResponse } from "./ai/response-parser";
@@ -10,6 +14,11 @@ export interface AssignmentGenerationInput {
   instructions: string;
   questionConfig: QuestionConfig;
   materialText?: string;
+}
+
+export interface AssignmentGenerationResult {
+  generatedPaper: GeneratedPaper;
+  answerKey: AnswerKeyEntry[];
 }
 
 function truncateMaterialText(materialText: string): string {
@@ -51,6 +60,14 @@ Generate a test assignment as a single JSON object with this exact structure:
         }
       ]
     }
+  ],
+  "answerKey": [
+    {
+      "questionNumber": 1,
+      "answer": "",
+      "explanation": "",
+      "markingGuide": ""
+    }
   ]
 }
 ${materialSection}
@@ -70,15 +87,22 @@ Requirements:
 - Questions must align with the assignment topic, instructions, and question type
 ${hasMaterial ? "- When study material is provided, treat it as the authoritative basis for all questions" : "- Questions must match the topic and instructions"}
 
+Answer key requirements:
+- Provide one answerKey entry for every generated question (${questionConfig.numberOfQuestions} total)
+- Number questions globally in section order: Section A Q1 = 1, Section A Q2 = 2, then Section B continues sequentially
+- answer: the expected correct response for the question
+- explanation: a concise educator-facing explanation of why the answer is correct
+- markingGuide: practical marking criteria (what earns full marks, partial credit, common mistakes)
+
 Output rules:
 - Return ONLY valid JSON
 - Do NOT use markdown or code fences
-- Do NOT include explanations or any text outside the JSON object`;
+- Do NOT include any text outside the JSON object`;
 }
 
 export async function generateAssignmentPaper(
   input: AssignmentGenerationInput,
-): Promise<GeneratedPaper> {
+): Promise<AssignmentGenerationResult> {
   const materialChars = input.materialText?.trim().length ?? 0;
 
   const provider = getAIProvider();
@@ -93,13 +117,19 @@ export async function generateAssignmentPaper(
   const rawResponse = await provider.generateAssignment(prompt);
   const structured = parseAIResponse(rawResponse);
 
+  const questionCount = structured.sections.reduce(
+    (total, section) => total + section.questions.length,
+    0,
+  );
+
   logDebug(`[AI][${provider.name}] Structured response validated`, {
     sections: structured.sections.length,
-    questions: structured.sections.reduce(
-      (total, section) => total + section.questions.length,
-      0,
-    ),
+    questions: questionCount,
+    answerKeyEntries: structured.answerKey.length,
   });
 
-  return structured;
+  return {
+    generatedPaper: { sections: structured.sections },
+    answerKey: structured.answerKey,
+  };
 }
