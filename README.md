@@ -54,7 +54,7 @@ The system separates **fast API responses** from **slow AI work**, keeping the U
 | **Source grounding** | PDF/TXT upload → text extraction → prompt injection |
 | **Realtime updates** | Socket.IO progress, completion, failure, delete events |
 | **Workspace** | Dashboard stats, search, filters, sort, bulk actions |
-| **Lifecycle** | `pending` → `processing` → `completed` / `failed` |
+| **Lifecycle** | `pending` → `processing` → `completed` / `failed` (no `generating` status) |
 | **Soft delete** | Recoverable MongoDB records; hidden from all active queries |
 | **Optimistic UI** | Instant delete with undo; socket-confirmed state |
 | **PDF export** | Client-side html2canvas + jsPDF download (no print dialog) |
@@ -218,6 +218,17 @@ The backend broadcasts global events; the frontend subscribes once in `AppShell`
 | `assignment:deleted` | Soft delete | Remove from store, clear selection |
 
 Socket URL defaults to the API host (strip `/api` suffix) unless `NEXT_PUBLIC_SOCKET_URL` is set.
+
+### Legacy status migration
+
+Earlier releases stored `generating` as an in-progress status. The canonical lifecycle uses `processing` only. If any documents remain with `status: "generating"`, run once in MongoDB:
+
+```js
+db.assignments.updateMany(
+  { status: "generating" },
+  { $set: { status: "processing" } }
+);
+```
 
 ---
 

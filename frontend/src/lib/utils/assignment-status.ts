@@ -11,12 +11,8 @@ export type WorkspaceStatusDetail =
   | "completed"
   | "incomplete";
 
-/** Legacy API/socket payloads may still send "generating". */
+/** Coerce API/socket status strings to a canonical lifecycle value. */
 export function normalizeAssignmentStatus(status: string): AssignmentStatus {
-  if (status === "generating") {
-    return ASSIGNMENT_STATUS.PROCESSING;
-  }
-
   if (
     (Object.values(ASSIGNMENT_STATUS) as string[]).includes(status)
   ) {

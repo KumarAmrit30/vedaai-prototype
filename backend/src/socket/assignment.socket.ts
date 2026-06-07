@@ -1,6 +1,5 @@
 import type { GeneratedPaper } from "../modules/assignment/assignment.types";
 import type { AssignmentStatus } from "../modules/assignment/assignment.types";
-import { normalizeAssignmentStatus } from "../modules/assignment/assignment.status";
 import { getIO } from "./index";
 
 export interface AssignmentSocketPayload {
@@ -84,8 +83,4 @@ export function emitAssignmentUpdated(payload: AssignmentUpdatedPayload): void {
 
 export function emitAssignmentDeleted(payload: AssignmentDeletedPayload): void {
   getIO().emit("assignment:deleted", payload);
-}
-
-export function mapStatusForApi(status: string): AssignmentStatus {
-  return normalizeAssignmentStatus(status);
 }

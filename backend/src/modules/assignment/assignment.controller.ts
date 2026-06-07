@@ -15,9 +15,9 @@ import {
 import {
   emitAssignmentDeleted,
   emitAssignmentUpdated,
-  mapStatusForApi,
   type AssignmentUpdatedPayload,
 } from "../../socket/assignment.socket";
+import { normalizeAssignmentStatus } from "./assignment.status";
 import { MANUAL_ASSIGNMENT_STATUSES } from "./assignment.constants";
 import { Assignment } from "./assignment.model";
 import {
@@ -91,7 +91,7 @@ function buildUpdatedSocketPayload(assignment: {
 }): AssignmentUpdatedPayload {
   const payload: AssignmentUpdatedPayload = {
     assignmentId: assignment._id.toString(),
-    status: mapStatusForApi(assignment.status),
+    status: normalizeAssignmentStatus(assignment.status),
   };
 
   if (assignment.progress !== undefined) {
