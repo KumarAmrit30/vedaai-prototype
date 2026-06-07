@@ -14,11 +14,19 @@ export interface FirebaseUserClaims {
 export async function upsertUserFromFirebaseClaims(
   claims: FirebaseUserClaims,
 ): Promise<UserDocument> {
-  const profileUpdate: Record<string, string> = {};
+  const email =
+    claims.email?.trim().toLowerCase() ??
+    `${claims.uid}@users.examforge.internal`;
 
-  if (claims.email) profileUpdate.email = claims.email;
-  if (claims.name) profileUpdate.displayName = claims.name;
-  if (claims.picture) profileUpdate.photoURL = claims.picture;
+  const profileUpdate: Record<string, string> = { email };
+
+  if (claims.name?.trim()) {
+    profileUpdate.displayName = claims.name.trim();
+  }
+
+  if (claims.picture?.trim()) {
+    profileUpdate.photoURL = claims.picture.trim();
+  }
 
   const user = await User.findOneAndUpdate(
     { firebaseUid: claims.uid },
@@ -26,12 +34,17 @@ export async function upsertUserFromFirebaseClaims(
       $set: profileUpdate,
       $setOnInsert: {
         firebaseUid: claims.uid,
+        email,
         plan: "free",
         usage: { assignmentsGenerated: 0 },
       },
     },
     { new: true, upsert: true, setDefaultsOnInsert: true },
   );
+
+  if (!user) {
+    throw new Error(`Failed to upsert user for uid ${claims.uid}`);
+  }
 
   return user;
 }
@@ -42,10 +55,14 @@ export async function findUserByFirebaseUid(
   return User.findOne({ firebaseUid: uid });
 }
 
-/** Atomically increments the generation counter after a successful create. */
+/** Atomically increments the generation counter after successful completion. */
 export async function incrementAssignmentUsage(uid: string): Promise<void> {
-  await User.updateOne(
+  const result = await User.updateOne(
     { firebaseUid: uid },
     { $inc: { "usage.assignmentsGenerated": 1 } },
   );
+
+  if (result.matchedCount === 0) {
+    throw new Error(`Cannot increment usage — user not found for uid ${uid}`);
+  }
 }

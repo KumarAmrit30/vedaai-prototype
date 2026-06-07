@@ -522,6 +522,23 @@ body {
   .sidebar-shell__profile-avatar {
     margin: 0;
   }
+
+  .sidebar-shell__plan {
+    align-items: center;
+    padding: 8px;
+  }
+
+  .sidebar-shell__plan-badge {
+    align-self: center;
+  }
+
+  .sidebar-shell__plan-usage {
+    display: none;
+  }
+}
+
+.sidebar-shell__plan {
+  min-width: 0;
 }
 
 .create-assignment-btn {

@@ -74,7 +74,7 @@ export function AssignmentPdfExport({ assignment }: AssignmentPdfExportProps) {
             color: PDF_COLORS.text,
           }}
         >
-          Demo Workspace
+          ExamForge AI
         </h1>
         <h2
           style={{

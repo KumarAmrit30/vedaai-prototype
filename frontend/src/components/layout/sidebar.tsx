@@ -201,9 +201,9 @@ export function Sidebar({
               </div>
             </div>
 
-            <div className="sidebar-shell__plan mt-1 flex flex-col gap-1 rounded-[10px] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-2.5 py-2">
-              <PlanBadge plan={plan} className="self-start" />
-              <p className="truncate text-[10px] text-[var(--text-muted)]">
+            <div className="sidebar-shell__plan mt-1 flex min-w-0 flex-col gap-1 overflow-hidden rounded-[10px] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-2.5 py-2">
+              <PlanBadge plan={plan} className="sidebar-shell__plan-badge self-start" />
+              <p className="sidebar-shell__plan-usage truncate text-[10px] text-[var(--text-muted)]">
                 {isAuthenticated ? usageLabel : "Sign in to start generating"}
               </p>
             </div>

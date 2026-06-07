@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import apiClient from "@/lib/api/axios";
+import { useAuthStore } from "@/store/auth.store";
 
 export type UserPlan = "free" | "pro" | "enterprise";
 
@@ -39,6 +40,12 @@ export const useUserStore = create<UserState>((set) => ({
   upgradeModalOpen: false,
 
   fetchProfile: async () => {
+    const authStatus = useAuthStore.getState().status;
+    if (authStatus !== "authenticated") return;
+
+    const token = await useAuthStore.getState().getIdToken();
+    if (!token) return;
+
     set({ status: "loading" });
     try {
       const response = await apiClient.get<ProfileResponse>("/users/me");

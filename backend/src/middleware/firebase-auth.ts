@@ -58,6 +58,11 @@ export async function verifyFirebaseToken(
 
     if (typeof decoded.name === "string") {
       auth.name = decoded.name;
+    } else {
+      const displayName = (decoded as Record<string, unknown>).displayName;
+      if (typeof displayName === "string") {
+        auth.name = displayName;
+      }
     }
 
     if (typeof decoded.picture === "string") {

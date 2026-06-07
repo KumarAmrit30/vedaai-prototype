@@ -1,5 +1,4 @@
 import type { NextFunction, Request, Response } from "express";
-import { env } from "../../config/env";
 import {
   getUploadedFilePaths,
   uploadMaterials,
@@ -90,18 +89,16 @@ function getRouteParam(value: string | string[] | undefined): string | null {
   return null;
 }
 
-const LOCAL_DEV_USER_ID = "local-dev-user";
-
 function resolveRequestUserId(req: Request, res: Response): string | null {
-  if (req.auth?.uid) return req.auth.uid;
+  if (!req.auth?.uid) {
+    res.status(401).json({
+      success: false,
+      message: "Authentication required.",
+    });
+    return null;
+  }
 
-  if (!env.authEnabled) return LOCAL_DEV_USER_ID;
-
-  res.status(401).json({
-    success: false,
-    message: "Authentication required.",
-  });
-  return null;
+  return req.auth.uid;
 }
 
 function buildUpdatedSocketPayload(assignment: {

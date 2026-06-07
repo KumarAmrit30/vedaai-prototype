@@ -7,6 +7,7 @@ import { normalizeAssignmentStatus } from "@/lib/utils/assignment-status";
 import { connectSocket, disconnectSocket } from "@/lib/socket/client";
 import { useAssignmentStore } from "@/store/assignment.store";
 import { useAuthStore } from "@/store/auth.store";
+import { useUserStore } from "@/store/user.store";
 import { useWorkspaceStore } from "@/store/workspace.store";
 import type {
   AssignmentDeletedPayload,
@@ -60,6 +61,8 @@ export function useAssignmentSocket(): void {
           ? { generatedPaper: payload.generatedPaper }
           : {}),
       });
+
+      void useUserStore.getState().fetchProfile();
     }
 
     function handleFailed(payload: AssignmentSocketPayload): void {

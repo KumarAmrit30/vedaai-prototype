@@ -4,8 +4,6 @@ import { getCorsOrigins, env } from "../config/env";
 import { getFirebaseAuth } from "../config/firebase-admin";
 import { logInfo, logWarn } from "../utils/logger";
 
-const LOCAL_DEV_USER_ID = "local-dev-user";
-
 interface AuthenticatedSocket extends Socket {
   data: {
     userId: string;
@@ -20,7 +18,7 @@ function userRoom(userId: string): string {
 
 async function authenticateSocket(socket: AuthenticatedSocket): Promise<string> {
   if (!env.authEnabled) {
-    return LOCAL_DEV_USER_ID;
+    throw new Error("Socket authentication requires AUTH_ENABLED=true");
   }
 
   const token = socket.handshake.auth?.token;

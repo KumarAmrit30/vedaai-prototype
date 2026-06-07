@@ -33,12 +33,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         if (previousUid && previousUid !== user.uid) {
           resetAssignmentWorkspace();
+          useUserStore.getState().reset();
         }
 
         setAuthSessionCookie();
         setUser(user);
         setStatus("authenticated");
-        void useUserStore.getState().fetchProfile();
+
+        // Wait for a valid ID token before calling protected APIs.
+        void (async () => {
+          const token = await user.getIdToken();
+          if (!token) return;
+          await useUserStore.getState().fetchProfile();
+        })();
+
         return;
       }
 
