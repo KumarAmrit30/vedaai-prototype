@@ -109,7 +109,35 @@ function AssignmentListComponent({
             No pending assignments
           </h3>
           <p className="mt-2 text-[13px] text-[var(--text-secondary)]">
-            Everything in your workspace is completed. Nice work.
+            Newly created assignments waiting to start will appear here.
+          </p>
+        </div>
+      );
+    }
+
+    if (statusFilter === "processing") {
+      return (
+        <div className="product-state-card surface-card-compact mx-auto max-w-xl px-6 py-8 text-center">
+          <Clock3 className="mx-auto h-8 w-8 text-[var(--text-muted)] opacity-60" strokeWidth={1.75} />
+          <h3 className="mt-3 text-[15px] font-semibold text-[var(--text-primary)]">
+            No processing assignments
+          </h3>
+          <p className="mt-2 text-[13px] text-[var(--text-secondary)]">
+            Assignments currently being generated will appear here.
+          </p>
+        </div>
+      );
+    }
+
+    if (statusFilter === "failed") {
+      return (
+        <div className="product-state-card surface-card-compact mx-auto max-w-xl px-6 py-8 text-center">
+          <SearchX className="mx-auto h-8 w-8 text-[var(--text-muted)] opacity-60" strokeWidth={1.75} />
+          <h3 className="mt-3 text-[15px] font-semibold text-[var(--text-primary)]">
+            No failed assignments
+          </h3>
+          <p className="mt-2 text-[13px] text-[var(--text-secondary)]">
+            Failed generation attempts will appear here for review.
           </p>
         </div>
       );

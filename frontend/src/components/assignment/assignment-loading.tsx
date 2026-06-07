@@ -8,8 +8,8 @@ interface AssignmentLoadingProps {
 }
 
 export function AssignmentLoading({
-  title = "Generating Assignment...",
-  message = "AI is building your assessment paper. This usually takes a moment.",
+  title = "Generating Assessment...",
+  message = "Your assignment is processing. This usually takes a moment.",
 }: AssignmentLoadingProps) {
   return (
     <div className="assignment-loading-panel surface-card-compact mx-auto max-w-xl px-5 py-8 text-center">

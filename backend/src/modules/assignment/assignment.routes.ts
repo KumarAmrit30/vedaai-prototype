@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { assignmentCreationRateLimit } from "../../middleware/assignment-rate-limit";
 import { validateRequest } from "../../middleware/validate-request";
 import {
   bulkDeleteAssignments,
@@ -33,6 +34,7 @@ assignmentRouter.post(
 assignmentRouter.get("/:id", getAssignmentById);
 assignmentRouter.post(
   "/",
+  assignmentCreationRateLimit,
   createAssignmentUploadMiddleware,
   validateRequest(createAssignmentSchema),
   createAssignment,

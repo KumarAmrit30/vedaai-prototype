@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import toast from "react-hot-toast";
-import { ASSIGNMENT_STATUS } from "@/lib/constants";
+import { normalizeAssignmentStatus } from "@/lib/utils/assignment-status";
 import { connectSocket } from "@/lib/socket/client";
 import { useAssignmentStore } from "@/store/assignment.store";
 import { useWorkspaceStore } from "@/store/workspace.store";
@@ -33,7 +33,7 @@ export function useAssignmentSocket(): void {
       if (!payload?.assignmentId) return;
 
       useAssignmentStore.getState().updateAssignment(payload.assignmentId, {
-        status: ASSIGNMENT_STATUS.GENERATING,
+        status: normalizeAssignmentStatus(payload.status),
         progress: payload.progress,
       });
     }
@@ -42,7 +42,7 @@ export function useAssignmentSocket(): void {
       if (!payload?.assignmentId) return;
 
       useAssignmentStore.getState().updateAssignment(payload.assignmentId, {
-        status: ASSIGNMENT_STATUS.COMPLETED,
+        status: normalizeAssignmentStatus(payload.status),
         progress: payload.progress,
         ...(payload.generatedPaper
           ? { generatedPaper: payload.generatedPaper }
@@ -54,7 +54,7 @@ export function useAssignmentSocket(): void {
       if (!payload?.assignmentId) return;
 
       useAssignmentStore.getState().updateAssignment(payload.assignmentId, {
-        status: ASSIGNMENT_STATUS.FAILED,
+        status: normalizeAssignmentStatus(payload.status),
         progress: payload.progress,
       });
     }
@@ -63,7 +63,9 @@ export function useAssignmentSocket(): void {
       if (!payload?.assignmentId) return;
 
       useAssignmentStore.getState().updateAssignment(payload.assignmentId, {
-        ...(payload.status ? { status: payload.status } : {}),
+        ...(payload.status
+          ? { status: normalizeAssignmentStatus(payload.status) }
+          : {}),
         ...(payload.progress !== undefined ? { progress: payload.progress } : {}),
         ...(payload.generatedPaper
           ? { generatedPaper: payload.generatedPaper }

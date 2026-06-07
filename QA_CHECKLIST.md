@@ -32,7 +32,7 @@ Use this checklist before submission or a live demo. Test locally first, then re
 
 ## Realtime (Socket.IO)
 
-- [ ] **Progress updates** — Generation shows `generating` status + progress
+- [ ] **Progress updates** — Generation shows `processing` status + progress
 - [ ] **Completion** — Paper appears when worker finishes; toast on success
 - [ ] **Failure** — Failed job shows error state + meaningful toast
 - [ ] **Delete sync** — Delete in one tab removes from another open tab

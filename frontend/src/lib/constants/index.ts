@@ -11,7 +11,7 @@ export const SOCKET_BASE_URL =
 
 export const ASSIGNMENT_STATUS = {
   PENDING: "pending",
-  GENERATING: "generating",
+  PROCESSING: "processing",
   COMPLETED: "completed",
   FAILED: "failed",
 } as const;

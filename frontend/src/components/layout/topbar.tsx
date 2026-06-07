@@ -1,13 +1,31 @@
 "use client";
 
+import type { KeyboardEvent } from "react";
 import { Bell, Menu, Search } from "lucide-react";
 
 interface TopbarProps {
   title?: string;
   subtitle?: string;
+  onNotificationsClick?: () => void;
+  onSearchInteract?: () => void;
 }
 
-export function Topbar({ title, subtitle }: TopbarProps) {
+export function Topbar({
+  title,
+  subtitle,
+  onNotificationsClick,
+  onSearchInteract,
+}: TopbarProps) {
+  function handleSearchInteract(): void {
+    onSearchInteract?.();
+  }
+
+  function handleSearchKeyDown(event: KeyboardEvent<HTMLInputElement>): void {
+    if (event.key === "Escape") return;
+    event.preventDefault();
+    handleSearchInteract();
+  }
+
   return (
     <>
       {/* Desktop topbar */}
@@ -20,14 +38,26 @@ export function Topbar({ title, subtitle }: TopbarProps) {
             />
             <input
               type="search"
+              readOnly
               placeholder="Search assignments, groups, library..."
-              disabled
-              aria-label="Search"
-              className="topbar-search placeholder:text-[var(--text-secondary)] placeholder:opacity-70"
+              aria-label="Global search (coming soon)"
+              aria-describedby="topbar-search-hint"
+              className="topbar-search cursor-pointer placeholder:text-[var(--text-secondary)] placeholder:opacity-70"
+              onFocus={handleSearchInteract}
+              onClick={handleSearchInteract}
+              onKeyDown={handleSearchKeyDown}
             />
+            <span id="topbar-search-hint" className="sr-only">
+              Global search is planned for a future release.
+            </span>
           </div>
 
-          <button type="button" aria-label="Notifications" className="topbar-icon-btn">
+          <button
+            type="button"
+            aria-label="Notifications (coming soon)"
+            className="topbar-icon-btn"
+            onClick={onNotificationsClick}
+          >
             <Bell className="h-[16px] w-[16px]" strokeWidth={2} />
           </button>
 
@@ -62,7 +92,12 @@ export function Topbar({ title, subtitle }: TopbarProps) {
           </div>
 
           <div className="flex items-center gap-1.5">
-            <button type="button" aria-label="Notifications" className="topbar-icon-btn h-8 w-8">
+            <button
+              type="button"
+              aria-label="Notifications (coming soon)"
+              className="topbar-icon-btn h-8 w-8"
+              onClick={onNotificationsClick}
+            >
               <Bell className="h-[15px] w-[15px]" strokeWidth={2} />
             </button>
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--black-primary)] text-[10px] font-semibold text-white">

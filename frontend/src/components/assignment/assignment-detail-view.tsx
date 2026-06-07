@@ -6,6 +6,7 @@ import { AssignmentDetailTabs } from "@/components/assignment/assignment-detail-
 import { getAssignmentMeta } from "@/lib/workspace/assignment-meta";
 import {
   estimateCompletionMinutes,
+  getStatusBadgeModifier,
   getWorkspaceStatusDetail,
   getWorkspaceStatusLabel,
 } from "@/lib/utils/assignment-status";
@@ -47,7 +48,9 @@ export function AssignmentDetailView({
               {assignment.topic} · {formatQuestionType(assignment.questionConfig.questionType)}
             </p>
           </div>
-          <span className={`status-badge status-badge--${statusDetail === "completed" ? "completed" : statusDetail === "failed" ? "failed" : statusDetail === "generating" ? "generating" : "pending"} w-fit shrink-0`}>
+          <span
+            className={`status-badge status-badge--${getStatusBadgeModifier(statusDetail)} w-fit shrink-0`}
+          >
             {statusLabel}
           </span>
         </div>

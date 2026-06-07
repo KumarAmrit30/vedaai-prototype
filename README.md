@@ -54,7 +54,7 @@ The system separates **fast API responses** from **slow AI work**, keeping the U
 | **Source grounding** | PDF/TXT upload → text extraction → prompt injection |
 | **Realtime updates** | Socket.IO progress, completion, failure, delete events |
 | **Workspace** | Dashboard stats, search, filters, sort, bulk actions |
-| **Lifecycle** | `pending` → `generating` → `completed` / `failed` |
+| **Lifecycle** | `pending` → `processing` → `completed` / `failed` |
 | **Soft delete** | Recoverable MongoDB records; hidden from all active queries |
 | **Optimistic UI** | Instant delete with undo; socket-confirmed state |
 | **PDF export** | Client-side html2canvas + jsPDF download (no print dialog) |
@@ -211,7 +211,7 @@ The backend broadcasts global events; the frontend subscribes once in `AppShell`
 
 | Event | Trigger | Frontend action |
 |-------|---------|-----------------|
-| `assignment:processing` | Worker progress update | Set status `generating`, update `progress` |
+| `assignment:processing` | Worker progress update | Set status `processing`, update `progress` |
 | `assignment:completed` | Paper saved | Set status `completed`, attach `generatedPaper` |
 | `assignment:failed` | Retries exhausted | Set status `failed` |
 | `assignment:updated` | Status patch / bulk update | Merge partial update |

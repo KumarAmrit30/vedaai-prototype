@@ -10,6 +10,7 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
+import { ComingSoonBadge } from "@/components/ui/coming-soon-badge";
 
 export type NavItemId =
   | "dashboard"
@@ -23,14 +24,15 @@ interface NavItem {
   id: NavItemId;
   label: string;
   icon: LucideIcon;
+  comingSoon?: boolean;
 }
 
 const mainNavItems: NavItem[] = [
   { id: "dashboard", label: "Home", icon: Home },
-  { id: "groups", label: "My Groups", icon: Users },
+  { id: "groups", label: "My Groups", icon: Users, comingSoon: true },
   { id: "assignments", label: "Assignments", icon: BookOpen },
   { id: "generate", label: "AI Teacher's Toolkit", icon: Sparkles },
-  { id: "library", label: "My Library", icon: Library },
+  { id: "library", label: "My Library", icon: Library, comingSoon: true },
 ];
 
 interface SidebarProps {
@@ -82,12 +84,23 @@ export function Sidebar({
               key={item.id}
               type="button"
               onClick={() => onNavigate?.(item.id)}
-              aria-label={item.label}
-              title={item.label}
+              aria-label={
+                item.comingSoon ? `${item.label} (coming soon)` : item.label
+              }
+              title={
+                item.comingSoon ? `${item.label} — Coming soon` : item.label
+              }
               className={`sidebar-item${isActive ? " active" : ""}`}
             >
               <Icon className="h-[15px] w-[15px] shrink-0" strokeWidth={2} />
-              <span className="sidebar-item__label truncate">{item.label}</span>
+              <span className="sidebar-item__label min-w-0 flex-1 truncate">
+                {item.label}
+              </span>
+              {item.comingSoon ? (
+                <span className="sidebar-item__soon hidden min-[1180px]:inline-flex">
+                  <ComingSoonBadge />
+                </span>
+              ) : null}
             </button>
           );
         })}
@@ -97,12 +110,15 @@ export function Sidebar({
         <button
           type="button"
           onClick={() => onNavigate?.("settings")}
-          aria-label="Settings"
-          title="Settings"
+          aria-label="Settings (coming soon)"
+          title="Settings — Coming soon"
           className={`sidebar-item${activeItem === "settings" ? " active" : ""}`}
         >
           <Settings className="h-[15px] w-[15px] shrink-0" strokeWidth={2} />
-          <span className="sidebar-item__label">Settings</span>
+          <span className="sidebar-item__label min-w-0 flex-1">Settings</span>
+          <span className="sidebar-item__soon hidden min-[1180px]:inline-flex">
+            <ComingSoonBadge />
+          </span>
         </button>
 
         <div className="sidebar-shell__profile mt-1 flex items-center gap-2 rounded-[10px] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-2">

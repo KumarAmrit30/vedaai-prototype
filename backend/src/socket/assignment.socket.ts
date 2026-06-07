@@ -1,9 +1,11 @@
 import type { GeneratedPaper } from "../modules/assignment/assignment.types";
+import type { AssignmentStatus } from "../modules/assignment/assignment.types";
+import { normalizeAssignmentStatus } from "../modules/assignment/assignment.status";
 import { getIO } from "./index";
 
 export interface AssignmentSocketPayload {
   assignmentId: string;
-  status: "generating" | "completed" | "failed";
+  status: "processing" | "completed" | "failed";
   progress: number;
   generatedPaper?: GeneratedPaper;
   failureReason?: string;
@@ -11,7 +13,7 @@ export interface AssignmentSocketPayload {
 
 export interface AssignmentUpdatedPayload {
   assignmentId: string;
-  status?: "pending" | "generating" | "completed" | "failed";
+  status?: AssignmentStatus;
   progress?: number;
   generatedPaper?: GeneratedPaper;
 }
@@ -19,15 +21,6 @@ export interface AssignmentUpdatedPayload {
 export interface AssignmentDeletedPayload {
   assignmentId: string;
 }
-
-const FRONTEND_STATUS_MAP: Record<string, AssignmentUpdatedPayload["status"]> =
-  {
-    processing: "generating",
-    generating: "generating",
-    pending: "pending",
-    completed: "completed",
-    failed: "failed",
-  };
 
 function buildPayload(
   assignmentId: string,
@@ -61,7 +54,7 @@ export function emitAssignmentProcessing(
 ): void {
   getIO().emit(
     "assignment:processing",
-    buildPayload(assignmentId, "generating", progress),
+    buildPayload(assignmentId, "processing", progress),
   );
 }
 
@@ -93,8 +86,6 @@ export function emitAssignmentDeleted(payload: AssignmentDeletedPayload): void {
   getIO().emit("assignment:deleted", payload);
 }
 
-export function mapStatusForFrontend(
-  status: string,
-): NonNullable<AssignmentUpdatedPayload["status"]> {
-  return FRONTEND_STATUS_MAP[status] ?? "pending";
+export function mapStatusForApi(status: string): AssignmentStatus {
+  return normalizeAssignmentStatus(status);
 }

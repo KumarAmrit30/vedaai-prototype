@@ -1,8 +1,14 @@
-import { deriveWorkspaceStatus } from "@/lib/utils/assignment-status";
+import { ASSIGNMENT_STATUS } from "@/lib/constants";
 import { formatQuestionType } from "@/lib/utils/format-assignment";
+import { hasGeneratedPaper, normalizeAssignmentStatus } from "@/lib/utils/assignment-status";
 import type { Assignment } from "@/types/assignment";
 
-export type StatusFilter = "all" | "pending" | "completed";
+export type StatusFilter =
+  | "all"
+  | "pending"
+  | "processing"
+  | "completed"
+  | "failed";
 
 export function matchesStatusFilter(
   assignment: Assignment,
@@ -10,9 +16,15 @@ export function matchesStatusFilter(
 ): boolean {
   if (filter === "all") return true;
 
-  const workspaceStatus = deriveWorkspaceStatus(assignment);
-  if (filter === "completed") return workspaceStatus === "completed";
-  return workspaceStatus === "pending";
+  const status = normalizeAssignmentStatus(assignment.status);
+
+  if (filter === "pending") return status === ASSIGNMENT_STATUS.PENDING;
+  if (filter === "processing") return status === ASSIGNMENT_STATUS.PROCESSING;
+  if (filter === "failed") return status === ASSIGNMENT_STATUS.FAILED;
+
+  return (
+    status === ASSIGNMENT_STATUS.COMPLETED && hasGeneratedPaper(assignment)
+  );
 }
 
 export function matchesSearchQuery(

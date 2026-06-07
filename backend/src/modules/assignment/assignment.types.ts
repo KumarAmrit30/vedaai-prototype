@@ -1,7 +1,6 @@
 export const ASSIGNMENT_STATUSES = [
   "pending",
   "processing",
-  "generating",
   "completed",
   "failed",
 ] as const;

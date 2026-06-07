@@ -5,7 +5,9 @@ import type { StatusFilter } from "@/lib/utils/assignment-filters";
 const STATUS_FILTERS: { id: StatusFilter; label: string }[] = [
   { id: "all", label: "All" },
   { id: "pending", label: "Pending" },
+  { id: "processing", label: "Processing" },
   { id: "completed", label: "Completed" },
+  { id: "failed", label: "Failed" },
 ];
 
 interface AssignmentFiltersProps {

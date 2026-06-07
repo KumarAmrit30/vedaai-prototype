@@ -11,6 +11,7 @@ import {
   formatQuestionType,
 } from "@/lib/utils/format-assignment";
 import {
+  getStatusBadgeModifier,
   getWorkspaceStatusDetail,
   getWorkspaceStatusLabel,
 } from "@/lib/utils/assignment-status";
@@ -28,14 +29,9 @@ interface AssignmentCardProps {
   onLongPressSelect?: (id: string) => void;
 }
 
-const statusBadgeClassMap = {
-  pending: "status-badge status-badge--pending",
-  generating: "status-badge status-badge--generating",
-  completed: "status-badge status-badge--completed",
-  failed: "status-badge status-badge--failed",
-  draft: "status-badge status-badge--pending",
-  incomplete: "status-badge status-badge--pending",
-} as const;
+function statusBadgeClass(detail: ReturnType<typeof getWorkspaceStatusDetail>): string {
+  return `status-badge status-badge--${getStatusBadgeModifier(detail)}`;
+}
 
 function AssignmentCardComponent({
   assignment,
@@ -115,7 +111,7 @@ function AssignmentCardComponent({
               {formatQuestionType(assignment.questionConfig.questionType)}
             </p>
           </div>
-          <span className={statusBadgeClassMap[statusDetail]}>{statusLabel}</span>
+          <span className={statusBadgeClass(statusDetail)}>{statusLabel}</span>
         </Link>
       </div>
 

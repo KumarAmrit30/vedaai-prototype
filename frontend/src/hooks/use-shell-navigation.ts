@@ -2,16 +2,24 @@
 
 import { useRouter } from "next/navigation";
 import type { NavItemId } from "@/components/layout/sidebar";
+import { isComingSoonNavItem } from "@/lib/navigation/coming-soon";
 import { ROUTES } from "@/lib/navigation/routes";
+import { useComingSoon } from "@/hooks/use-coming-soon";
 
 export function useShellNavigation() {
   const router = useRouter();
+  const comingSoon = useComingSoon();
 
   function navigateToCreate(): void {
     router.push(ROUTES.createAssignment);
   }
 
   function handleNavigate(id: NavItemId): void {
+    if (isComingSoonNavItem(id)) {
+      comingSoon.show();
+      return;
+    }
+
     switch (id) {
       case "dashboard":
         router.push(ROUTES.home);
@@ -35,5 +43,6 @@ export function useShellNavigation() {
     navigateToCreate,
     handleNavigate,
     navigateHome,
+    comingSoon,
   };
 }

@@ -6,7 +6,7 @@ import { useAssignmentsLoader } from "@/hooks/use-assignments-loader";
 import { useShellNavigation } from "@/hooks/use-shell-navigation";
 
 export default function AssignmentsWorkspacePage() {
-  const { handleNavigate, navigateToCreate } = useShellNavigation();
+  const { handleNavigate, navigateToCreate, comingSoon } = useShellNavigation();
   const { retry, loadError } = useAssignmentsLoader();
 
   return (
@@ -16,6 +16,7 @@ export default function AssignmentsWorkspacePage() {
       activeNav="assignments"
       onNavigate={handleNavigate}
       onCreateClick={navigateToCreate}
+      comingSoon={comingSoon}
     >
       <AssignmentWorkspace
         fetchError={loadError}

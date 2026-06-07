@@ -1,12 +1,7 @@
 import type { AssignmentDocument } from "./assignment.model";
 import { isDeletedAssignment } from "./assignment.queries";
-import type { AssignmentStatus } from "./assignment.types";
+import { normalizeAssignmentStatus } from "./assignment.status";
 import { logWarn } from "../../utils/logger";
-
-const FRONTEND_STATUS_MAP: Partial<Record<AssignmentStatus, AssignmentStatus>> =
-  {
-    processing: "generating",
-  };
 
 export function serializeAssignment(assignment: AssignmentDocument) {
   if (isDeletedAssignment(assignment)) {
@@ -19,7 +14,7 @@ export function serializeAssignment(assignment: AssignmentDocument) {
   }
 
   const raw = assignment.toObject({ versionKey: false });
-  const status = FRONTEND_STATUS_MAP[raw.status] ?? raw.status;
+  const status = normalizeAssignmentStatus(raw.status);
   const {
     materialText: _materialText,
     isDeleted: _isDeleted,

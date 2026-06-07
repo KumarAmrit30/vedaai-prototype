@@ -7,6 +7,9 @@ import apiRouter from "./modules/index";
 
 const app = express();
 
+// Render and other reverse proxies — required for accurate req.ip in rate limiters.
+app.set("trust proxy", 1);
+
 app.use(
   cors({
     origin: getCorsOrigins(),

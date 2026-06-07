@@ -3,7 +3,9 @@
 import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 import { Sidebar, type NavItemId } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
+import { ComingSoonDialog } from "@/components/ui/coming-soon-dialog";
 import { useAssignmentSocket } from "@/hooks/use-assignment-socket";
+import type { ComingSoonState } from "@/hooks/use-coming-soon";
 
 interface AppShellProps {
   title?: string;
@@ -12,6 +14,7 @@ interface AppShellProps {
   children: React.ReactNode;
   onCreateClick?: () => void;
   onNavigate?: (id: NavItemId) => void;
+  comingSoon?: ComingSoonState;
 }
 
 export function AppShell({
@@ -21,6 +24,7 @@ export function AppShell({
   children,
   onCreateClick,
   onNavigate,
+  comingSoon,
 }: AppShellProps) {
   useAssignmentSocket();
 
@@ -37,7 +41,12 @@ export function AppShell({
 
         <div className="app-shell__main">
           <div className="app-shell__topbar">
-            <Topbar title={title} subtitle={subtitle} />
+            <Topbar
+              title={title}
+              subtitle={subtitle}
+              onNotificationsClick={comingSoon?.showNotifications}
+              onSearchInteract={comingSoon?.showSearch}
+            />
           </div>
 
           <main className="app-shell__workspace mobile-main-content">
@@ -51,6 +60,14 @@ export function AppShell({
         onNavigate={onNavigate}
         onCreateClick={onCreateClick}
       />
+
+      {comingSoon ? (
+        <ComingSoonDialog
+          open={comingSoon.open}
+          message={comingSoon.message}
+          onClose={comingSoon.close}
+        />
+      ) : null}
     </div>
   );
 }

@@ -27,7 +27,7 @@ interface AssignmentByIdResponse {
 export default function AssignmentDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const { handleNavigate, navigateToCreate } = useShellNavigation();
+  const { handleNavigate, navigateToCreate, comingSoon } = useShellNavigation();
   const setAssignments = useAssignmentStore((state) => state.setAssignments);
   const removeAssignmentsById = useAssignmentStore(
     (state) => state.removeAssignmentsById,
@@ -138,6 +138,7 @@ export default function AssignmentDetailPage() {
       activeNav="assignments"
       onNavigate={handleNavigate}
       onCreateClick={navigateToCreate}
+      comingSoon={comingSoon}
     >
       {loading ? (
         <AssignmentLoading

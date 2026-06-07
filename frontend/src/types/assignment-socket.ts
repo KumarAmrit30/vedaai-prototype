@@ -2,7 +2,7 @@ import type { GeneratedPaper, AssignmentStatus } from "@/types/assignment";
 
 export interface AssignmentSocketPayload {
   assignmentId: string;
-  status: "generating" | "completed" | "failed";
+  status: "processing" | "completed" | "failed";
   progress: number;
   generatedPaper?: GeneratedPaper;
   failureReason?: string;

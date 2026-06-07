@@ -8,7 +8,7 @@ import { useShellNavigation } from "@/hooks/use-shell-navigation";
 import { useAssignmentStore } from "@/store/assignment.store";
 
 export default function DashboardPage() {
-  const { handleNavigate, navigateToCreate } = useShellNavigation();
+  const { handleNavigate, navigateToCreate, comingSoon } = useShellNavigation();
   const loading = useAssignmentStore((state) => state.loading);
   const { retry, loadError } = useAssignmentsLoader();
 
@@ -21,6 +21,7 @@ export default function DashboardPage() {
       activeNav="dashboard"
       onNavigate={handleNavigate}
       onCreateClick={navigateToCreate}
+      comingSoon={comingSoon}
     >
       <HomeDashboard
         loading={loading}

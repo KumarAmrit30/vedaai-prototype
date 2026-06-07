@@ -9,17 +9,19 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { NavItemId } from "@/components/layout/sidebar";
+import { ComingSoonBadge } from "@/components/ui/coming-soon-badge";
 
 interface MobileNavItem {
   id: NavItemId;
   label: string;
   icon: LucideIcon;
+  comingSoon?: boolean;
 }
 
 const mobileNavItems: MobileNavItem[] = [
   { id: "dashboard", label: "Home", icon: Home },
   { id: "assignments", label: "Assignments", icon: BookOpen },
-  { id: "library", label: "Library", icon: Library },
+  { id: "library", label: "Library", icon: Library, comingSoon: true },
   { id: "generate", label: "AI Toolkit", icon: Sparkles },
 ];
 
@@ -58,13 +60,17 @@ export function MobileBottomNav({
                 key={item.id}
                 type="button"
                 onClick={() => onNavigate?.(item.id)}
+                aria-label={
+                  item.comingSoon ? `${item.label} (coming soon)` : item.label
+                }
                 className={`mobile-nav-item${isActive ? " mobile-nav-item--active" : ""}`}
               >
                 <Icon
                   className="mobile-nav-item__icon"
                   strokeWidth={isActive ? 2.5 : 2}
                 />
-                <span>{item.label}</span>
+                <span className="mobile-nav-item__label">{item.label}</span>
+                {item.comingSoon ? <ComingSoonBadge compact /> : null}
               </button>
             );
           })}

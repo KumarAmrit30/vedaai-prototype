@@ -14,7 +14,7 @@
 - [x] AI prompt builder + Zod response parser
 - [x] Assignment Mongoose model (embedded sections/questions)
 - [x] Assignment APIs: `POST`, `GET` list, `GET` by ID, delete, bulk actions
-- [x] Worker lifecycle persistence (`pending` → `generating` → `completed` / `failed`)
+- [x] Worker lifecycle persistence (`pending` → `processing` → `completed` / `failed`)
 - [x] Socket.IO realtime events
 - [x] Graceful shutdown (DB, Redis, workers)
 - [x] Environment validation layer

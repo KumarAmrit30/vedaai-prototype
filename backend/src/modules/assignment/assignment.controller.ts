@@ -15,7 +15,7 @@ import {
 import {
   emitAssignmentDeleted,
   emitAssignmentUpdated,
-  mapStatusForFrontend,
+  mapStatusForApi,
   type AssignmentUpdatedPayload,
 } from "../../socket/assignment.socket";
 import { MANUAL_ASSIGNMENT_STATUSES } from "./assignment.constants";
@@ -91,7 +91,7 @@ function buildUpdatedSocketPayload(assignment: {
 }): AssignmentUpdatedPayload {
   const payload: AssignmentUpdatedPayload = {
     assignmentId: assignment._id.toString(),
-    status: mapStatusForFrontend(assignment.status) ?? "pending",
+    status: mapStatusForApi(assignment.status),
   };
 
   if (assignment.progress !== undefined) {

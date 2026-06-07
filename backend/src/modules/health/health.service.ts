@@ -1,4 +1,5 @@
-import { createRequire } from "node:module";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import mongoose from "mongoose";
 import { env } from "../../config/env";
 import { isAssignmentQueueReady } from "../../queues/assignment.queue";
@@ -9,10 +10,11 @@ import {
   type WorkerHealthState,
 } from "../../queues/worker-lifecycle";
 
-const require = createRequire(__filename);
-const { version: packageVersion } = require("../../../package.json") as {
-  version: string;
-};
+const packageVersion = (
+  JSON.parse(
+    readFileSync(join(__dirname, "../../../package.json"), "utf8"),
+  ) as { version: string }
+).version;
 
 export type DependencyStatus = "connected" | "disconnected";
 export type QueueHealthStatus = "ready" | "not_ready";

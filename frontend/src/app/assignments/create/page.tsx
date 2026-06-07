@@ -13,7 +13,8 @@ import { consumeDuplicateForm } from "@/lib/utils/duplicate-assignment";
 import { useAssignmentStore } from "@/store/assignment.store";
 
 export default function CreateAssignmentPage() {
-  const { handleNavigate, navigateHome, navigateToCreate } = useShellNavigation();
+  const { handleNavigate, navigateHome, navigateToCreate, comingSoon } =
+    useShellNavigation();
 
   const assignments = useAssignmentStore((state) => state.assignments);
   const setAssignments = useAssignmentStore((state) => state.setAssignments);
@@ -37,6 +38,7 @@ export default function CreateAssignmentPage() {
       activeNav="generate"
       onNavigate={handleNavigate}
       onCreateClick={navigateToCreate}
+      comingSoon={comingSoon}
     >
       <PageTransition>
         <AssignmentCreateFlow

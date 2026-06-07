@@ -832,6 +832,7 @@ body {
   color: color-mix(in srgb, var(--warning) 85%, #303030);
 }
 
+.status-badge--processing,
 .status-badge--generating {
   border: 1px solid color-mix(in srgb, #3b82f6 35%, transparent);
   background: color-mix(in srgb, #3b82f6 12%, transparent);
