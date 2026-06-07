@@ -61,6 +61,7 @@ const materialSourceSchema = new Schema(
 
 const assignmentSchema = new Schema(
   {
+    userId: { type: String, required: true, trim: true, index: true },
     title: { type: String, required: true, trim: true },
     topic: { type: String, required: true, trim: true },
     dueDate: { type: Date, required: true },
@@ -89,14 +90,11 @@ const assignmentSchema = new Schema(
   { timestamps: true },
 );
 
-/**
- * Active assignment listing (newest first).
- * Supports findActiveAssignments() in assignment.queries.ts:
- *   find({ isDeleted: { $ne: true } }).sort({ createdAt: -1 })
- * Lets MongoDB filter by isDeleted and return results in createdAt order
- * without an in-memory sort stage.
- */
-assignmentSchema.index({ isDeleted: 1, createdAt: -1 });
+/** Per-user active listing (newest first). */
+assignmentSchema.index({ userId: 1, isDeleted: 1, createdAt: -1 });
+
+/** Per-user detail lookups. */
+assignmentSchema.index({ userId: 1, _id: 1 });
 
 export type AssignmentDocument = HydratedDocument<AssignmentEntity>;
 export type AssignmentModel = Model<AssignmentEntity>;

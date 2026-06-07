@@ -1,7 +1,7 @@
 import { Worker, type Job } from "bullmq";
 import { Assignment } from "../modules/assignment/assignment.model";
 import {
-  findActiveAssignmentById,
+  findActiveAssignmentByIdInternal,
   NOT_DELETED_FILTER,
 } from "../modules/assignment/assignment.queries";
 import { incrementAssignmentUsage } from "../modules/user/user.service";
@@ -87,6 +87,7 @@ function handleWorkerError(error: Error): void {
 
 async function updateAssignmentProgress(
   assignmentId: string,
+  userId: string,
   progress: number,
 ): Promise<void> {
   const updated = await Assignment.findOneAndUpdate(
@@ -97,7 +98,7 @@ async function updateAssignmentProgress(
 
   if (!updated) return;
 
-  emitAssignmentProcessing(assignmentId, progress);
+  emitAssignmentProcessing(userId, assignmentId, progress);
 }
 
 async function processAssignmentJob(
@@ -109,10 +110,20 @@ async function processAssignmentJob(
     throw new Error("Assignment job missing assignmentId");
   }
 
-  const assignment = await findActiveAssignmentById(assignmentId);
+  const assignment = await findActiveAssignmentByIdInternal(assignmentId);
 
   if (!assignment) {
     logWarn("[WORKER] Assignment not found or deleted, skipping job", {
+      assignmentId,
+      jobId: job.id,
+    });
+    return;
+  }
+
+  const userId = assignment.userId ?? ownerUid;
+
+  if (!userId) {
+    logWarn("[WORKER] Assignment missing userId, skipping job", {
       assignmentId,
       jobId: job.id,
     });
@@ -126,10 +137,10 @@ async function processAssignmentJob(
     assignment.startedAt = assignment.startedAt ?? new Date();
     assignment.progress = 5;
     await assignment.save();
-    emitAssignmentProcessing(assignmentId, 5);
+    emitAssignmentProcessing(userId, assignmentId, 5);
     await job.updateProgress(5);
 
-    await updateAssignmentProgress(assignmentId, 20);
+    await updateAssignmentProgress(assignmentId, userId, 20);
     await job.updateProgress(20);
 
     const aiInput: Parameters<typeof generateAssignmentPaper>[0] = {
@@ -142,7 +153,7 @@ async function processAssignmentJob(
 
     const generationResult = await generateAssignmentPaper(aiInput);
 
-    await updateAssignmentProgress(assignmentId, 85);
+    await updateAssignmentProgress(assignmentId, userId, 85);
     await job.updateProgress(85);
 
     assignment.generatedPaper = generationResult.generatedPaper;
@@ -151,15 +162,18 @@ async function processAssignmentJob(
     assignment.progress = 100;
     assignment.completedAt = new Date();
     await assignment.save();
-    emitAssignmentCompleted(assignmentId, generationResult.generatedPaper);
+    emitAssignmentCompleted(
+      userId,
+      assignmentId,
+      generationResult.generatedPaper,
+    );
     await job.updateProgress(100);
 
     // Count usage only after a successful, validated completion.
-    if (ownerUid && generationResult.generatedPaper) {
-      await incrementAssignmentUsage(ownerUid);
-      logInfo("[USER]", {
-        action: "completed",
-        uid: ownerUid,
+    if (generationResult.generatedPaper) {
+      await incrementAssignmentUsage(userId);
+      logInfo("[USER] Assignment completed", {
+        uid: userId,
         assignmentId,
       });
     }
@@ -180,23 +194,15 @@ async function processAssignmentJob(
 
     if (isFinalAttempt) {
       try {
-        const failedAssignment = await findActiveAssignmentById(assignmentId);
+        const failedAssignment =
+          await findActiveAssignmentByIdInternal(assignmentId);
         if (failedAssignment) {
           failedAssignment.status = "failed";
           failedAssignment.failureReason = message;
           failedAssignment.progress = 0;
           failedAssignment.completedAt = new Date();
           await failedAssignment.save();
-          emitAssignmentFailed(assignmentId, message);
-
-          // Failed generations never count against usage.
-          if (ownerUid) {
-            logInfo("[USER]", {
-              action: "failed",
-              uid: ownerUid,
-              assignmentId,
-            });
-          }
+          emitAssignmentFailed(userId, assignmentId, message);
         }
       } catch (saveError) {
         const saveMessage =

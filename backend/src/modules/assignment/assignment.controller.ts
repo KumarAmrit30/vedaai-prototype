@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import { env } from "../../config/env";
 import {
   getUploadedFilePaths,
   uploadMaterials,
@@ -24,7 +25,7 @@ import {
   findActiveAssignmentById,
   findActiveAssignments,
   findActiveAssignmentsByIds,
-  NOT_DELETED_FILTER,
+  userScopedFilter,
 } from "./assignment.queries";
 import {
   serializeAssignment,
@@ -89,6 +90,20 @@ function getRouteParam(value: string | string[] | undefined): string | null {
   return null;
 }
 
+const LOCAL_DEV_USER_ID = "local-dev-user";
+
+function resolveRequestUserId(req: Request, res: Response): string | null {
+  if (req.auth?.uid) return req.auth.uid;
+
+  if (!env.authEnabled) return LOCAL_DEV_USER_ID;
+
+  res.status(401).json({
+    success: false,
+    message: "Authentication required.",
+  });
+  return null;
+}
+
 function buildUpdatedSocketPayload(assignment: {
   _id: { toString(): string };
   status: string;
@@ -121,8 +136,10 @@ export async function createAssignment(
   );
 
   try {
-    // Enforce free-plan generation limits for authenticated users. When auth is
-    // disabled (local dev), req.auth is absent and no limit applies.
+    const userId = resolveRequestUserId(req, res);
+    if (!userId) return;
+
+    // Enforce free-plan generation limits for the authenticated user.
     if (req.auth?.uid) {
       const user =
         (await findUserByFirebaseUid(req.auth.uid)) ??
@@ -131,11 +148,7 @@ export async function createAssignment(
       const limit = PLAN_ASSIGNMENT_LIMITS[user.plan];
 
       if (user.usage.assignmentsGenerated >= limit) {
-        logInfo("[LIMIT]", {
-          uid: user.firebaseUid,
-          plan: user.plan,
-          usage: user.usage.assignmentsGenerated,
-        });
+        logInfo("[USER] Free plan limit reached", { uid: req.auth.uid });
         res.status(403).json({
           success: false,
           message: "Free plan limit reached. Upgrade required.",
@@ -171,6 +184,7 @@ export async function createAssignment(
     }
 
     const assignment = await Assignment.create({
+      userId,
       title,
       topic,
       dueDate,
@@ -185,13 +199,11 @@ export async function createAssignment(
       ...(materialSource ? { materialSource } : {}),
     });
 
-    if (req.auth?.uid) {
-      logInfo("[USER]", {
-        action: "create",
-        uid: req.auth.uid,
-        assignmentId: assignment._id.toString(),
-      });
-    }
+    logInfo("[USER] Assignment created", {
+      uid: userId,
+      assignmentId: assignment._id.toString(),
+      topic: assignment.topic,
+    });
 
     const jobPayload: AssignmentGenerationJobData = {
       assignmentId: assignment._id.toString(),
@@ -206,8 +218,7 @@ export async function createAssignment(
       },
       ...(materialText ? { materialText } : {}),
       ...(uploadPaths.length ? { uploadPaths } : {}),
-      // Carry creator uid so usage is counted only on successful completion.
-      ...(req.auth?.uid ? { ownerUid: req.auth.uid } : {}),
+      ownerUid: userId,
     };
 
     const jobId = await enqueueAssignmentGeneration(jobPayload);
@@ -256,12 +267,15 @@ export function createAssignmentUploadMiddleware(
 }
 
 export async function getAssignments(
-  _req: Request,
+  req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void> {
   try {
-    const assignments = await findActiveAssignments();
+    const userId = resolveRequestUserId(req, res);
+    if (!userId) return;
+
+    const assignments = await findActiveAssignments(userId);
 
     res.json({
       success: true,
@@ -278,13 +292,16 @@ export async function getAssignmentById(
   next: NextFunction,
 ): Promise<void> {
   try {
+    const userId = resolveRequestUserId(req, res);
+    if (!userId) return;
+
     const id = getRouteParam(req.params.id);
     if (!id) {
       res.status(400).json({ success: false, message: "Invalid assignment id" });
       return;
     }
 
-    const assignment = await findActiveAssignmentById(id);
+    const assignment = await findActiveAssignmentById(id, userId);
 
     if (!assignment) {
       res.status(404).json({
@@ -309,6 +326,9 @@ export async function deleteAssignment(
   next: NextFunction,
 ): Promise<void> {
   try {
+    const userId = resolveRequestUserId(req, res);
+    if (!userId) return;
+
     const id = getRouteParam(req.params.id);
 
     if (!id) {
@@ -316,7 +336,7 @@ export async function deleteAssignment(
       return;
     }
 
-    const assignment = await findActiveAssignmentById(id);
+    const assignment = await findActiveAssignmentById(id, userId);
 
     if (!assignment) {
       res.status(404).json({
@@ -331,7 +351,7 @@ export async function deleteAssignment(
     await assignment.save();
 
     const assignmentId = assignment._id.toString();
-    emitAssignmentDeleted({ assignmentId });
+    emitAssignmentDeleted(userId, { assignmentId });
 
     res.json({
       success: true,
@@ -349,6 +369,9 @@ export async function bulkDeleteAssignments(
   next: NextFunction,
 ): Promise<void> {
   try {
+    const userId = resolveRequestUserId(req, res);
+    if (!userId) return;
+
     const { assignmentIds } = req.body as BulkDeleteBody;
     const ids = parseAssignmentIds(assignmentIds);
 
@@ -360,14 +383,26 @@ export async function bulkDeleteAssignments(
       return;
     }
 
+    const owned = await findActiveAssignmentsByIds(ids, userId);
+
+    if (owned.length !== ids.length) {
+      res.status(404).json({
+        success: false,
+        message: "One or more assignments not found",
+      });
+      return;
+    }
+
     const deletedAt = new Date();
     const result = await Assignment.updateMany(
-      { _id: { $in: ids }, ...NOT_DELETED_FILTER },
+      { _id: { $in: ids }, ...userScopedFilter(userId) },
       { $set: { isDeleted: true, deletedAt } },
     );
 
-    ids.forEach((assignmentId) => {
-      emitAssignmentDeleted({ assignmentId });
+    owned.forEach((assignment) => {
+      emitAssignmentDeleted(userId, {
+        assignmentId: assignment._id.toString(),
+      });
     });
 
     res.json({
@@ -387,6 +422,9 @@ export async function patchAssignmentStatus(
   next: NextFunction,
 ): Promise<void> {
   try {
+    const userId = resolveRequestUserId(req, res);
+    if (!userId) return;
+
     const id = getRouteParam(req.params.id);
     if (!id) {
       res.status(400).json({ success: false, message: "Invalid assignment id" });
@@ -403,7 +441,7 @@ export async function patchAssignmentStatus(
       return;
     }
 
-    const assignment = await findActiveAssignmentById(id);
+    const assignment = await findActiveAssignmentById(id, userId);
 
     if (!assignment) {
       res.status(404).json({
@@ -416,7 +454,7 @@ export async function patchAssignmentStatus(
     assignment.status = status;
     await assignment.save();
 
-    emitAssignmentUpdated(buildUpdatedSocketPayload(assignment));
+    emitAssignmentUpdated(userId, buildUpdatedSocketPayload(assignment));
 
     res.json({
       success: true,
@@ -433,6 +471,9 @@ export async function bulkUpdateAssignmentStatus(
   next: NextFunction,
 ): Promise<void> {
   try {
+    const userId = resolveRequestUserId(req, res);
+    if (!userId) return;
+
     const { assignmentIds, status } = req.body as BulkStatusBody;
     const ids = parseAssignmentIds(assignmentIds);
 
@@ -452,15 +493,25 @@ export async function bulkUpdateAssignmentStatus(
       return;
     }
 
+    const owned = await findActiveAssignmentsByIds(ids, userId);
+
+    if (owned.length !== ids.length) {
+      res.status(404).json({
+        success: false,
+        message: "One or more assignments not found",
+      });
+      return;
+    }
+
     const result = await Assignment.updateMany(
-      { _id: { $in: ids }, ...NOT_DELETED_FILTER },
+      { _id: { $in: ids }, ...userScopedFilter(userId) },
       { $set: { status } },
     );
 
-    const updatedAssignments = await findActiveAssignmentsByIds(ids);
+    const updatedAssignments = await findActiveAssignmentsByIds(ids, userId);
 
     updatedAssignments.forEach((assignment) => {
-      emitAssignmentUpdated(buildUpdatedSocketPayload(assignment));
+      emitAssignmentUpdated(userId, buildUpdatedSocketPayload(assignment));
     });
 
     res.json({

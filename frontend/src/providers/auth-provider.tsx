@@ -7,8 +7,16 @@ import {
   setAuthSessionCookie,
 } from "@/lib/auth/session-cookie";
 import { auth } from "@/lib/firebase/client";
+import { useAssignmentStore } from "@/store/assignment.store";
 import { useAuthStore } from "@/store/auth.store";
 import { useUserStore } from "@/store/user.store";
+
+function resetAssignmentWorkspace(): void {
+  const assignmentStore = useAssignmentStore.getState();
+  assignmentStore.setAssignments([]);
+  assignmentStore.setLoadedOnce(false);
+  assignmentStore.setLoading(false);
+}
 
 interface AuthProviderProps {
   children: React.ReactNode;
@@ -21,6 +29,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
+        const previousUid = useAuthStore.getState().user?.uid;
+
+        if (previousUid && previousUid !== user.uid) {
+          resetAssignmentWorkspace();
+        }
+
         setAuthSessionCookie();
         setUser(user);
         setStatus("authenticated");
@@ -31,6 +45,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       clearAuthSessionCookie();
       setUser(null);
       setStatus("unauthenticated");
+      resetAssignmentWorkspace();
       useUserStore.getState().reset();
     });
 

@@ -1,10 +1,12 @@
 "use client";
 
+import type { Socket } from "socket.io-client";
 import { useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 import { normalizeAssignmentStatus } from "@/lib/utils/assignment-status";
-import { connectSocket } from "@/lib/socket/client";
+import { connectSocket, disconnectSocket } from "@/lib/socket/client";
 import { useAssignmentStore } from "@/store/assignment.store";
+import { useAuthStore } from "@/store/auth.store";
 import { useWorkspaceStore } from "@/store/workspace.store";
 import type {
   AssignmentDeletedPayload,
@@ -24,10 +26,20 @@ function pruneSelection(assignmentId: string): void {
 }
 
 export function useAssignmentSocket(): void {
+  const authStatus = useAuthStore((state) => state.status);
   const wasConnectedRef = useRef(false);
 
   useEffect(() => {
-    const socket = connectSocket();
+    if (authStatus === "loading") return;
+
+    if (authStatus === "unauthenticated") {
+      disconnectSocket();
+      wasConnectedRef.current = false;
+      return;
+    }
+
+    let cancelled = false;
+    let socket: Socket | null = null;
 
     function handleProcessing(payload: AssignmentSocketPayload): void {
       if (!payload?.assignmentId) return;
@@ -110,15 +122,26 @@ export function useAssignmentSocket(): void {
       });
     }
 
-    socket.on("connect", handleConnect);
-    socket.on("disconnect", handleDisconnect);
-    socket.on("assignment:processing", handleProcessing);
-    socket.on("assignment:completed", handleCompleted);
-    socket.on("assignment:failed", handleFailed);
-    socket.on("assignment:updated", handleUpdated);
-    socket.on("assignment:deleted", handleDeleted);
+    void (async () => {
+      const token = await useAuthStore.getState().getIdToken();
+      if (cancelled || !token) return;
+
+      socket = connectSocket(token);
+
+      socket.on("connect", handleConnect);
+      socket.on("disconnect", handleDisconnect);
+      socket.on("assignment:processing", handleProcessing);
+      socket.on("assignment:completed", handleCompleted);
+      socket.on("assignment:failed", handleFailed);
+      socket.on("assignment:updated", handleUpdated);
+      socket.on("assignment:deleted", handleDeleted);
+    })();
 
     return () => {
+      cancelled = true;
+
+      if (!socket) return;
+
       socket.off("connect", handleConnect);
       socket.off("disconnect", handleDisconnect);
       socket.off("assignment:processing", handleProcessing);
@@ -127,5 +150,5 @@ export function useAssignmentSocket(): void {
       socket.off("assignment:updated", handleUpdated);
       socket.off("assignment:deleted", handleDeleted);
     };
-  }, []);
+  }, [authStatus]);
 }

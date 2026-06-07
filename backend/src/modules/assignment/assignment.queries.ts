@@ -12,26 +12,49 @@ export function isDeletedAssignment(
   return assignment.isDeleted === true;
 }
 
+/** Active-read filter scoped to a single authenticated user. */
+export function userScopedFilter(userId: string) {
+  return {
+    userId,
+    ...NOT_DELETED_FILTER,
+  };
+}
+
 export async function findActiveAssignmentById(
   id: string,
+  userId: string,
 ): Promise<AssignmentDocument | null> {
   return Assignment.findOne({
     _id: id,
-    isDeleted: { $ne: true },
+    ...userScopedFilter(userId),
   });
 }
 
-export async function findActiveAssignments(): Promise<AssignmentDocument[]> {
-  return Assignment.find({
-    isDeleted: { $ne: true },
-  }).sort({ createdAt: -1 });
+export async function findActiveAssignments(
+  userId: string,
+): Promise<AssignmentDocument[]> {
+  return Assignment.find(userScopedFilter(userId)).sort({ createdAt: -1 });
 }
 
 export async function findActiveAssignmentsByIds(
   ids: string[],
+  userId: string,
 ): Promise<AssignmentDocument[]> {
   return Assignment.find({
     _id: { $in: ids },
-    isDeleted: { $ne: true },
+    ...userScopedFilter(userId),
+  });
+}
+
+/**
+ * Internal worker/queue lookup by assignment id only.
+ * Not exposed through API — jobs are enqueued server-side with trusted ids.
+ */
+export async function findActiveAssignmentByIdInternal(
+  id: string,
+): Promise<AssignmentDocument | null> {
+  return Assignment.findOne({
+    _id: id,
+    ...NOT_DELETED_FILTER,
   });
 }

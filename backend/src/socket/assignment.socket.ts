@@ -21,6 +21,10 @@ export interface AssignmentDeletedPayload {
   assignmentId: string;
 }
 
+function userRoom(userId: string): string {
+  return `user:${userId}`;
+}
+
 function buildPayload(
   assignmentId: string,
   status: AssignmentSocketPayload["status"],
@@ -48,39 +52,54 @@ function buildPayload(
 }
 
 export function emitAssignmentProcessing(
+  userId: string,
   assignmentId: string,
   progress: number,
 ): void {
-  getIO().emit(
-    "assignment:processing",
-    buildPayload(assignmentId, "processing", progress),
-  );
+  getIO()
+    .to(userRoom(userId))
+    .emit(
+      "assignment:processing",
+      buildPayload(assignmentId, "processing", progress),
+    );
 }
 
 export function emitAssignmentCompleted(
+  userId: string,
   assignmentId: string,
   generatedPaper: GeneratedPaper,
 ): void {
-  getIO().emit(
-    "assignment:completed",
-    buildPayload(assignmentId, "completed", 100, { generatedPaper }),
-  );
+  getIO()
+    .to(userRoom(userId))
+    .emit(
+      "assignment:completed",
+      buildPayload(assignmentId, "completed", 100, { generatedPaper }),
+    );
 }
 
 export function emitAssignmentFailed(
+  userId: string,
   assignmentId: string,
   failureReason: string,
 ): void {
-  getIO().emit(
-    "assignment:failed",
-    buildPayload(assignmentId, "failed", 0, { failureReason }),
-  );
+  getIO()
+    .to(userRoom(userId))
+    .emit(
+      "assignment:failed",
+      buildPayload(assignmentId, "failed", 0, { failureReason }),
+    );
 }
 
-export function emitAssignmentUpdated(payload: AssignmentUpdatedPayload): void {
-  getIO().emit("assignment:updated", payload);
+export function emitAssignmentUpdated(
+  userId: string,
+  payload: AssignmentUpdatedPayload,
+): void {
+  getIO().to(userRoom(userId)).emit("assignment:updated", payload);
 }
 
-export function emitAssignmentDeleted(payload: AssignmentDeletedPayload): void {
-  getIO().emit("assignment:deleted", payload);
+export function emitAssignmentDeleted(
+  userId: string,
+  payload: AssignmentDeletedPayload,
+): void {
+  getIO().to(userRoom(userId)).emit("assignment:deleted", payload);
 }

@@ -48,6 +48,7 @@ export interface MaterialSource {
 }
 
 export interface Assignment {
+  userId: string;
   title: string;
   topic: string;
   dueDate: Date;
