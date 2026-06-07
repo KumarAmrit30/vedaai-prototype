@@ -17,6 +17,7 @@
 - [Socket.IO Realtime Flow](#socketio-realtime-flow)
 - [PDF/TXT Upload Grounding](#pdftxt-upload-grounding)
 - [Soft Delete Architecture](#soft-delete-architecture)
+- [Authentication & Free Plan](#authentication--free-plan)
 - [PDF Export System](#pdf-export-system)
 - [Mobile Support](#mobile-support)
 - [Getting Started](#getting-started)
@@ -261,6 +262,73 @@ Assignments are never hard-deleted from MongoDB during normal operation.
 
 ---
 
+## Authentication & Free Plan
+
+ExamForge AI uses **Firebase Google Sign-In** with an **auth-on-action** model: guests can browse the dashboard freely, and authentication is only required when performing a protected action (creating, opening, exporting, or mutating assignments).
+
+### Auth flow
+
+```
+Frontend (Firebase client)  ──►  getIdToken()  ──►  Axios interceptor
+        │                                              │ Authorization: Bearer <token>
+        ▼                                              ▼
+onAuthStateChanged                              Backend verifyFirebaseToken
+        │                                              │ firebase-admin.verifyIdToken()
+        ▼                                              ▼
+Zustand auth store                              upsertUserFromFirebaseClaims()
+                                                       │
+                                                       ▼
+                                                MongoDB `users` collection
+```
+
+- Backend verification is gated by the `AUTH_ENABLED` flag. When `false` (local dev), requests bypass verification and no usage limits apply.
+- On every authenticated request, the user document is lazily provisioned and kept in sync (`displayName`, `email`, `photoURL`) — no separate sync endpoint required.
+
+### User collection (`users`)
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `firebaseUid` | string | Unique, indexed |
+| `email` | string | Sparse unique index |
+| `displayName` | string? | Synced from Firebase claims |
+| `photoURL` | string? | Synced from Firebase claims |
+| `plan` | enum | `free` \| `pro` \| `enterprise` (default `free`) |
+| `usage.assignmentsGenerated` | number | Incremented after each successful create |
+| `createdAt` / `updatedAt` | Date | Mongoose timestamps |
+
+### Free plan & usage tracking
+
+| Rule | Detail |
+|------|--------|
+| **Limit** | Free plan allows **3** total assignment generations |
+| **Enforcement** | Checked before `Assignment.create`; over limit → **HTTP 403** `{ success: false, message: "Free plan limit reached. Upgrade required." }` |
+| **Counting** | Counter increments **only after** a record is successfully created (never on validation failures) |
+| **Pro / Enterprise** | Reserved for future phases; treated as unlimited (`assignmentsAllowed: null`) |
+
+When the limit is reached, the frontend shows an **Upgrade modal** ("Free Plan Limit Reached") instead of a generic error. The **Upgrade Plan** button is a placeholder — no billing, payments, or assignment ownership is implemented in this phase.
+
+### Auth environment variables
+
+**Backend (`backend/.env`)**
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `AUTH_ENABLED` | No | `true` to enforce Firebase verification (default `false`) |
+| `FIREBASE_PROJECT_ID` | When enabled | Firebase project ID |
+| `FIREBASE_CLIENT_EMAIL` | When enabled | Service account client email |
+| `FIREBASE_PRIVATE_KEY` | When enabled | Service account private key (escaped newlines) |
+
+**Frontend (`frontend/.env.local`)**
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | Yes | Firebase web API key |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Yes | Firebase auth domain |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Yes | Firebase project ID |
+| `NEXT_PUBLIC_FIREBASE_APP_ID` | Yes | Firebase app ID |
+
+---
+
 ## PDF Export System
 
 Export uses a **client-side capture pipeline** (no server PDF library, no browser print dialog):
@@ -385,7 +453,8 @@ Base URL: `http://localhost:8000/api`
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/health` | Health check |
-| `POST` | `/assignments` | Create assignment + enqueue generation (JSON or `multipart/form-data`) |
+| `GET` | `/users/me` | Current user plan + usage + limits (requires auth) |
+| `POST` | `/assignments` | Create assignment + enqueue generation (JSON or `multipart/form-data`) — enforces free-plan limit |
 | `GET` | `/assignments` | List active assignments (newest first) |
 | `GET` | `/assignments/:id` | Get assignment by ID (404 if soft-deleted) |
 | `DELETE` | `/assignments/:id` | Soft-delete assignment |
@@ -413,6 +482,23 @@ Fields:
   "jobId": "...",
   "status": "pending",
   "data": { ... }
+}
+```
+
+### GET `/users/me`
+
+Requires `Authorization: Bearer <firebase-id-token>`.
+
+**Response (200):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "plan": "free",
+    "usage": { "assignmentsGenerated": 2 },
+    "limits": { "assignmentsAllowed": 3 }
+  }
 }
 ```
 
@@ -514,11 +600,13 @@ vedaAI_prototype/
 ├── backend/
 │   ├── src/
 │   │   ├── modules/assignment/   # Routes, controller, model, serializer
+│   │   ├── modules/user/         # User model, upsert service, usage serializer
+│   │   ├── config/               # env, firebase-admin
 │   │   ├── queues/               # BullMQ queue + worker
 │   │   ├── services/             # AI, material parser
 │   │   │   └── ai/providers/     # Groq + Gemini provider abstraction
 │   │   ├── socket/               # Socket.IO events
-│   │   └── middleware/           # Upload, error handling
+│   │   └── middleware/           # Upload, error handling, firebase-auth
 │   └── .env.example
 ├── frontend/
 │   ├── src/

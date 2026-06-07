@@ -18,6 +18,12 @@
 - [x] Socket.IO realtime events
 - [x] Graceful shutdown (DB, Redis, workers)
 - [x] Environment validation layer
+- [x] Firebase token verification middleware (`AUTH_ENABLED` flag)
+- [x] User model + `users` collection (`firebaseUid` unique, `email` sparse unique)
+- [x] Lazy user upsert from Firebase claims (no sync endpoint)
+- [x] Free plan usage tracking (`usage.assignmentsGenerated`)
+- [x] 3-generation free limit (403 over limit, increment only on success)
+- [x] `GET /api/users/me` plan + usage + limits API
 
 ## Completed — Frontend
 
@@ -31,6 +37,11 @@
 - [x] PDF export (client-side html2canvas + jsPDF)
 - [x] Responsive shell (desktop sidebar, mobile bottom nav)
 - [x] ExamForge AI branding across UI and metadata
+- [x] Firebase Google Sign-In (client SDK + Zustand auth store)
+- [x] Auth-on-action guard (`useRequireAuth`) + Axios bearer interceptor
+- [x] Guest dashboard with marketing CTA
+- [x] `PlanBadge` component + sidebar plan/usage display
+- [x] Free-plan usage fetch (`GET /users/me`) + upgrade modal on limit
 
 ## Architecture Summary
 
@@ -55,9 +66,12 @@ backend/           Express API → MongoDB
 ## Pending / Future
 
 - [ ] Request validation (Zod on API + react-hook-form on frontend)
-- [ ] Authentication (post-MVP)
 - [ ] Health check with DB/Redis readiness
 - [ ] Production worker process separation
+- [ ] Billing / payments (Stripe or Razorpay) + paid plan activation
+- [ ] Assignment ownership (`userId` on assignments) + per-user queries
+- [ ] Socket room isolation per user
+- [ ] Subscription management + monthly usage resets
 
 ## Known Improvements Planned
 

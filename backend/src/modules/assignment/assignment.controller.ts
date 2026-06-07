@@ -30,6 +30,12 @@ import {
   serializeAssignment,
   serializeAssignments,
 } from "./assignment.serializer";
+import {
+  findUserByFirebaseUid,
+  incrementAssignmentUsage,
+  upsertUserFromFirebaseClaims,
+} from "../user/user.service";
+import { PLAN_ASSIGNMENT_LIMITS } from "../user/user.types";
 import type { MaterialSource, QuestionConfig, GeneratedPaper } from "./assignment.types";
 import type { ManualAssignmentStatus } from "./assignment.constants";
 
@@ -115,6 +121,24 @@ export async function createAssignment(
   );
 
   try {
+    // Enforce free-plan generation limits for authenticated users. When auth is
+    // disabled (local dev), req.auth is absent and no limit applies.
+    if (req.auth?.uid) {
+      const user =
+        (await findUserByFirebaseUid(req.auth.uid)) ??
+        (await upsertUserFromFirebaseClaims(req.auth));
+
+      const limit = PLAN_ASSIGNMENT_LIMITS[user.plan];
+
+      if (user.usage.assignmentsGenerated >= limit) {
+        res.status(403).json({
+          success: false,
+          message: "Free plan limit reached. Upgrade required.",
+        });
+        return;
+      }
+    }
+
     const {
       title,
       topic,
@@ -155,6 +179,11 @@ export async function createAssignment(
       ...(originalFileName ? { originalFileName } : {}),
       ...(materialSource ? { materialSource } : {}),
     });
+
+    // Count only successful creations against the user's quota.
+    if (req.auth?.uid) {
+      await incrementAssignmentUsage(req.auth.uid);
+    }
 
     const jobPayload: AssignmentGenerationJobData = {
       assignmentId: assignment._id.toString(),

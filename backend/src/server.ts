@@ -2,6 +2,7 @@ import "dotenv/config";
 import { createServer, type Server as HttpServer } from "node:http";
 import app from "./app";
 import { env, validateEnv } from "./config/env";
+import { initFirebaseAdmin } from "./config/firebase-admin";
 import { connectDB, disconnectDB } from "./db/connect";
 import {
   closeAssignmentQueue,
@@ -17,6 +18,7 @@ import { closeSocket, initSocket } from "./socket/index";
 import { logError, logInfo } from "./utils/logger";
 
 validateEnv();
+initFirebaseAdmin();
 
 let server: HttpServer | undefined;
 let isShuttingDown = false;

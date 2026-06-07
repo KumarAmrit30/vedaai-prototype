@@ -8,6 +8,7 @@ import { AssignmentDetailView } from "@/components/assignment/assignment-detail-
 import { AssignmentLoading } from "@/components/assignment/assignment-loading";
 import { AppShell } from "@/components/layout/app-shell";
 import { PageTransition } from "@/components/layout/page-transition";
+import { useRequireAuth } from "@/hooks/use-require-auth";
 import { useShellNavigation } from "@/hooks/use-shell-navigation";
 import apiClient from "@/lib/api/axios";
 import { ROUTES } from "@/lib/navigation/routes";
@@ -15,6 +16,7 @@ import { getApiErrorMessage } from "@/lib/utils/get-api-error-message";
 import { storeDuplicateAssignment } from "@/lib/utils/duplicate-assignment";
 import { markAssignmentOpened } from "@/lib/workspace/assignment-meta";
 import { useAssignmentStore } from "@/store/assignment.store";
+import { useAuthStore } from "@/store/auth.store";
 import { useWorkspaceStore } from "@/store/workspace.store";
 import type { Assignment } from "@/types/assignment";
 
@@ -32,13 +34,22 @@ export default function AssignmentDetailPage() {
   const removeAssignmentsById = useAssignmentStore(
     (state) => state.removeAssignmentsById,
   );
+  const authStatus = useAuthStore((state) => state.status);
+  const requireAuth = useRequireAuth();
 
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (authStatus === "unauthenticated") {
+      requireAuth();
+    }
+  }, [authStatus, requireAuth]);
+
+  useEffect(() => {
     if (!params.id) return;
+    if (authStatus !== "authenticated") return;
 
     let cancelled = false;
 
@@ -100,7 +111,7 @@ export default function AssignmentDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [params.id, removeAssignmentsById, setAssignments]);
+  }, [authStatus, params.id, removeAssignmentsById, setAssignments]);
 
   function handleRetry(): void {
     if (!params.id) return;

@@ -3,6 +3,7 @@
 import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 import { Sidebar, type NavItemId } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
+import { UpgradeModal } from "@/components/billing/upgrade-modal";
 import { ComingSoonDialog } from "@/components/ui/coming-soon-dialog";
 import { useAssignmentSocket } from "@/hooks/use-assignment-socket";
 import type { ComingSoonState } from "@/hooks/use-coming-soon";
@@ -68,6 +69,8 @@ export function AppShell({
           onClose={comingSoon.close}
         />
       ) : null}
+
+      <UpgradeModal />
     </div>
   );
 }

@@ -3,6 +3,11 @@
 import type { KeyboardEvent } from "react";
 import { Bell, Menu, Search } from "lucide-react";
 import { ComingSoonBadge } from "@/components/ui/coming-soon-badge";
+import {
+  getUserDisplayName,
+  getUserInitials,
+} from "@/lib/auth/user-display";
+import { useAuthStore } from "@/store/auth.store";
 
 interface TopbarProps {
   title?: string;
@@ -11,12 +16,48 @@ interface TopbarProps {
   onSearchInteract?: () => void;
 }
 
+function UserAvatar({
+  photoURL,
+  initials,
+  className,
+}: {
+  photoURL?: string | null;
+  initials: string;
+  className: string;
+}): React.ReactNode {
+  if (photoURL) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={photoURL}
+        alt=""
+        className={`${className} object-cover`}
+        referrerPolicy="no-referrer"
+      />
+    );
+  }
+
+  return (
+    <div
+      className={`${className} flex items-center justify-center bg-[var(--black-primary)] text-[10px] font-semibold text-white`}
+    >
+      {initials}
+    </div>
+  );
+}
+
 export function Topbar({
   title,
   subtitle,
   onNotificationsClick,
   onSearchInteract,
 }: TopbarProps) {
+  const user = useAuthStore((state) => state.user);
+  const status = useAuthStore((state) => state.status);
+  const isAuthenticated = status === "authenticated" && Boolean(user);
+  const displayName = isAuthenticated && user ? getUserDisplayName(user) : "Guest User";
+  const initials = isAuthenticated && user ? getUserInitials(user) : "GU";
+
   function handleSearchInteract(): void {
     onSearchInteract?.();
   }
@@ -74,11 +115,13 @@ export function Topbar({
           </button>
 
           <div className="topbar-user-chip">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--black-primary)] text-[10px] font-semibold text-white">
-              GU
-            </div>
+            <UserAvatar
+              photoURL={user?.photoURL}
+              initials={initials}
+              className="h-7 w-7 rounded-full"
+            />
             <span className="hidden text-[13px] font-medium text-[var(--text-primary)] min-[1180px]:inline">
-              Guest User
+              {displayName}
             </span>
           </div>
         </div>
@@ -120,9 +163,11 @@ export function Topbar({
             >
               <Bell className="h-[15px] w-[15px]" strokeWidth={2} />
             </button>
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--black-primary)] text-[10px] font-semibold text-white">
-              GU
-            </div>
+            <UserAvatar
+              photoURL={user?.photoURL}
+              initials={initials}
+              className="h-8 w-8 rounded-full"
+            />
             <button type="button" aria-label="Menu" className="topbar-icon-btn h-8 w-8">
               <Menu className="h-[15px] w-[15px]" strokeWidth={2} />
             </button>

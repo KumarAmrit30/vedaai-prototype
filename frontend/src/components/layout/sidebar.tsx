@@ -4,13 +4,23 @@ import {
   BookOpen,
   Home,
   Library,
+  LogIn,
+  LogOut,
   Plus,
   Settings,
   Sparkles,
   Users,
   type LucideIcon,
 } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
 import { ComingSoonBadge } from "@/components/ui/coming-soon-badge";
+import { PlanBadge } from "@/components/ui/plan-badge";
+import {
+  getUserDisplayName,
+  getUserInitials,
+} from "@/lib/auth/user-display";
+import { useAuthStore } from "@/store/auth.store";
+import { useUserStore } from "@/store/user.store";
 
 export type NavItemId =
   | "dashboard"
@@ -46,6 +56,36 @@ export function Sidebar({
   onNavigate,
   onCreateClick,
 }: SidebarProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const user = useAuthStore((state) => state.user);
+  const status = useAuthStore((state) => state.status);
+  const signOut = useAuthStore((state) => state.signOut);
+  const profile = useUserStore((state) => state.profile);
+
+  const isAuthenticated = status === "authenticated" && Boolean(user);
+  const displayName = isAuthenticated && user ? getUserDisplayName(user) : "Guest User";
+  const initials = isAuthenticated && user ? getUserInitials(user) : "GU";
+  const email = user?.email ?? "";
+
+  const plan = profile?.plan ?? "free";
+  const generationsUsed = profile?.usage.assignmentsGenerated ?? 0;
+  const generationsAllowed = profile?.limits.assignmentsAllowed ?? null;
+  const usageLabel =
+    generationsAllowed === null
+      ? `${generationsUsed} Generations Used`
+      : `${generationsUsed} / ${generationsAllowed} Generations Used`;
+
+  async function handleSignOut(): Promise<void> {
+    await signOut();
+    router.replace("/login");
+  }
+
+  function handleSignIn(): void {
+    const next = encodeURIComponent(pathname ?? "/");
+    router.push(`/login?next=${next}`);
+  }
+
   return (
     <aside className="sidebar-shell hidden h-full shrink-0 flex-col md:flex">
       <div className="sidebar-shell__header flex flex-col gap-3 px-3 pt-4 pb-2">
@@ -122,18 +162,59 @@ export function Sidebar({
         </button>
 
         <div className="sidebar-shell__profile mt-1 flex items-center gap-2 rounded-[10px] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-2">
-          <div className="sidebar-shell__profile-avatar flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--orange-primary)] text-[9px] font-bold text-[var(--black-primary)]">
-            DW
-          </div>
-          <div className="sidebar-shell__profile-text min-w-0">
+          {isAuthenticated && user?.photoURL ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={user.photoURL}
+              alt=""
+              className="sidebar-shell__profile-avatar h-7 w-7 shrink-0 rounded-full object-cover"
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <div className="sidebar-shell__profile-avatar flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--orange-primary)] text-[9px] font-bold text-[var(--black-primary)]">
+              {initials}
+            </div>
+          )}
+          <div className="sidebar-shell__profile-text min-w-0 flex-1">
             <p className="truncate text-[12px] font-semibold text-[var(--text-primary)]">
-              Demo Workspace
+              {displayName}
             </p>
             <p className="truncate text-[10px] text-[var(--text-muted)]">
-              Workspace profile
+              {isAuthenticated
+                ? email || "Signed in with Google"
+                : "Not signed in"}
             </p>
           </div>
         </div>
+
+        <div className="sidebar-shell__plan mt-1 flex flex-col gap-1 rounded-[10px] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-2.5 py-2">
+          <PlanBadge plan={plan} className="self-start" />
+          <p className="truncate text-[10px] text-[var(--text-muted)]">
+            {isAuthenticated ? usageLabel : "Sign in to start generating"}
+          </p>
+        </div>
+
+        {isAuthenticated ? (
+          <button
+            type="button"
+            onClick={() => void handleSignOut()}
+            className="sidebar-item mt-1"
+            aria-label="Sign out"
+          >
+            <LogOut className="h-[15px] w-[15px] shrink-0" strokeWidth={2} />
+            <span className="sidebar-item__label min-w-0 flex-1">Sign out</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleSignIn}
+            className="sidebar-item mt-1"
+            aria-label="Sign in"
+          >
+            <LogIn className="h-[15px] w-[15px] shrink-0" strokeWidth={2} />
+            <span className="sidebar-item__label min-w-0 flex-1">Sign in</span>
+          </button>
+        )}
       </div>
     </aside>
   );

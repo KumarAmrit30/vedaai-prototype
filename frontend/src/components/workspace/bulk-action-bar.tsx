@@ -14,12 +14,14 @@ import { deleteAssignmentsWithUndo } from "@/lib/utils/delete-with-undo";
 import { getApiErrorMessage } from "@/lib/utils/get-api-error-message";
 import { removeManyAssignmentMeta } from "@/lib/workspace/assignment-meta";
 import { storeDuplicateAssignment } from "@/lib/utils/duplicate-assignment";
+import { useRequireAuth } from "@/hooks/use-require-auth";
 import { useAssignmentStore } from "@/store/assignment.store";
 import { useWorkspaceStore } from "@/store/workspace.store";
 import type { Assignment } from "@/types/assignment";
 
 export function BulkActionBar() {
   const router = useRouter();
+  const requireAuth = useRequireAuth();
   const [isUpdating, setIsUpdating] = useState(false);
   const selectedIds = useWorkspaceStore((state) => state.selectedIds);
   const clearSelection = useWorkspaceStore((state) => state.clearSelection);
@@ -37,6 +39,8 @@ export function BulkActionBar() {
   );
 
   function handleDelete(): void {
+    if (!requireAuth()) return;
+
     const ids = [...selectedIds];
 
     const removed = removeAssignmentsById(ids);
@@ -54,6 +58,7 @@ export function BulkActionBar() {
 
   async function handleMarkCompleted(): Promise<void> {
     if (isUpdating) return;
+    if (!requireAuth()) return;
 
     const ids = [...selectedIds];
     const snapshots = ids
@@ -93,6 +98,7 @@ export function BulkActionBar() {
   function handleDuplicate(): void {
     const first = selectedAssignments[0];
     if (!first) return;
+    if (!requireAuth(undefined, { next: ROUTES.createAssignment })) return;
 
     storeDuplicateAssignment(first);
     toast.success(

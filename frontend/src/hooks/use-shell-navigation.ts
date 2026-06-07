@@ -5,13 +5,17 @@ import type { NavItemId } from "@/components/layout/sidebar";
 import { isComingSoonNavItem } from "@/lib/navigation/coming-soon";
 import { ROUTES } from "@/lib/navigation/routes";
 import { useComingSoon } from "@/hooks/use-coming-soon";
+import { useRequireAuth } from "@/hooks/use-require-auth";
 
 export function useShellNavigation() {
   const router = useRouter();
   const comingSoon = useComingSoon();
+  const requireAuth = useRequireAuth();
 
   function navigateToCreate(): void {
-    router.push(ROUTES.createAssignment);
+    requireAuth(() => router.push(ROUTES.createAssignment), {
+      next: ROUTES.createAssignment,
+    });
   }
 
   function handleNavigate(id: NavItemId): void {
@@ -28,7 +32,9 @@ export function useShellNavigation() {
         router.push(ROUTES.assignments);
         break;
       case "generate":
-        router.push(ROUTES.createAssignment);
+        requireAuth(() => router.push(ROUTES.createAssignment), {
+          next: ROUTES.createAssignment,
+        });
         break;
       default:
         break;

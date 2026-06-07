@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AssignmentCreateFlow,
   type CreateAssignmentForm,
@@ -8,9 +8,11 @@ import {
 import { AppShell } from "@/components/layout/app-shell";
 import { PageTransition } from "@/components/layout/page-transition";
 import { useAssignmentsLoader } from "@/hooks/use-assignments-loader";
+import { useRequireAuth } from "@/hooks/use-require-auth";
 import { useShellNavigation } from "@/hooks/use-shell-navigation";
 import { consumeDuplicateForm } from "@/lib/utils/duplicate-assignment";
 import { useAssignmentStore } from "@/store/assignment.store";
+import { useAuthStore } from "@/store/auth.store";
 
 export default function CreateAssignmentPage() {
   const { handleNavigate, navigateHome, navigateToCreate, comingSoon } =
@@ -18,6 +20,14 @@ export default function CreateAssignmentPage() {
 
   const assignments = useAssignmentStore((state) => state.assignments);
   const setAssignments = useAssignmentStore((state) => state.setAssignments);
+  const authStatus = useAuthStore((state) => state.status);
+  const requireAuth = useRequireAuth();
+
+  useEffect(() => {
+    if (authStatus === "unauthenticated") {
+      requireAuth();
+    }
+  }, [authStatus, requireAuth]);
 
   useAssignmentsLoader();
 

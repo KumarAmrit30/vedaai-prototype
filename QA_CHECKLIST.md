@@ -30,6 +30,36 @@ Use this checklist before submission or a live demo. Test locally first, then re
 
 ---
 
+## Authentication & Free Plan
+
+### Guest
+
+- [ ] **Browse dashboard** — Guest can view dashboard without signing in
+- [ ] **Marketing CTA** — Guest sees headline, feature list, and "Create Your First Assignment"
+- [ ] **CTA gating** — Clicking the CTA redirects to `/login` (auth-on-action)
+- [ ] **Plan badge** — Sidebar shows "Free Plan" + "Sign in to start generating"
+- [ ] **Protected actions** — Create/open/export/bulk actions redirect to login when signed out
+
+### Authenticated
+
+- [ ] **Google Sign-In** — Sign-in succeeds; profile name/avatar appear
+- [ ] **User auto-created** — `users` document created on first authenticated request
+- [ ] **Plan badge** — Sidebar shows "Free Plan" + "N / 3 Generations Used"
+- [ ] **Usage updates** — Counter increments after each successful generation
+- [ ] **Profile API** — `GET /api/users/me` returns plan, usage, and limits
+- [ ] **Sign out** — Clears session; UI returns to guest state
+
+### Free Plan Limit
+
+- [ ] **Generate up to 3** — First 3 assignments generate normally
+- [ ] **4th blocked** — Creation blocked after 3 generations
+- [ ] **403 response** — API returns 403 `Free plan limit reached. Upgrade required.`
+- [ ] **Upgrade modal** — "Free Plan Limit Reached" modal shown (not a generic error)
+- [ ] **Maybe Later** — Closes modal; **Upgrade Plan** is a placeholder (no billing)
+- [ ] **No increment on failure** — Validation failures do not consume quota
+
+---
+
 ## Realtime (Socket.IO)
 
 - [ ] **Progress updates** — Generation shows `processing` status + progress
@@ -79,8 +109,11 @@ Use this checklist before submission or a live demo. Test locally first, then re
 ## Deployment
 
 - [ ] **Vercel build** — `npm run build` passes in frontend
+- [ ] **Backend build** — `npm run build` passes in backend
 - [ ] **Render startup** — Backend starts with valid env vars
 - [ ] **Production envs** — `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SOCKET_URL`, `CLIENT_URL` set
+- [ ] **Auth envs** — `AUTH_ENABLED` + Firebase admin vars (backend) and `NEXT_PUBLIC_FIREBASE_*` (frontend) set
+- [ ] **No debug logs** — Production console free of `[AUTH]` / `[AXIOS]` / `[ASSIGNMENTS]` output
 - [ ] **API connectivity** — Frontend loads assignments from production API
 - [ ] **CORS** — No cross-origin errors in browser console
 - [ ] **Health check** — `GET /api/health` returns OK

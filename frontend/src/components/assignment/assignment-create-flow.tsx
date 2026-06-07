@@ -1,5 +1,6 @@
 "use client";
 
+import { isAxiosError } from "axios";
 import { ChevronDown, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
@@ -35,6 +36,7 @@ import {
 } from "@/lib/workspace/create-draft";
 import { DraftResumePrompt } from "@/components/workspace/draft-resume-prompt";
 import { useAssignmentStore } from "@/store/assignment.store";
+import { useUserStore } from "@/store/user.store";
 import type { Assignment } from "@/types/assignment";
 
 export interface CreateAssignmentForm {
@@ -236,12 +238,18 @@ export function AssignmentCreateFlow({
       setAssignments([created, ...assignments]);
       setStepDirection("forward");
       setIsGenerating(true);
+      void useUserStore.getState().fetchProfile();
       toast(GENERATION_QUEUED_TOAST, {
         id: `assignment-queued-${created._id}`,
         className: "app-toast app-toast--info",
         icon: "◷",
       });
     } catch (error) {
+      if (isAxiosError(error) && error.response?.status === 403) {
+        useUserStore.getState().openUpgradeModal();
+        return;
+      }
+
       toast.error(
         getApiErrorMessage(error, "Unable to create assignment. Please try again."),
       );

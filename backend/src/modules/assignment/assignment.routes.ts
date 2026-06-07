@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { assignmentCreationRateLimit } from "../../middleware/assignment-rate-limit";
+import { verifyFirebaseToken } from "../../middleware/firebase-auth";
 import { validateRequest } from "../../middleware/validate-request";
 import {
   bulkDeleteAssignments,
@@ -19,6 +20,8 @@ import {
 } from "./assignment.validation";
 
 const assignmentRouter = Router();
+
+assignmentRouter.use(verifyFirebaseToken);
 
 assignmentRouter.get("/", getAssignments);
 assignmentRouter.post(

@@ -15,6 +15,7 @@ import {
   getWorkspaceStatusDetail,
   getWorkspaceStatusLabel,
 } from "@/lib/utils/assignment-status";
+import { useRequireAuth } from "@/hooks/use-require-auth";
 import { markAssignmentOpened } from "@/lib/workspace/assignment-meta";
 import { useWorkspaceStore } from "@/store/workspace.store";
 import type { Assignment } from "@/types/assignment";
@@ -43,6 +44,7 @@ function AssignmentCardComponent({
   onLongPressSelect,
 }: AssignmentCardProps) {
   const router = useRouter();
+  const requireAuth = useRequireAuth();
   const longPressTimerRef = useRef<number | null>(null);
   const detailHref = ROUTES.assignmentDetail(assignment._id);
   const statusDetail = getWorkspaceStatusDetail(assignment);
@@ -55,10 +57,19 @@ function AssignmentCardComponent({
     }
   }
 
-  function handleOpen(): void {
+  function openDetail(): void {
     markAssignmentOpened(assignment._id);
     useWorkspaceStore.getState().setRecentlyOpenedHighlightId(assignment._id);
     router.push(detailHref);
+  }
+
+  function handleOpen(): void {
+    requireAuth(openDetail, { next: detailHref });
+  }
+
+  function handleTitleClick(event: React.MouseEvent): void {
+    event.preventDefault();
+    handleOpen();
   }
 
   function handlePointerDown(): void {
@@ -95,7 +106,7 @@ function AssignmentCardComponent({
 
         <Link
           href={detailHref}
-          onClick={() => markAssignmentOpened(assignment._id)}
+          onClick={handleTitleClick}
           className="flex min-w-0 flex-1 items-start justify-between gap-3 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--orange-primary)]/20 focus-visible:ring-offset-1"
         >
           <div className="min-w-0 flex-1">

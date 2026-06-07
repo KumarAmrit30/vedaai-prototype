@@ -1,11 +1,13 @@
 "use client";
 
+import axios from "axios";
 import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import apiClient from "@/lib/api/axios";
 import { getApiErrorMessage } from "@/lib/utils/get-api-error-message";
 import { deriveWorkspaceStatus } from "@/lib/utils/assignment-status";
 import { useAssignmentStore } from "@/store/assignment.store";
+import { useAuthStore } from "@/store/auth.store";
 import type { Assignment } from "@/types/assignment";
 
 interface AssignmentsResponse {
@@ -23,6 +25,8 @@ export function useAssignmentsLoader(enabled = true): {
   const loading = useAssignmentStore((state) => state.loading);
   const setLoading = useAssignmentStore((state) => state.setLoading);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const authStatus = useAuthStore((state) => state.status);
+  const authReady = authStatus === "authenticated";
 
   const loadAssignments = useCallback(async (): Promise<void> => {
     setLoading(true);
@@ -35,13 +39,20 @@ export function useAssignmentsLoader(enabled = true): {
 
       setAssignments(data);
     } catch (error) {
+      const isUnauthorized =
+        axios.isAxiosError(error) && error.response?.status === 401;
+
       const message = getApiErrorMessage(
         error,
         "Unable to load assignments. Please try again.",
       );
 
       setLoadError(message);
-      setLoadedOnce(true);
+
+      if (!isUnauthorized) {
+        setLoadedOnce(true);
+      }
+
       toast.error(message);
       throw error;
     } finally {
@@ -50,11 +61,11 @@ export function useAssignmentsLoader(enabled = true): {
   }, [setAssignments, setLoadedOnce, setLoading]);
 
   useEffect(() => {
-    if (!enabled || loadedOnce || loading) return;
+    if (!enabled || !authReady || loadedOnce || loading) return;
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- bootstrap fetch on first mount
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- bootstrap fetch after auth ready
     void loadAssignments().catch(() => undefined);
-  }, [enabled, loadedOnce, loadAssignments, loading]);
+  }, [authReady, enabled, loadedOnce, loadAssignments, loading]);
 
   return { retry: loadAssignments, loadError };
 }

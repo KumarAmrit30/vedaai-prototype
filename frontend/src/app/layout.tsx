@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { AppToaster } from "@/components/layout/app-toaster";
+import { AuthProvider } from "@/providers/auth-provider";
 import "./globals.css";
 
 const inter = Inter({
@@ -27,8 +28,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col md:h-full md:overflow-hidden">
-        <AppToaster />
-        {children}
+        <AuthProvider>
+          <AppToaster />
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

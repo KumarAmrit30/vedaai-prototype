@@ -11,6 +11,7 @@ import {
 import apiClient from "@/lib/api/axios";
 import { ASSIGNMENT_STATUS } from "@/lib/constants";
 import { exportAssignmentPdf } from "@/lib/utils/export-assignment-pdf";
+import { useRequireAuth } from "@/hooks/use-require-auth";
 import type { Assignment } from "@/types/assignment";
 
 async function resolveAssignmentForPdfExport(
@@ -51,6 +52,7 @@ export function AssignmentPreview({
   onBackFromError,
 }: AssignmentPreviewProps) {
   const stageRef = useRef<HTMLDivElement>(null);
+  const requireAuth = useRequireAuth();
   const [toolbarElevated, setToolbarElevated] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
@@ -76,6 +78,7 @@ export function AssignmentPreview({
 
   async function handleDownloadPdf(): Promise<void> {
     if (isGeneratingPdf) return;
+    if (!requireAuth()) return;
 
     setIsGeneratingPdf(true);
 

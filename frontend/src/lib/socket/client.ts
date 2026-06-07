@@ -31,3 +31,11 @@ export function getSocket(): Socket {
 export function isSocketConnected(): boolean {
   return Boolean(socket?.connected);
 }
+
+export function disconnectSocket(): void {
+  if (!socket) return;
+
+  socket.disconnect();
+  socket.removeAllListeners();
+  socket = null;
+}

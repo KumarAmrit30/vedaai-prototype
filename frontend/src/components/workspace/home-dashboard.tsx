@@ -1,19 +1,85 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Clock3, FileText, Plus, Sparkles } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Clock3,
+  FileText,
+  Plus,
+  Sparkles,
+} from "lucide-react";
 import { AssignmentCard } from "@/components/assignment/AssignmentCard";
 import { AssignmentListSkeleton } from "@/components/assignment/assignment-card-skeleton";
 import { PageTransition } from "@/components/layout/page-transition";
 import { useDashboardStats } from "@/hooks/use-assignments-loader";
+import { useRequireAuth } from "@/hooks/use-require-auth";
 import { ROUTES } from "@/lib/navigation/routes";
 import {
   getPendingAssignmentsSnapshot,
   getRecentlyOpenedAssignments,
 } from "@/lib/utils/dashboard-assignments";
 import { useAssignmentStore } from "@/store/assignment.store";
+import { useAuthStore } from "@/store/auth.store";
 import { useWorkspaceStore } from "@/store/workspace.store";
 import type { Assignment } from "@/types/assignment";
+
+const GUEST_FEATURES = [
+  "AI-generated assessments",
+  "Automatic answer keys",
+  "PDF export",
+  "Google Sign-In",
+  "Fast generation",
+];
+
+function GuestDashboard() {
+  const requireAuth = useRequireAuth();
+
+  return (
+    <PageTransition>
+      <div className="home-dashboard space-y-5">
+        <section className="home-dashboard__hero surface-card-compact">
+          <p className="home-dashboard__eyebrow">ExamForge AI</p>
+          <h1 className="home-dashboard__title mt-1 max-w-2xl text-balance text-[24px] leading-tight sm:text-[28px]">
+            Generate professional assessments in seconds
+          </h1>
+          <p className="mt-2 max-w-xl text-[14px] leading-relaxed text-[var(--text-secondary)]">
+            Create AI-powered assignments, answer keys, and export-ready papers.
+          </p>
+
+          <ul className="mt-5 grid gap-2 sm:grid-cols-2">
+            {GUEST_FEATURES.map((feature) => (
+              <li
+                key={feature}
+                className="flex items-center gap-2 text-[13px] text-[var(--text-primary)]"
+              >
+                <CheckCircle2
+                  className="h-4 w-4 shrink-0 text-[var(--orange-primary)]"
+                  strokeWidth={2}
+                  aria-hidden="true"
+                />
+                {feature}
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-6">
+            <button
+              type="button"
+              onClick={() =>
+                requireAuth(undefined, { next: ROUTES.createAssignment })
+              }
+              className="submit-pill-btn"
+            >
+              <Sparkles className="h-3.5 w-3.5" strokeWidth={2} />
+              Create Your First Assignment
+            </button>
+          </div>
+        </section>
+      </div>
+    </PageTransition>
+  );
+}
 
 interface HomeDashboardProps {
   loading: boolean;
@@ -100,10 +166,15 @@ export function HomeDashboard({
   onRetry,
 }: HomeDashboardProps) {
   const assignments = useAssignmentStore((state) => state.assignments);
+  const authStatus = useAuthStore((state) => state.status);
   const stats = useDashboardStats(assignments);
 
   const recentlyOpened = getRecentlyOpenedAssignments(assignments, 5);
   const pendingSnapshot = getPendingAssignmentsSnapshot(assignments, 4);
+
+  if (authStatus === "unauthenticated") {
+    return <GuestDashboard />;
+  }
 
   if (loadError && assignments.length === 0) {
     return (
