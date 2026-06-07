@@ -14,6 +14,8 @@ function getClient(): GoogleGenerativeAI {
 }
 
 export async function generateContent(prompt: string): Promise<string> {
+  console.log("Using Gemini Key:", process.env.GEMINI_API_KEY?.slice(0, 10));
+
   try {
     const model = getClient().getGenerativeModel({ model: MODEL_NAME });
     const result = await model.generateContent(prompt);
