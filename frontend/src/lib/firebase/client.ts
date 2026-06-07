@@ -24,3 +24,17 @@ export const auth: Auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
 googleProvider.setCustomParameters({ prompt: "select_account" });
+
+let authConfigLogged = false;
+
+function logAuthConfigOnce(): void {
+  if (authConfigLogged || typeof window === "undefined") return;
+
+  authConfigLogged = true;
+
+  console.log(
+    `[AUTH CONFIG]\norigin=${window.location.origin}\nprojectId=${firebaseConfig.projectId ?? "(undefined)"}\nauthDomain=${firebaseConfig.authDomain ?? "(undefined)"}\napiKey=${firebaseConfig.apiKey ?? "(undefined)"}\nappId=${firebaseConfig.appId ?? "(undefined)"}`,
+  );
+}
+
+logAuthConfigOnce();

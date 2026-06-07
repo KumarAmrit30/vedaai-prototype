@@ -1,10 +1,32 @@
 "use client";
 
+import type { FirebaseError } from "firebase/app";
 import { Loader2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useAuthStore } from "@/store/auth.store";
+
+function formatAuthError(error: unknown): { code: string; message: string } {
+  if (
+    error &&
+    typeof error === "object" &&
+    "code" in error &&
+    typeof (error as FirebaseError).code === "string"
+  ) {
+    const firebaseError = error as FirebaseError;
+    return {
+      code: firebaseError.code,
+      message: firebaseError.message,
+    };
+  }
+
+  return {
+    code: "unknown",
+    message:
+      error instanceof Error ? error.message : "Unable to sign in with Google.",
+  };
+}
 
 function GoogleIcon(): React.ReactNode {
   return (
@@ -53,12 +75,10 @@ function LoginContent(): React.ReactNode {
       await signInWithGoogle();
       router.replace(nextPath);
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Unable to sign in with Google.";
+      console.error("[AUTH] Google Sign-In failed", error);
 
-      if (!message.toLowerCase().includes("popup-closed")) {
-        toast.error("Sign-in failed. Please try again.");
-      }
+      const { code, message } = formatAuthError(error);
+      toast.error(`${code}: ${message}`);
     } finally {
       setIsSigningIn(false);
     }

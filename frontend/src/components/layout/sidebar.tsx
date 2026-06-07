@@ -41,7 +41,7 @@ const mainNavItems: NavItem[] = [
   { id: "dashboard", label: "Home", icon: Home },
   { id: "groups", label: "My Groups", icon: Users, comingSoon: true },
   { id: "assignments", label: "Assignments", icon: BookOpen },
-  { id: "generate", label: "AI Teacher's Toolkit", icon: Sparkles },
+  // { id: "generate", label: "AI Teacher's Toolkit", icon: Sparkles },
   { id: "library", label: "My Library", icon: Library, comingSoon: true },
 ];
 
