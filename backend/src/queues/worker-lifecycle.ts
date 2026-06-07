@@ -6,6 +6,7 @@ import { isRedisQuotaError, isRedisQuotaExceeded } from "./redis-quota";
 let workerRef: Worker<AssignmentGenerationJobData> | null = null;
 let idlePauseTimer: ReturnType<typeof setTimeout> | null = null;
 let closingWorker = false;
+let loopStartInFlight = false;
 
 /** Covers Upstash commandTimeout (15s) after pause(true) interrupts an in-flight BZPOPMIN. */
 const CONTROL_ERROR_SUPPRESS_MS = 20_000;
@@ -70,7 +71,7 @@ export function schedulePauseWhenIdle(): void {
     void workerRef
       .pause(true)
       .then(() => {
-        logInfo("[WORKER] Paused while queue is idle (Redis polling stopped)");
+        logInfo("[WORKER] Paused while queue is idle");
       })
       .catch((error: Error) => {
         if (!isRedisQuotaError(error)) {
@@ -80,16 +81,63 @@ export function schedulePauseWhenIdle(): void {
   }, 1_500);
 }
 
-export async function resumeWorkerIfPaused(): Promise<void> {
-  if (!workerRef || workerRef.closing) return;
-  if (isRedisQuotaExceeded()) return;
-
-  clearIdlePauseTimer();
-
-  if (workerRef.isPaused() || !workerRef.isRunning()) {
-    workerRef.resume();
-    logInfo("[WORKER] Resumed for incoming job");
+/**
+ * Starts or resumes the BullMQ processing loop without blocking the caller.
+ * run() must not be awaited here — it only resolves when the main loop exits.
+ */
+function ensureWorkerProcessing(coldStart: boolean): void {
+  if (!workerRef || workerRef.closing || isRedisQuotaExceeded()) {
+    return;
   }
+
+  const worker = workerRef;
+
+  if (worker.isRunning()) {
+    if (worker.isPaused()) {
+      worker.resume();
+      logInfo("[WORKER] Resumed from idle pause");
+    }
+    return;
+  }
+
+  if (worker.isPaused()) {
+    worker.resume();
+    logInfo("[WORKER] Resumed from idle pause");
+    logInfo("[WORKER] Started processing loop");
+    return;
+  }
+
+  if (loopStartInFlight) {
+    return;
+  }
+
+  loopStartInFlight = true;
+
+  void worker
+    .run()
+    .catch((error: Error) => {
+      if (error.message !== "Worker is already running.") {
+        logWarn("[WORKER] Processing loop error", { message: error.message });
+      }
+    })
+    .finally(() => {
+      loopStartInFlight = false;
+    });
+
+  if (coldStart) {
+    logInfo("[WORKER] Cold-start recovery triggered");
+  }
+
+  logInfo("[WORKER] Started processing loop");
+}
+
+export async function resumeWorkerIfPaused(): Promise<void> {
+  clearIdlePauseTimer();
+  ensureWorkerProcessing(true);
+}
+
+export function startWorkerProcessingIfNeeded(): void {
+  ensureWorkerProcessing(false);
 }
 
 export async function closeRegisteredWorker(force = false): Promise<void> {

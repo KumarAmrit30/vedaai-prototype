@@ -29,6 +29,7 @@ import {
   isExpectedWorkerControlError,
   registerAssignmentWorker,
   schedulePauseWhenIdle,
+  startWorkerProcessingIfNeeded,
 } from "./worker-lifecycle";
 
 export let assignmentWorker: Worker<AssignmentGenerationJobData>;
@@ -234,7 +235,7 @@ export async function startAssignmentWorker(): Promise<void> {
   const pendingCount = (pending.wait ?? 0) + (pending.delayed ?? 0);
 
   if (pendingCount > 0) {
-    await assignmentWorker.run();
+    startWorkerProcessingIfNeeded();
     logInfo("[WORKER] Assignment worker ready", { pendingJobs: pendingCount });
   } else {
     logInfo("[WORKER] Assignment worker ready (idle — no Redis polling until next job)");
