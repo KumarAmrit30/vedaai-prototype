@@ -17,6 +17,8 @@ export interface AssignmentGenerationJobData {
   materialText?: string;
   metadata?: Record<string, unknown>;
   uploadPaths?: string[];
+  /** Firebase uid of the creator — used to count usage only on completion. */
+  ownerUid?: string;
 }
 
 export let assignmentQueue: Queue<AssignmentGenerationJobData>;

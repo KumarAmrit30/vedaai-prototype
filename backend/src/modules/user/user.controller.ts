@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import { logInfo } from "../../utils/logger";
 import {
   findUserByFirebaseUid,
   upsertUserFromFirebaseClaims,
@@ -24,6 +25,11 @@ export async function getCurrentUser(
     const user =
       (await findUserByFirebaseUid(auth.uid)) ??
       (await upsertUserFromFirebaseClaims(auth));
+
+    logInfo("[AUTH]", {
+      uid: auth.uid,
+      email: auth.email,
+    });
 
     res.json({
       success: true,

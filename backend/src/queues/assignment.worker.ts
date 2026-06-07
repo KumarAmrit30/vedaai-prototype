@@ -4,6 +4,7 @@ import {
   findActiveAssignmentById,
   NOT_DELETED_FILTER,
 } from "../modules/assignment/assignment.queries";
+import { incrementAssignmentUsage } from "../modules/user/user.service";
 import { generateAssignmentPaper } from "../services/ai.service";
 import { deleteUploadedFiles } from "../services/material-parser.service";
 import {
@@ -102,7 +103,7 @@ async function updateAssignmentProgress(
 async function processAssignmentJob(
   job: Job<AssignmentGenerationJobData>,
 ): Promise<void> {
-  const { assignmentId, uploadPaths, ...formData } = job.data;
+  const { assignmentId, uploadPaths, ownerUid, ...formData } = job.data;
 
   if (!assignmentId) {
     throw new Error("Assignment job missing assignmentId");
@@ -153,6 +154,16 @@ async function processAssignmentJob(
     emitAssignmentCompleted(assignmentId, generationResult.generatedPaper);
     await job.updateProgress(100);
 
+    // Count usage only after a successful, validated completion.
+    if (ownerUid && generationResult.generatedPaper) {
+      await incrementAssignmentUsage(ownerUid);
+      logInfo("[USER]", {
+        action: "completed",
+        uid: ownerUid,
+        assignmentId,
+      });
+    }
+
     logInfo("[WORKER] Assignment completed", { assignmentId, jobId: job.id });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
@@ -177,6 +188,15 @@ async function processAssignmentJob(
           failedAssignment.completedAt = new Date();
           await failedAssignment.save();
           emitAssignmentFailed(assignmentId, message);
+
+          // Failed generations never count against usage.
+          if (ownerUid) {
+            logInfo("[USER]", {
+              action: "failed",
+              uid: ownerUid,
+              assignmentId,
+            });
+          }
         }
       } catch (saveError) {
         const saveMessage =

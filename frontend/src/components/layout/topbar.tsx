@@ -1,7 +1,8 @@
 "use client";
 
 import type { KeyboardEvent } from "react";
-import { Bell, Menu, Search } from "lucide-react";
+import { Bell, LogIn, Menu, Search } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
 import { ComingSoonBadge } from "@/components/ui/coming-soon-badge";
 import {
   getUserDisplayName,
@@ -52,11 +53,19 @@ export function Topbar({
   onNotificationsClick,
   onSearchInteract,
 }: TopbarProps) {
+  const router = useRouter();
+  const pathname = usePathname();
   const user = useAuthStore((state) => state.user);
   const status = useAuthStore((state) => state.status);
+  const isAuthLoading = status === "loading";
   const isAuthenticated = status === "authenticated" && Boolean(user);
   const displayName = isAuthenticated && user ? getUserDisplayName(user) : "Guest User";
   const initials = isAuthenticated && user ? getUserInitials(user) : "GU";
+
+  function handleSignIn(): void {
+    const next = encodeURIComponent(pathname ?? "/");
+    router.push(`/login?next=${next}`);
+  }
 
   function handleSearchInteract(): void {
     onSearchInteract?.();
@@ -114,16 +123,33 @@ export function Topbar({
             <Bell className="h-[16px] w-[16px]" strokeWidth={2} />
           </button>
 
-          <div className="topbar-user-chip">
-            <UserAvatar
-              photoURL={user?.photoURL}
-              initials={initials}
-              className="h-7 w-7 rounded-full"
-            />
-            <span className="hidden text-[13px] font-medium text-[var(--text-primary)] min-[1180px]:inline">
-              {displayName}
-            </span>
-          </div>
+          {isAuthLoading ? (
+            <div className="topbar-user-chip" aria-hidden="true">
+              <div className="shimmer-block h-7 w-7 rounded-full" />
+              <div className="hidden shimmer-block h-3.5 w-20 min-[1180px]:block" />
+            </div>
+          ) : isAuthenticated ? (
+            <div className="topbar-user-chip">
+              <UserAvatar
+                photoURL={user?.photoURL}
+                initials={initials}
+                className="h-7 w-7 rounded-full"
+              />
+              <span className="hidden text-[13px] font-medium text-[var(--text-primary)] min-[1180px]:inline">
+                {displayName}
+              </span>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSignIn}
+              className="submit-pill-btn"
+              aria-label="Sign in"
+            >
+              <LogIn className="h-3.5 w-3.5" strokeWidth={2.5} />
+              Sign In
+            </button>
+          )}
         </div>
       </header>
 
@@ -163,11 +189,27 @@ export function Topbar({
             >
               <Bell className="h-[15px] w-[15px]" strokeWidth={2} />
             </button>
-            <UserAvatar
-              photoURL={user?.photoURL}
-              initials={initials}
-              className="h-8 w-8 rounded-full"
-            />
+            {isAuthLoading ? (
+              <div
+                className="shimmer-block h-8 w-8 rounded-full"
+                aria-hidden="true"
+              />
+            ) : isAuthenticated ? (
+              <UserAvatar
+                photoURL={user?.photoURL}
+                initials={initials}
+                className="h-8 w-8 rounded-full"
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={handleSignIn}
+                aria-label="Sign in"
+                className="topbar-icon-btn h-8 w-8"
+              >
+                <LogIn className="h-[15px] w-[15px]" strokeWidth={2} />
+              </button>
+            )}
             <button type="button" aria-label="Menu" className="topbar-icon-btn h-8 w-8">
               <Menu className="h-[15px] w-[15px]" strokeWidth={2} />
             </button>

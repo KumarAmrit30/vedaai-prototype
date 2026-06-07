@@ -32,10 +32,10 @@ import {
 } from "./assignment.serializer";
 import {
   findUserByFirebaseUid,
-  incrementAssignmentUsage,
   upsertUserFromFirebaseClaims,
 } from "../user/user.service";
 import { PLAN_ASSIGNMENT_LIMITS } from "../user/user.types";
+import { logInfo } from "../../utils/logger";
 import type { MaterialSource, QuestionConfig, GeneratedPaper } from "./assignment.types";
 import type { ManualAssignmentStatus } from "./assignment.constants";
 
@@ -131,6 +131,11 @@ export async function createAssignment(
       const limit = PLAN_ASSIGNMENT_LIMITS[user.plan];
 
       if (user.usage.assignmentsGenerated >= limit) {
+        logInfo("[LIMIT]", {
+          uid: user.firebaseUid,
+          plan: user.plan,
+          usage: user.usage.assignmentsGenerated,
+        });
         res.status(403).json({
           success: false,
           message: "Free plan limit reached. Upgrade required.",
@@ -180,9 +185,12 @@ export async function createAssignment(
       ...(materialSource ? { materialSource } : {}),
     });
 
-    // Count only successful creations against the user's quota.
     if (req.auth?.uid) {
-      await incrementAssignmentUsage(req.auth.uid);
+      logInfo("[USER]", {
+        action: "create",
+        uid: req.auth.uid,
+        assignmentId: assignment._id.toString(),
+      });
     }
 
     const jobPayload: AssignmentGenerationJobData = {
@@ -198,6 +206,8 @@ export async function createAssignment(
       },
       ...(materialText ? { materialText } : {}),
       ...(uploadPaths.length ? { uploadPaths } : {}),
+      // Carry creator uid so usage is counted only on successful completion.
+      ...(req.auth?.uid ? { ownerUid: req.auth.uid } : {}),
     };
 
     const jobId = await enqueueAssignmentGeneration(jobPayload);

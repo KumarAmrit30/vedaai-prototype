@@ -70,7 +70,7 @@ async function startServer(): Promise<void> {
     await startAssignmentWorker();
 
     server.listen(env.port, () => {
-      logInfo("[SERVER] VedaAI backend started", {
+      logInfo("[SERVER] ExamForge AI backend started", {
         port: env.port,
         clientUrl: env.clientUrl,
         healthCheck: `/api/health`,

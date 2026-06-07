@@ -63,6 +63,7 @@ export function Sidebar({
   const signOut = useAuthStore((state) => state.signOut);
   const profile = useUserStore((state) => state.profile);
 
+  const isAuthLoading = status === "loading";
   const isAuthenticated = status === "authenticated" && Boolean(user);
   const displayName = isAuthenticated && user ? getUserDisplayName(user) : "Guest User";
   const initials = isAuthenticated && user ? getUserInitials(user) : "GU";
@@ -78,7 +79,7 @@ export function Sidebar({
 
   async function handleSignOut(): Promise<void> {
     await signOut();
-    router.replace("/login");
+    router.replace("/");
   }
 
   function handleSignIn(): void {
@@ -161,59 +162,76 @@ export function Sidebar({
           </span>
         </button>
 
-        <div className="sidebar-shell__profile mt-1 flex items-center gap-2 rounded-[10px] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-2">
-          {isAuthenticated && user?.photoURL ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={user.photoURL}
-              alt=""
-              className="sidebar-shell__profile-avatar h-7 w-7 shrink-0 rounded-full object-cover"
-              referrerPolicy="no-referrer"
-            />
-          ) : (
-            <div className="sidebar-shell__profile-avatar flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--orange-primary)] text-[9px] font-bold text-[var(--black-primary)]">
-              {initials}
+        {isAuthLoading ? (
+          <div
+            className="sidebar-shell__profile mt-1 flex items-center gap-2 rounded-[10px] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-2"
+            aria-hidden="true"
+          >
+            <div className="shimmer-block h-7 w-7 shrink-0 rounded-full" />
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <div className="shimmer-block h-3 w-24" />
+              <div className="shimmer-block h-2.5 w-32" />
             </div>
-          )}
-          <div className="sidebar-shell__profile-text min-w-0 flex-1">
-            <p className="truncate text-[12px] font-semibold text-[var(--text-primary)]">
-              {displayName}
-            </p>
-            <p className="truncate text-[10px] text-[var(--text-muted)]">
-              {isAuthenticated
-                ? email || "Signed in with Google"
-                : "Not signed in"}
-            </p>
           </div>
-        </div>
-
-        <div className="sidebar-shell__plan mt-1 flex flex-col gap-1 rounded-[10px] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-2.5 py-2">
-          <PlanBadge plan={plan} className="self-start" />
-          <p className="truncate text-[10px] text-[var(--text-muted)]">
-            {isAuthenticated ? usageLabel : "Sign in to start generating"}
-          </p>
-        </div>
-
-        {isAuthenticated ? (
-          <button
-            type="button"
-            onClick={() => void handleSignOut()}
-            className="sidebar-item mt-1"
-            aria-label="Sign out"
-          >
-            <LogOut className="h-[15px] w-[15px] shrink-0" strokeWidth={2} />
-            <span className="sidebar-item__label min-w-0 flex-1">Sign out</span>
-          </button>
         ) : (
-          <button
-            type="button"
-            onClick={handleSignIn}
-            className="sidebar-item mt-1"
-            aria-label="Sign in"
-          >
-            <LogIn className="h-[15px] w-[15px] shrink-0" strokeWidth={2} />
-            <span className="sidebar-item__label min-w-0 flex-1">Sign in</span>
-          </button>
+          <>
+            <div className="sidebar-shell__profile mt-1 flex items-center gap-2 rounded-[10px] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-2">
+              {isAuthenticated && user?.photoURL ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={user.photoURL}
+                  alt=""
+                  className="sidebar-shell__profile-avatar h-7 w-7 shrink-0 rounded-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div className="sidebar-shell__profile-avatar flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--orange-primary)] text-[9px] font-bold text-[var(--black-primary)]">
+                  {initials}
+                </div>
+              )}
+              <div className="sidebar-shell__profile-text min-w-0 flex-1">
+                <p className="truncate text-[12px] font-semibold text-[var(--text-primary)]">
+                  {displayName}
+                </p>
+                <p className="truncate text-[10px] text-[var(--text-muted)]">
+                  {isAuthenticated
+                    ? email || "Signed in with Google"
+                    : "Not signed in"}
+                </p>
+              </div>
+            </div>
+
+            <div className="sidebar-shell__plan mt-1 flex flex-col gap-1 rounded-[10px] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-2.5 py-2">
+              <PlanBadge plan={plan} className="self-start" />
+              <p className="truncate text-[10px] text-[var(--text-muted)]">
+                {isAuthenticated ? usageLabel : "Sign in to start generating"}
+              </p>
+            </div>
+
+            {isAuthenticated ? (
+              <button
+                type="button"
+                onClick={() => void handleSignOut()}
+                className="sidebar-item mt-1"
+                aria-label="Sign out"
+              >
+                <LogOut className="h-[15px] w-[15px] shrink-0" strokeWidth={2} />
+                <span className="sidebar-item__label min-w-0 flex-1">Sign out</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleSignIn}
+                className="create-assignment-btn mt-1"
+                aria-label="Continue with Google"
+              >
+                <LogIn className="h-3.5 w-3.5 shrink-0" strokeWidth={2.5} />
+                <span className="create-assignment-btn__label">
+                  Continue with Google
+                </span>
+              </button>
+            )}
+          </>
         )}
       </div>
     </aside>

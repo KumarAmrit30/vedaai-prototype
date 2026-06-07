@@ -21,6 +21,10 @@ export function useRequireAuth() {
 
   return useCallback(
     (callback?: () => void, options?: RequireAuthOptions): boolean => {
+      if (status === "loading") {
+        return false;
+      }
+
       if (status === "authenticated") {
         callback?.();
         return true;

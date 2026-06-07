@@ -238,7 +238,6 @@ export function AssignmentCreateFlow({
       setAssignments([created, ...assignments]);
       setStepDirection("forward");
       setIsGenerating(true);
-      void useUserStore.getState().fetchProfile();
       toast(GENERATION_QUEUED_TOAST, {
         id: `assignment-queued-${created._id}`,
         className: "app-toast app-toast--info",
@@ -277,6 +276,8 @@ export function AssignmentCreateFlow({
       } else {
         setPreviewError(null);
         clearCreateDraft();
+        // Usage is counted on the backend at completion — refresh the profile.
+        void useUserStore.getState().fetchProfile();
         if (generationOutcomeNotifiedRef.current !== updated._id) {
           generationOutcomeNotifiedRef.current = updated._id;
           toast.success(GENERATION_SUCCESS_TOAST, {

@@ -1,19 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
-  CheckCircle2,
   Clock3,
   FileText,
+  LogIn,
   Plus,
   Sparkles,
 } from "lucide-react";
+import { AuthLoadingScreen } from "@/components/auth/auth-loading-screen";
 import { AssignmentCard } from "@/components/assignment/AssignmentCard";
 import { AssignmentListSkeleton } from "@/components/assignment/assignment-card-skeleton";
 import { PageTransition } from "@/components/layout/page-transition";
 import { useDashboardStats } from "@/hooks/use-assignments-loader";
-import { useRequireAuth } from "@/hooks/use-require-auth";
 import { ROUTES } from "@/lib/navigation/routes";
 import {
   getPendingAssignmentsSnapshot,
@@ -24,57 +25,41 @@ import { useAuthStore } from "@/store/auth.store";
 import { useWorkspaceStore } from "@/store/workspace.store";
 import type { Assignment } from "@/types/assignment";
 
-const GUEST_FEATURES = [
-  "AI-generated assessments",
-  "Automatic answer keys",
-  "PDF export",
-  "Google Sign-In",
-  "Fast generation",
-];
-
-function GuestDashboard() {
-  const requireAuth = useRequireAuth();
+function GuestDashboard(): React.ReactNode {
+  const router = useRouter();
 
   return (
     <PageTransition>
       <div className="home-dashboard space-y-5">
         <section className="home-dashboard__hero surface-card-compact">
           <p className="home-dashboard__eyebrow">ExamForge AI</p>
-          <h1 className="home-dashboard__title mt-1 max-w-2xl text-balance text-[24px] leading-tight sm:text-[28px]">
-            Generate professional assessments in seconds
-          </h1>
-          <p className="mt-2 max-w-xl text-[14px] leading-relaxed text-[var(--text-secondary)]">
-            Create AI-powered assignments, answer keys, and export-ready papers.
+          <h1 className="home-dashboard__title">Dashboard</h1>
+          <p className="mt-1.5 max-w-xl text-[13px] leading-relaxed text-[var(--text-secondary)]">
+            Your assessment workspace — sign in to start generating.
           </p>
+        </section>
 
-          <ul className="mt-5 grid gap-2 sm:grid-cols-2">
-            {GUEST_FEATURES.map((feature) => (
-              <li
-                key={feature}
-                className="flex items-center gap-2 text-[13px] text-[var(--text-primary)]"
-              >
-                <CheckCircle2
-                  className="h-4 w-4 shrink-0 text-[var(--orange-primary)]"
-                  strokeWidth={2}
-                  aria-hidden="true"
-                />
-                {feature}
-              </li>
-            ))}
-          </ul>
-
-          <div className="mt-6">
-            <button
-              type="button"
-              onClick={() =>
-                requireAuth(undefined, { next: ROUTES.createAssignment })
-              }
-              className="submit-pill-btn"
-            >
-              <Sparkles className="h-3.5 w-3.5" strokeWidth={2} />
-              Create Your First Assignment
-            </button>
+        <section className="empty-state-card surface-card-compact mx-auto max-w-lg">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-[18px] border border-[var(--border-light)] bg-[var(--surface-muted)]">
+            <FileText
+              className="h-6 w-6 text-[var(--text-secondary)] opacity-50"
+              strokeWidth={1.75}
+            />
           </div>
+          <h3 className="text-[15px] font-semibold text-[var(--text-primary)]">
+            Welcome to ExamForge AI
+          </h3>
+          <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--text-secondary)]">
+            Sign in to generate assignments, answer keys, and downloadable PDFs.
+          </p>
+          <button
+            type="button"
+            onClick={() => router.push("/login?next=/")}
+            className="submit-pill-btn mt-5"
+          >
+            <LogIn className="h-3.5 w-3.5" strokeWidth={2.5} />
+            Continue with Google
+          </button>
         </section>
       </div>
     </PageTransition>
@@ -172,6 +157,10 @@ export function HomeDashboard({
   const recentlyOpened = getRecentlyOpenedAssignments(assignments, 5);
   const pendingSnapshot = getPendingAssignmentsSnapshot(assignments, 4);
 
+  if (authStatus === "loading") {
+    return <AuthLoadingScreen />;
+  }
+
   if (authStatus === "unauthenticated") {
     return <GuestDashboard />;
   }
@@ -204,6 +193,23 @@ export function HomeDashboard({
             <div className="shimmer-block h-5 w-40" />
             <div className="mt-2 shimmer-block h-3 w-64" />
           </div>
+          <section className="home-dashboard__stats">
+            <div className="home-stat-card surface-card-compact" aria-hidden="true">
+              <div className="shimmer-block h-3 w-16" />
+              <div className="mt-2 shimmer-block h-8 w-10" />
+              <div className="mt-1 shimmer-block h-3 w-28" />
+            </div>
+            <div className="home-stat-card surface-card-compact" aria-hidden="true">
+              <div className="shimmer-block h-3 w-16" />
+              <div className="mt-2 shimmer-block h-8 w-10" />
+              <div className="mt-1 shimmer-block h-3 w-28" />
+            </div>
+            <div className="home-stat-card surface-card-compact" aria-hidden="true">
+              <div className="shimmer-block h-3 w-16" />
+              <div className="mt-2 shimmer-block h-8 w-10" />
+              <div className="mt-1 shimmer-block h-3 w-28" />
+            </div>
+          </section>
           <AssignmentListSkeleton />
         </div>
       </PageTransition>
