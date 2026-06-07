@@ -1,4 +1,4 @@
-# VedaAI — Final QA Checklist
+# ExamForge AI — Final QA Checklist
 
 Use this checklist before submission or a live demo. Test locally first, then repeat against production (Vercel + Render).
 

@@ -145,7 +145,7 @@ export function HomeDashboard({
         <section className="home-dashboard__hero surface-card-compact">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="home-dashboard__eyebrow">Welcome back</p>
+              <p className="home-dashboard__eyebrow">ExamForge AI</p>
               <h1 className="home-dashboard__title">Your assessment overview</h1>
               <p className="mt-1.5 max-w-xl text-[13px] leading-relaxed text-[var(--text-secondary)]">
                 Pick up where you left off, monitor pending generation, and jump into your full workspace when you need to manage assignments at scale.

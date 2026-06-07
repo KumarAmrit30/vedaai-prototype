@@ -80,7 +80,7 @@ export function AssignmentPdfExport({ assignment }: AssignmentPdfExportProps) {
             color: PDF_COLORS.text,
           }}
         >
-          Springdale High School
+          Demo Workspace
         </h1>
         <h2
           style={{

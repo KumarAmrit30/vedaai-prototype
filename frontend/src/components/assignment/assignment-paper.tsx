@@ -47,7 +47,7 @@ export function AssignmentPaper({
     >
       <div className={innerClassName}>
         <header className="preview-exam-header">
-          <h1 className="preview-exam-header__school">Springdale High School</h1>
+          <h1 className="preview-exam-header__school">Demo Workspace</h1>
           <h2 className="preview-exam-header__title">{assignment.title}</h2>
           <div className="preview-exam-header__meta">
             <span className="preview-exam-header__meta-item">

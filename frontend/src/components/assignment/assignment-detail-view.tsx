@@ -123,7 +123,7 @@ export function AssignmentDetailView({
                 <Sparkles className="h-3.5 w-3.5" strokeWidth={2} />
                 Generation source
               </dt>
-              <dd>VedaAI · Gemini engine</dd>
+              <dd>ExamForge AI · AI engine</dd>
             </div>
           </dl>
 

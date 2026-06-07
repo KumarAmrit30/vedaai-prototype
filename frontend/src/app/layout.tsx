@@ -9,8 +9,14 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "VedaAI",
-  description: "AI Assessment Generator",
+  title: "ExamForge AI",
+  description:
+    "AI-powered assessment and exam generation platform with real-time processing, study material grounding, and PDF export.",
+  openGraph: {
+    title: "ExamForge AI",
+    description:
+      "AI-powered assessment and exam generation platform with real-time processing, study material grounding, and PDF export.",
+  },
 };
 
 export default function RootLayout({

@@ -71,7 +71,7 @@ export function AssignmentMetadataPanel({
         </div>
         <div>
           <dt>Generation source</dt>
-          <dd>VedaAI · Gemini assessment engine</dd>
+          <dd>ExamForge AI · AI assessment engine</dd>
         </div>
         {assignment.materialSource || assignment.originalFileName ? (
           <>

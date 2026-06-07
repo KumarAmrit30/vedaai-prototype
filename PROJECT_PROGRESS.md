@@ -1,6 +1,6 @@
-# VedaAI — Project Progress
+# ExamForge AI — Project Progress
 
-**Last updated:** Day 1  
+**Last updated:** June 2026  
 **Repository:** [vedaai-prototype](https://github.com/KumarAmrit30/vedaai-prototype)
 
 ## Completed — Backend
@@ -10,32 +10,38 @@
 - [x] MongoDB connection via Mongoose
 - [x] Redis client (Upstash-compatible `rediss://`)
 - [x] BullMQ queue + worker for assignment generation
-- [x] Gemini 1.5 Flash integration
+- [x] Pluggable AI providers (Groq default, Gemini optional)
 - [x] AI prompt builder + Zod response parser
 - [x] Assignment Mongoose model (embedded sections/questions)
-- [x] Assignment APIs: `POST`, `GET` list, `GET` by ID
+- [x] Assignment APIs: `POST`, `GET` list, `GET` by ID, delete, bulk actions
 - [x] Worker lifecycle persistence (`pending` → `generating` → `completed` / `failed`)
+- [x] Socket.IO realtime events
+- [x] Graceful shutdown (DB, Redis, workers)
+- [x] Environment validation layer
 
 ## Completed — Frontend
 
-- [x] Next.js 16 App Router + TypeScript foundation
+- [x] Next.js App Router + TypeScript foundation
 - [x] Axios client + Zustand assignment store
 - [x] Shared assignment types aligned with backend
-- [x] Assignment creation form
-- [x] Assignments dashboard with dark UI
+- [x] Assignment creation flow (multi-step wizard)
+- [x] Dashboard, workspace, and assignment detail views
 - [x] Reusable `AssignmentCard` and `AssignmentList` components
-- [x] Frontend ↔ backend integration (create + list)
+- [x] Frontend ↔ backend integration (create + list + realtime)
+- [x] PDF export (client-side html2canvas + jsPDF)
+- [x] Responsive shell (desktop sidebar, mobile bottom nav)
+- [x] ExamForge AI branding across UI and metadata
 
 ## Architecture Summary
 
 ```
-frontend/          Next.js dashboard → REST API
+frontend/          ExamForge AI dashboard → REST API
 backend/           Express API → MongoDB
-                   BullMQ worker → Gemini → MongoDB
+                   BullMQ worker → AI provider (Groq/Gemini) → MongoDB
                    Redis (queue backing store)
 ```
 
-**Flow:** User creates assignment → API saves document → BullMQ job enqueued → worker generates structured JSON via Gemini → validated output saved to `generatedPaper`.
+**Flow:** User creates assignment → API saves document → BullMQ job enqueued → worker generates structured JSON via configured AI provider → validated output saved to `generatedPaper`.
 
 ## Technologies Used
 
@@ -43,26 +49,19 @@ backend/           Express API → MongoDB
 |-------|-------|
 | Frontend | Next.js, TypeScript, TailwindCSS, Zustand, Axios, react-hot-toast |
 | Backend | Express, TypeScript, Mongoose, BullMQ, ioredis, Zod |
-| AI | Google Gemini 1.5 Flash |
+| AI | Groq (default) or Google Gemini via provider abstraction |
 | Data | MongoDB, Redis (Upstash) |
 
-## Pending — Day 2+
+## Pending / Future
 
-- [ ] Assignment detail / generated paper view page
-- [ ] Dynamic AI prompts from assignment config (topic, question count)
-- [ ] Socket.IO real-time status updates
-- [ ] Polling or live refresh for `generating` → `completed`
 - [ ] Request validation (Zod on API + react-hook-form on frontend)
-- [ ] PDF export
-- [ ] Remove dev-only test job route
-- [ ] Graceful shutdown (DB, Redis, workers)
-- [ ] Environment validation layer
+- [ ] Authentication (post-MVP)
+- [ ] Health check with DB/Redis readiness
+- [ ] Production worker process separation
 
 ## Known Improvements Planned
 
 - Extract assignment service layer (thin controllers, testable business logic)
 - Centralized API error responses
-- Health check with DB/Redis readiness
-- Production worker process separation
-- UI polish toward final Figma design
-- Authentication (post-MVP)
+- UI polish for stub navigation items (Groups, Library, Settings)
+- Automated test coverage

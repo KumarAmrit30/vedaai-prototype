@@ -1,6 +1,6 @@
-# VedaAI Assessment Creator
+# ExamForge AI
 
-**AI-powered assessment generator for educators.** Configure assignments, upload study materials, and receive structured question papers — generated asynchronously with real-time progress updates.
+**AI-powered assessment and exam generation platform for educators.** Configure assignments, upload study materials, and receive structured question papers — generated asynchronously with real-time progress updates.
 
 > Built as a production-minded full-stack prototype: async job processing, WebSocket sync, optimistic UI, and validated AI output stored as JSON — never raw markdown.
 
@@ -33,7 +33,7 @@
 
 ## Overview
 
-VedaAI lets educators create assessment papers through a guided workflow:
+ExamForge AI lets educators create assessment papers through a guided workflow:
 
 1. **Configure** assignment details (topic, due date, question type, counts, marks)
 2. **Upload** optional PDF or TXT source material to ground AI generation
@@ -68,7 +68,7 @@ The system separates **fast API responses** from **slow AI work**, keeping the U
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                         Frontend (Next.js 15)                           │
+│                    ExamForge AI — Frontend (Next.js 15)                 │
 │  App Router · Zustand · Axios · Socket.IO Client · Tailwind CSS         │
 └───────────────────────────────┬─────────────────────────────────────────┘
                                 │ REST API (JSON / multipart)
@@ -425,8 +425,8 @@ Fields:
 
 | Service | URL |
 |---------|-----|
-| **Frontend (Vercel)** | _Add your production URL_ |
-| **Backend (Render)** | _Add your production API URL_ |
+| **ExamForge AI Frontend (Vercel)** | _Add your production URL_ |
+| **ExamForge AI Backend (Render)** | _Add your production API URL_ |
 
 ### Platform guide
 
@@ -480,12 +480,12 @@ For demos, hit `/api/health` once before presenting, or upgrade to a always-on p
 | Dashboard | Assignment Creation | Generation State |
 |:---------:|:-------------------:|:----------------:|
 | ![Dashboard placeholder](./docs/screenshots/dashboard.png) | ![Create placeholder](./docs/screenshots/create.png) | ![Generating placeholder](./docs/screenshots/generating.png) |
-| Home stats & recent assignments | Multi-step create flow | Live progress via WebSocket |
+| ExamForge AI dashboard — stats & recent assignments | Multi-step create flow | Live progress via WebSocket |
 
 | Generated Paper | Mobile UI |
 |:---------------:|:---------:|
 | ![Paper placeholder](./docs/screenshots/paper.png) | ![Mobile placeholder](./docs/screenshots/mobile.png) |
-| Structured sections & PDF export | Responsive shell with bottom nav |
+| ExamForge AI generated paper & PDF export | Responsive mobile shell with bottom nav |
 
 ---
 

@@ -49,14 +49,14 @@ export function Sidebar({
       <div className="sidebar-shell__header flex flex-col gap-3 px-3 pt-4 pb-2">
         <div className="sidebar-shell__brand flex items-center gap-2">
           <div className="sidebar-shell__logo flex h-7 w-7 shrink-0 items-center justify-center rounded-[9px] bg-[var(--black-primary)] text-[10px] font-bold text-white">
-            V
+            E
           </div>
           <div className="sidebar-shell__brand-text min-w-0">
             <p className="text-[14px] font-semibold leading-none tracking-[-0.02em] text-[var(--text-primary)]">
-              VedaAI
+              ExamForge AI
             </p>
             <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">
-              Assessment Studio
+              Exam Generation Platform
             </p>
           </div>
         </div>
@@ -107,14 +107,14 @@ export function Sidebar({
 
         <div className="sidebar-shell__profile mt-1 flex items-center gap-2 rounded-[10px] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-2">
           <div className="sidebar-shell__profile-avatar flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--orange-primary)] text-[9px] font-bold text-[var(--black-primary)]">
-            SK
+            DW
           </div>
           <div className="sidebar-shell__profile-text min-w-0">
             <p className="truncate text-[12px] font-semibold text-[var(--text-primary)]">
-              Springdale High
+              Demo Workspace
             </p>
             <p className="truncate text-[10px] text-[var(--text-muted)]">
-              School profile
+              Workspace profile
             </p>
           </div>
         </div>
