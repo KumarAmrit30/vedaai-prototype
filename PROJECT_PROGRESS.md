@@ -11,7 +11,11 @@
 - [x] Redis client (Upstash-compatible `rediss://`)
 - [x] BullMQ queue + worker for assignment generation
 - [x] Pluggable AI providers (Gemini default, Groq optional)
-- [x] AI prompt builder + Zod response parser
+- [x] Configurable Gemini model (`GEMINI_MODEL`, default `gemini-2.5-flash`)
+- [x] Provider-level request timeout (`AI_REQUEST_TIMEOUT_MS`, default 45s)
+- [x] Provider-level lightweight retry (2 attempts, transient failures only)
+- [x] AI prompt builder + Zod response parser with structured parse/validation logs
+- [x] Generation lifecycle logging (`[AI][GENERATION]` Started / Completed / Failed)
 - [x] Generated question count validated against requested `numberOfQuestions`
 - [x] Assignment Mongoose model (embedded sections/questions)
 - [x] Assignment APIs: `POST`, `GET` list, `GET` by ID, delete, bulk actions
@@ -28,10 +32,11 @@
 - [x] `GET /api/users/me` plan + usage + limits API
 - [x] Assignment ownership (`userId` on assignments) + per-user scoped queries
 - [x] Socket.IO auth (Firebase token) + per-user room isolation (`user:{uid}`)
-- [x] Health check with MongoDB/Redis/queue/worker readiness (`GET /api/health`)
+- [x] Health check with MongoDB/Redis/queue/worker readiness + AI config visibility (`GET /api/health`: `aiProvider`, `aiModel`, `aiTimeoutMs`)
 - [x] IP rate limiting on assignment creation (10/hour)
 - [x] Answer key generation, validation, and persistence
 - [x] Heroku deployment support (Procfile, Node engines, deployment guide)
+- [x] **Subscription Architecture (Phase 1A)** — user `subscription` schema, `PLAN_CONFIG`, plan eligibility helpers, billing APIs
 
 ## Completed — Frontend
 
@@ -50,6 +55,16 @@
 - [x] Guest dashboard with marketing CTA
 - [x] `PlanBadge` component + sidebar plan/usage display
 - [x] Free-plan usage fetch (`GET /users/me`) + upgrade modal on limit
+- [x] **Subscription Architecture (Phase 1A)** — `/upgrade` page, billing types/API client, sidebar plan + subscription display
+
+## Subscription Architecture (Phase 1A Complete)
+
+- User schema extended with `subscription` (status, provider, dates, provider id)
+- `PLAN_CONFIG` centralizes limits, pricing metadata, and feature flags
+- `GET /api/billing/plans` and `GET /api/billing/current-plan`
+- Plan eligibility: `canGenerateAssignments`, `canExportPdf`, `canUseFeature`
+- Frontend `/upgrade` with Coming Soon CTAs; sidebar Upgrade navigation
+- All users remain on **free** / **inactive** — no payment providers wired
 
 ## Architecture Summary
 
@@ -73,8 +88,9 @@ backend/           Express API → MongoDB
 
 ## Pending / Future
 
-- [ ] Billing / payments (Stripe or Razorpay) + paid plan activation
-- [ ] Subscription management + monthly usage resets
+- [ ] Billing / payments (Stripe or Razorpay) + checkout + webhooks (Phase 1B+)
+- [ ] Subscription activation and plan upgrades via payment providers
+- [ ] Monthly usage resets for paid tiers
 - [ ] Production worker process separation (separate dyno/process)
 - [ ] Socket.IO Redis adapter for multi-instance scaling
 - [ ] Library, Groups, Settings, global search, notifications (Coming Soon stubs)

@@ -108,6 +108,16 @@ Use this checklist before submission or a live demo. Test locally first, then re
 
 ---
 
+## AI Reliability (Backend)
+
+- [ ] **Gemini model config** — `GEMINI_MODEL` overrides default (`gemini-2.5-flash`) when set
+- [ ] **Provider timeout** — Requests fail with clear timeout message after `AI_REQUEST_TIMEOUT_MS` (default 45s)
+- [ ] **Provider retry** — Transient network/timeout/5xx failures retry once (1s delay); parse/validation/4xx errors do not retry
+- [ ] **Parser logs** — JSON/schema failures log `[AI][PARSER]` metadata (no raw model output)
+- [ ] **Generation lifecycle** — Worker logs `[AI][GENERATION] Started` / `Completed` / `Failed` with `assignmentId`, provider, model, `durationMs`
+
+---
+
 ## Deployment
 
 - [ ] **Vercel build** — `npm run build` passes in frontend
@@ -118,7 +128,7 @@ Use this checklist before submission or a live demo. Test locally first, then re
 - [ ] **No debug logs** — Production browser console free of `[AUTH CONFIG]` / debug output
 - [ ] **API connectivity** — Frontend loads assignments from production API
 - [ ] **CORS** — No cross-origin errors in browser console
-- [ ] **Health check** — `GET /api/health` returns OK
+- [ ] **Health check** — `GET /api/health` returns OK with `aiProvider`, `aiModel`, and `aiTimeoutMs`
 - [ ] **Cold start** — Warm backend before demo if on Render free tier
 - [ ] **End-to-end production** — Create → generate → export on live URLs
 
