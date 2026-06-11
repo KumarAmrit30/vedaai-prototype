@@ -7,25 +7,21 @@ import { Suspense, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useAuthStore } from "@/store/auth.store";
 
-function formatAuthError(error: unknown): { code: string; message: string } {
-  if (
-    error &&
-    typeof error === "object" &&
-    "code" in error &&
-    typeof (error as FirebaseError).code === "string"
-  ) {
-    const firebaseError = error as FirebaseError;
-    return {
-      code: firebaseError.code,
-      message: firebaseError.message,
-    };
+function getAuthErrorMessage(error: unknown): string {
+  const code =
+    error && typeof error === "object" && "code" in error
+      ? (error as FirebaseError).code
+      : undefined;
+
+  if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
+    return "Sign-in was cancelled. Please try again.";
   }
 
-  return {
-    code: "unknown",
-    message:
-      error instanceof Error ? error.message : "Unable to sign in with Google.",
-  };
+  if (code === "auth/network-request-failed") {
+    return "Network error during sign-in. Check your connection and try again.";
+  }
+
+  return "Unable to sign in with Google. Please try again.";
 }
 
 function GoogleIcon(): React.ReactNode {
@@ -75,10 +71,7 @@ function LoginContent(): React.ReactNode {
       await signInWithGoogle();
       router.replace(nextPath);
     } catch (error) {
-      console.error("[AUTH] Google Sign-In failed", error);
-
-      const { code, message } = formatAuthError(error);
-      toast.error(`${code}: ${message}`);
+      toast.error(getAuthErrorMessage(error));
     } finally {
       setIsSigningIn(false);
     }

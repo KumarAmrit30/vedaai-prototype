@@ -1,6 +1,6 @@
 const DEFAULT_CLIENT_URL = "http://localhost:3000";
 const DEFAULT_PORT = 8000;
-const DEFAULT_AI_PROVIDER = "groq";
+const DEFAULT_AI_PROVIDER = "gemini";
 const DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile";
 
 export const AI_PROVIDERS = ["gemini", "groq"] as const;

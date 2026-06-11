@@ -47,6 +47,18 @@ export async function findActiveAssignmentsByIds(
 }
 
 /**
+ * Counts a user's queued or in-progress generations. Used by plan
+ * eligibility so users cannot bypass limits by enqueueing jobs faster
+ * than the worker completes them.
+ */
+export async function countInFlightAssignments(userId: string): Promise<number> {
+  return Assignment.countDocuments({
+    ...userScopedFilter(userId),
+    status: { $in: ["pending", "processing"] },
+  });
+}
+
+/**
  * Internal worker/queue lookup by assignment id only.
  * Not exposed through API — jobs are enqueued server-side with trusted ids.
  */

@@ -11,6 +11,10 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "engines": {
+    "node": "20.x",
+    "npm": "10.x"
+  },
   "type": "commonjs",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

@@ -26,10 +26,7 @@ export async function getCurrentUser(
       (await findUserByFirebaseUid(auth.uid)) ??
       (await upsertUserFromFirebaseClaims(auth));
 
-    logInfo("[AUTH]", {
-      uid: auth.uid,
-      email: auth.email,
-    });
+    logInfo("[USER] Profile fetched", { uid: auth.uid });
 
     res.json({
       success: true,

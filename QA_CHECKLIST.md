@@ -53,10 +53,12 @@ Use this checklist before submission or a live demo. Test locally first, then re
 
 - [ ] **Generate up to 3** — First 3 assignments generate normally
 - [ ] **4th blocked** — Creation blocked after 3 generations
+- [ ] **In-flight counted** — With 2 completed + 1 pending/processing, a new create is blocked (no queue-ahead bypass)
 - [ ] **403 response** — API returns 403 `Free plan limit reached. Upgrade required.`
 - [ ] **Upgrade modal** — "Free Plan Limit Reached" modal shown (not a generic error)
 - [ ] **Maybe Later** — Closes modal; **Upgrade Plan** is a placeholder (no billing)
-- [ ] **No increment on failure** — Validation failures do not consume quota
+- [ ] **No increment on failure** — Failed generations do not consume quota
+- [ ] **Increment on completion only** — Usage counter rises only when a generation completes successfully
 
 ---
 
@@ -113,7 +115,7 @@ Use this checklist before submission or a live demo. Test locally first, then re
 - [ ] **Render startup** — Backend starts with valid env vars
 - [ ] **Production envs** — `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SOCKET_URL`, `CLIENT_URL` set
 - [ ] **Auth envs** — `AUTH_ENABLED` + Firebase admin vars (backend) and `NEXT_PUBLIC_FIREBASE_*` (frontend) set
-- [ ] **No debug logs** — Production console free of `[AUTH]` / `[AXIOS]` / `[ASSIGNMENTS]` output
+- [ ] **No debug logs** — Production browser console free of `[AUTH CONFIG]` / debug output
 - [ ] **API connectivity** — Frontend loads assignments from production API
 - [ ] **CORS** — No cross-origin errors in browser console
 - [ ] **Health check** — `GET /api/health` returns OK

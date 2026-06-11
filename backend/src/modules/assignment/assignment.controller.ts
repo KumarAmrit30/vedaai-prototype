@@ -34,7 +34,7 @@ import {
   findUserByFirebaseUid,
   upsertUserFromFirebaseClaims,
 } from "../user/user.service";
-import { PLAN_ASSIGNMENT_LIMITS } from "../user/user.types";
+import { checkGenerationEligibility } from "../user/plan-eligibility.service";
 import { logInfo } from "../../utils/logger";
 import type { MaterialSource, QuestionConfig, GeneratedPaper } from "./assignment.types";
 import type { ManualAssignmentStatus } from "./assignment.constants";
@@ -136,16 +136,22 @@ export async function createAssignment(
     const userId = resolveRequestUserId(req, res);
     if (!userId) return;
 
-    // Enforce free-plan generation limits for the authenticated user.
+    // Enforce plan limits against completed + pending + processing assignments
+    // so queued jobs cannot bypass the cap before any of them complete.
     if (req.auth?.uid) {
       const user =
         (await findUserByFirebaseUid(req.auth.uid)) ??
         (await upsertUserFromFirebaseClaims(req.auth));
 
-      const limit = PLAN_ASSIGNMENT_LIMITS[user.plan];
+      const eligibility = await checkGenerationEligibility(user);
 
-      if (user.usage.assignmentsGenerated >= limit) {
-        logInfo("[USER] Free plan limit reached", { uid: req.auth.uid });
+      if (!eligibility.allowed) {
+        logInfo("[USER] Plan generation limit reached", {
+          uid: req.auth.uid,
+          completed: eligibility.completedCount,
+          inFlight: eligibility.inFlightCount,
+          limit: eligibility.limit,
+        });
         res.status(403).json({
           success: false,
           message: "Free plan limit reached. Upgrade required.",

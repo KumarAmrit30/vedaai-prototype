@@ -152,9 +152,9 @@ Preview + PDF export available
 | **MongoDB + Mongoose** | Assignment persistence |
 | **Redis + BullMQ** | Async job queue & workers |
 | **Socket.IO** | Realtime event broadcast |
-| **Groq / Gemini** | Pluggable LLM providers (`AI_PROVIDER`) |
-| **groq-sdk** | Groq chat completions (default) |
-| **@google/generative-ai** | Gemini completions (optional) |
+| **Gemini / Groq** | Pluggable LLM providers (`AI_PROVIDER`) |
+| **@google/generative-ai** | Gemini completions (default) |
+| **groq-sdk** | Groq chat completions (optional) |
 | **Zod** | AI response schema validation |
 | **Multer** | Multipart file upload |
 | **pdf-parse** | PDF text extraction |
@@ -169,12 +169,13 @@ Preview + PDF export available
    >
    > Material is truncated to **50,000 characters** before injection.
 3. **Provider call** — `ai.service.ts` selects the active provider via `AI_PROVIDER`:
-   - **Groq (default):** `groq-sdk` → `llama-3.3-70b-versatile`, temperature `0.4`, JSON-only output
-   - **Gemini:** `@google/generative-ai` → `gemini-2.5-flash`
+   - **Gemini (default):** `@google/generative-ai` → `gemini-2.5-flash`
+   - **Groq:** `groq-sdk` → `llama-3.3-70b-versatile`, temperature `0.4`, JSON-only output
 4. **Response parsing** — Raw text is cleaned (strips markdown fences) and validated with Zod:
    - Sections with titles and instructions
    - Questions with difficulty (`easy` | `medium` | `hard`) and marks
    - `answerKey` entries (one per question): expected answer, explanation, marking guide
+   - Generated question count must exactly match the requested `numberOfQuestions` — mismatches fail the job instead of persisting malformed papers
 5. **Persistence** — Validated `generatedPaper` and `answerKey` are saved to MongoDB in one step; status → `completed`.
 6. **Failure handling** — Up to 3 retries with exponential backoff; final failure sets `status: failed` and emits `assignment:failed`.
 
@@ -184,10 +185,10 @@ Preview + PDF export available
 ai.service.ts
     │
     ├── buildAssignmentPrompt()
-    ├── getAIProvider()  ← AI_PROVIDER env
-    │       ├── GroqProvider   (groq-provider.ts)
-    │       └── GeminiProvider (gemini-provider.ts)
-    └── parseAIResponse()  ← response-parser.ts (unchanged)
+    ├── getAIProvider()  ← AI_PROVIDER env (default: gemini)
+    │       ├── GeminiProvider (gemini-provider.ts)
+    │       └── GroqProvider   (groq-provider.ts)
+    └── parseAIResponse()  ← response-parser.ts
 ```
 
 ---
@@ -209,7 +210,7 @@ ai.service.ts
 
 ## Socket.IO Realtime Flow
 
-The backend broadcasts global events; the frontend subscribes once in `AppShell` and patches Zustand.
+Socket connections authenticate with a Firebase ID token and join a per-user room (`user:{uid}`) — events are only delivered to the assignment owner. The frontend subscribes once in `AppShell` and patches Zustand.
 
 | Event | Trigger | Frontend action |
 |-------|---------|-----------------|
@@ -281,7 +282,7 @@ Zustand auth store                              upsertUserFromFirebaseClaims()
                                                 MongoDB `users` collection
 ```
 
-- Backend verification is gated by the `AUTH_ENABLED` flag. When `false` (local dev), requests bypass verification and no usage limits apply.
+- Backend verification is gated by the `AUTH_ENABLED` flag. Production runs with `AUTH_ENABLED=true`; assignment and user APIs (and Socket.IO connections) require an authenticated Firebase user.
 - On every authenticated request, the user document is lazily provisioned and kept in sync (`displayName`, `email`, `photoURL`) — no separate sync endpoint required.
 
 ### User collection (`users`)
@@ -293,7 +294,7 @@ Zustand auth store                              upsertUserFromFirebaseClaims()
 | `displayName` | string? | Synced from Firebase claims |
 | `photoURL` | string? | Synced from Firebase claims |
 | `plan` | enum | `free` \| `pro` \| `enterprise` (default `free`) |
-| `usage.assignmentsGenerated` | number | Incremented after each successful create |
+| `usage.assignmentsGenerated` | number | Incremented only after a successful completed generation |
 | `createdAt` / `updatedAt` | Date | Mongoose timestamps |
 
 ### Free plan & usage tracking
@@ -301,11 +302,15 @@ Zustand auth store                              upsertUserFromFirebaseClaims()
 | Rule | Detail |
 |------|--------|
 | **Limit** | Free plan allows **3** total assignment generations |
-| **Enforcement** | Checked before `Assignment.create`; over limit → **HTTP 403** `{ success: false, message: "Free plan limit reached. Upgrade required." }` |
-| **Counting** | Counter increments **only after** a record is successfully created (never on validation failures) |
+| **Enforcement** | Checked before `Assignment.create` against **completed + pending + processing** assignments (`plan-eligibility.service.ts`), so queued jobs cannot bypass the cap; over limit → **HTTP 403** `{ success: false, message: "Free plan limit reached. Upgrade required." }` |
+| **Counting** | Usage counter increments **only after** a successful completed generation (never on create, never on failures) |
 | **Pro / Enterprise** | Reserved for future phases; treated as unlimited (`assignmentsAllowed: null`) |
 
-When the limit is reached, the frontend shows an **Upgrade modal** ("Free Plan Limit Reached") instead of a generic error. The **Upgrade Plan** button is a placeholder — no billing, payments, or assignment ownership is implemented in this phase.
+When the limit is reached, the frontend shows an **Upgrade modal** ("Free Plan Limit Reached") instead of a generic error. The **Upgrade Plan** button is a placeholder — billing and payments are not implemented in this phase.
+
+### Assignment ownership
+
+Every assignment stores the creator's Firebase UID (`userId`). All API reads and writes are scoped to the authenticated user, and Socket.IO events are emitted only to the owner's `user:{uid}` room — users can never see or mutate each other's assignments.
 
 ### Auth environment variables
 
@@ -325,6 +330,8 @@ When the limit is reached, the frontend shows an **Upgrade modal** ("Free Plan L
 | `NEXT_PUBLIC_FIREBASE_API_KEY` | Yes | Firebase web API key |
 | `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Yes | Firebase auth domain |
 | `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Yes | Firebase project ID |
+| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | Yes | Firebase storage bucket |
+| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Yes | Firebase messaging sender ID |
 | `NEXT_PUBLIC_FIREBASE_APP_ID` | Yes | Firebase app ID |
 
 ---
@@ -367,8 +374,8 @@ Test at **375px**, **768px**, and **1280px** widths before submission.
 - **Node.js** 20+
 - **MongoDB** (local or [MongoDB Atlas](https://www.mongodb.com/atlas))
 - **Redis** (local or [Upstash](https://upstash.com/))
-- **Groq API key** ([Groq Console](https://console.groq.com/)) — default provider  
-  _or_ **Google Gemini API key** ([Google AI Studio](https://aistudio.google.com/)) if using `AI_PROVIDER=gemini`
+- **Google Gemini API key** ([Google AI Studio](https://aistudio.google.com/)) — default provider  
+  _or_ **Groq API key** ([Groq Console](https://console.groq.com/)) if using `AI_PROVIDER=groq`
 
 ### 1. Clone and install
 
@@ -425,17 +432,17 @@ npm run dev            # http://localhost:3000
 |----------|----------|-------------|
 | `MONGODB_URI` | Yes | MongoDB connection string |
 | `REDIS_URL` | Yes* | Redis URL (`redis://localhost:6379` or Upstash `rediss://...`) |
-| `AI_PROVIDER` | No | `groq` (default) or `gemini` |
+| `AI_PROVIDER` | No | `gemini` (default) or `groq` |
+| `GEMINI_API_KEY` | Yes** | Google Gemini API key (when `AI_PROVIDER=gemini`) |
 | `GROQ_API_KEY` | Yes** | Groq API key (when `AI_PROVIDER=groq`) |
 | `GROQ_MODEL` | No | Groq model (default `llama-3.3-70b-versatile`) |
-| `GEMINI_API_KEY` | Yes** | Google Gemini API key (when `AI_PROVIDER=gemini`) |
 | `CLIENT_URL` | No | Frontend origin for CORS + Socket.IO (default `http://localhost:3000`) |
 | `PORT` | No | HTTP port (default `8000`) |
 | `REDIS_HOST` | No | Fallback if `REDIS_URL` unset (default `127.0.0.1`) |
 | `REDIS_PORT` | No | Fallback if `REDIS_URL` unset (default `6379`) |
 
 \* Use either `REDIS_URL` **or** `REDIS_HOST` + `REDIS_PORT`.  
-\** Provider-specific: set `GROQ_API_KEY` for Groq, or `GEMINI_API_KEY` for Gemini.
+\** Provider-specific: set `GEMINI_API_KEY` for Gemini (default), or `GROQ_API_KEY` for Groq.
 
 ### Frontend — `frontend/.env.local`
 
@@ -443,6 +450,7 @@ npm run dev            # http://localhost:3000
 |----------|----------|-------------|
 | `NEXT_PUBLIC_API_URL` | No | API base URL (default `http://localhost:8000/api`) |
 | `NEXT_PUBLIC_SOCKET_URL` | No | Socket.IO server URL (default: API host without `/api`) |
+| `NEXT_PUBLIC_FIREBASE_*` | Yes | Firebase Web SDK config (see [Auth environment variables](#auth-environment-variables)) |
 
 ---
 

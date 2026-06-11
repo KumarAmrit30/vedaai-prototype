@@ -10,8 +10,9 @@
 - [x] MongoDB connection via Mongoose
 - [x] Redis client (Upstash-compatible `rediss://`)
 - [x] BullMQ queue + worker for assignment generation
-- [x] Pluggable AI providers (Groq default, Gemini optional)
+- [x] Pluggable AI providers (Gemini default, Groq optional)
 - [x] AI prompt builder + Zod response parser
+- [x] Generated question count validated against requested `numberOfQuestions`
 - [x] Assignment Mongoose model (embedded sections/questions)
 - [x] Assignment APIs: `POST`, `GET` list, `GET` by ID, delete, bulk actions
 - [x] Worker lifecycle persistence (`pending` → `processing` → `completed` / `failed`)
@@ -22,8 +23,15 @@
 - [x] User model + `users` collection (`firebaseUid` unique, `email` sparse unique)
 - [x] Lazy user upsert from Firebase claims (no sync endpoint)
 - [x] Free plan usage tracking (`usage.assignmentsGenerated`)
-- [x] 3-generation free limit (403 over limit, increment only on success)
+- [x] 3-generation free limit enforced against completed + pending + processing (`plan-eligibility.service.ts`)
+- [x] Usage increments only after successful completed generation
 - [x] `GET /api/users/me` plan + usage + limits API
+- [x] Assignment ownership (`userId` on assignments) + per-user scoped queries
+- [x] Socket.IO auth (Firebase token) + per-user room isolation (`user:{uid}`)
+- [x] Health check with MongoDB/Redis/queue/worker readiness (`GET /api/health`)
+- [x] IP rate limiting on assignment creation (10/hour)
+- [x] Answer key generation, validation, and persistence
+- [x] Heroku deployment support (Procfile, Node engines, deployment guide)
 
 ## Completed — Frontend
 
@@ -60,22 +68,20 @@ backend/           Express API → MongoDB
 |-------|-------|
 | Frontend | Next.js, TypeScript, TailwindCSS, Zustand, Axios, react-hot-toast |
 | Backend | Express, TypeScript, Mongoose, BullMQ, ioredis, Zod |
-| AI | Groq (default) or Google Gemini via provider abstraction |
+| AI | Google Gemini (default) or Groq via provider abstraction |
 | Data | MongoDB, Redis (Upstash) |
 
 ## Pending / Future
 
-- [ ] Request validation (Zod on API + react-hook-form on frontend)
-- [ ] Health check with DB/Redis readiness
-- [ ] Production worker process separation
 - [ ] Billing / payments (Stripe or Razorpay) + paid plan activation
-- [ ] Assignment ownership (`userId` on assignments) + per-user queries
-- [ ] Socket room isolation per user
 - [ ] Subscription management + monthly usage resets
+- [ ] Production worker process separation (separate dyno/process)
+- [ ] Socket.IO Redis adapter for multi-instance scaling
+- [ ] Library, Groups, Settings, global search, notifications (Coming Soon stubs)
+- [ ] Per-user rate limiting (currently IP-based only)
 
 ## Known Improvements Planned
 
 - Extract assignment service layer (thin controllers, testable business logic)
 - Centralized API error responses
-- UI polish for stub navigation items (Groups, Library, Settings)
 - Automated test coverage

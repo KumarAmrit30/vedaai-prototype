@@ -122,6 +122,16 @@ export async function generateAssignmentPaper(
     0,
   );
 
+  // The parser guarantees answerKey aligns with the generated questions, but
+  // not that the model honored the requested count. Reject mismatches so a
+  // malformed paper is retried/failed instead of silently persisted.
+  const requestedCount = input.questionConfig.numberOfQuestions;
+  if (questionCount !== requestedCount) {
+    throw new Error(
+      `AI response validation failed: generated ${questionCount} questions but ${requestedCount} were requested`,
+    );
+  }
+
   logDebug(`[AI][${provider.name}] Structured response validated`, {
     sections: structured.sections.length,
     questions: questionCount,

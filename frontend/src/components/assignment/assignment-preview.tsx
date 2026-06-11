@@ -86,8 +86,7 @@ export function AssignmentPreview({
       const exportTarget = await resolveAssignmentForPdfExport(assignment);
       await exportAssignmentPdf(exportTarget);
       toast.success("PDF downloaded successfully.");
-    } catch (error) {
-      console.error("PDF ERROR:", error);
+    } catch {
       toast.error("Unable to generate PDF. Please try again.");
     } finally {
       setIsGeneratingPdf(false);
