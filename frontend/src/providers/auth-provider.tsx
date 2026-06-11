@@ -44,7 +44,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         void (async () => {
           const token = await user.getIdToken();
           if (!token) return;
-          await useUserStore.getState().fetchProfile();
+          const userStore = useUserStore.getState();
+          await userStore.fetchProfile();
+          await userStore.fetchBillingProfile();
         })();
 
         return;

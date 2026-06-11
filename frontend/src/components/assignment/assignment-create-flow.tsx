@@ -33,7 +33,9 @@ import {
   loadCreateDraft,
   saveCreateDraft,
   type CreateAssignmentDraft,
+  type DraftUploadMetadata,
 } from "@/lib/workspace/create-draft";
+import { DraftRecoveryBanner } from "@/components/workspace/draft-recovery-banner";
 import { DraftResumePrompt } from "@/components/workspace/draft-resume-prompt";
 import { useAssignmentStore } from "@/store/assignment.store";
 import { useUserStore } from "@/store/user.store";
@@ -127,6 +129,10 @@ export function AssignmentCreateFlow({
     return hasMeaningfulDraft(draft) ? draft : null;
   });
   const [draftResolved, setDraftResolved] = useState(() => !pendingDraft);
+  const [draftRecovery, setDraftRecovery] = useState<{
+    savedAt: string;
+    uploadMetadata: DraftUploadMetadata;
+  } | null>(null);
 
   useEffect(() => {
     if (!draftResolved || initialForm) return;
@@ -134,8 +140,8 @@ export function AssignmentCreateFlow({
     const timer = window.setTimeout(() => {
       saveCreateDraft({
         form,
-        uploadedFiles,
         currentStep,
+        uploadedFileNames: uploadedFiles.map((material) => material.name),
       });
     }, 400);
 
@@ -229,6 +235,8 @@ export function AssignmentCreateFlow({
       );
 
       const created = response.data.data;
+      clearCreateDraft();
+      setDraftRecovery(null);
       setCreatedAssignment(created);
       generatingAssignmentIdRef.current = created._id;
       generationStartedAtRef.current = Date.now();
@@ -398,12 +406,17 @@ export function AssignmentCreateFlow({
           draft={pendingDraft}
           onResume={() => {
             setForm(pendingDraft.form);
-            setUploadedFiles(pendingDraft.uploadedFiles);
+            setUploadedFiles([]);
             setCurrentStep(pendingDraft.currentStep);
+            setDraftRecovery({
+              savedAt: pendingDraft.savedAt,
+              uploadMetadata: pendingDraft.uploadMetadata,
+            });
             setDraftResolved(true);
           }}
           onDiscard={() => {
             clearCreateDraft();
+            setDraftRecovery(null);
             setDraftResolved(true);
           }}
         />
@@ -411,6 +424,14 @@ export function AssignmentCreateFlow({
 
       {draftResolved ? (
         <>
+      {draftRecovery ? (
+        <DraftRecoveryBanner
+          savedAt={draftRecovery.savedAt}
+          uploadMetadata={draftRecovery.uploadMetadata}
+          onDismiss={() => setDraftRecovery(null)}
+        />
+      ) : null}
+
       <div className="surface-card-compact px-3.5 py-3 sm:px-4">
         <AssignmentStepper currentStep={currentStep} />
       </div>

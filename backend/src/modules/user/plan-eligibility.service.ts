@@ -1,6 +1,10 @@
+import {
+  getAssignmentLimit,
+  hasPlanFeature,
+  type PlanFeatureKey,
+} from "../billing/plan.config";
 import { countInFlightAssignments } from "../assignment/assignment.queries";
 import type { UserDocument } from "./user.model";
-import { PLAN_ASSIGNMENT_LIMITS } from "./user.types";
 
 export interface GenerationEligibility {
   allowed: boolean;
@@ -23,8 +27,18 @@ export interface GenerationEligibility {
 export async function checkGenerationEligibility(
   user: UserDocument,
 ): Promise<GenerationEligibility> {
-  const limit = PLAN_ASSIGNMENT_LIMITS[user.plan];
+  const limit = getAssignmentLimit(user.plan);
   const completedCount = user.usage.assignmentsGenerated;
+
+  if (!hasPlanFeature(user.plan, "assignmentGeneration")) {
+    return {
+      allowed: false,
+      limit,
+      completedCount,
+      inFlightCount: 0,
+      effectiveCount: completedCount,
+    };
+  }
 
   // Unlimited plans never need the in-flight count query.
   if (!Number.isFinite(limit)) {
@@ -47,4 +61,25 @@ export async function checkGenerationEligibility(
     inFlightCount,
     effectiveCount,
   };
+}
+
+/** Whether the user may start another assignment generation. */
+export async function canGenerateAssignments(
+  user: UserDocument,
+): Promise<boolean> {
+  const eligibility = await checkGenerationEligibility(user);
+  return eligibility.allowed;
+}
+
+/** Whether the user's plan includes PDF export. */
+export function canExportPdf(user: UserDocument): boolean {
+  return canUseFeature(user, "pdfExport");
+}
+
+/** Whether the user's plan includes a specific feature flag. */
+export function canUseFeature(
+  user: UserDocument,
+  feature: PlanFeatureKey,
+): boolean {
+  return hasPlanFeature(user.plan, feature);
 }

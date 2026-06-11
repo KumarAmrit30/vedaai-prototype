@@ -144,6 +144,7 @@ async function processAssignmentJob(
     await job.updateProgress(20);
 
     const aiInput: Parameters<typeof generateAssignmentPaper>[0] = {
+      assignmentId,
       title: formData.title,
       topic: formData.topic,
       instructions: formData.instructions,

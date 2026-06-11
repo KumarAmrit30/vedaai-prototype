@@ -1,9 +1,9 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { env } from "../../../config/env";
 import { logError, logInfo } from "../../../utils/logger";
+import { retryAIRequest } from "../retry-ai-request";
+import { withRequestTimeout } from "../request-timeout";
 import type { AIProvider } from "./ai-provider";
-
-const MODEL_NAME = "gemini-2.5-flash";
 
 let genAI: GoogleGenerativeAI | undefined;
 
@@ -17,25 +17,40 @@ function getClient(): GoogleGenerativeAI {
 
 export class GeminiProvider implements AIProvider {
   readonly name = "GEMINI";
+  readonly model = env.geminiModel;
 
   async generateAssignment(prompt: string): Promise<string> {
-    logInfo("[AI][GEMINI] Generation started", { model: MODEL_NAME });
+    const model = this.model;
+    logInfo("[AI][GEMINI] Generation started", { model });
 
     try {
-      const model = getClient().getGenerativeModel({ model: MODEL_NAME });
-      const result = await model.generateContent(prompt);
-      const text = result.response.text();
+      const text = await retryAIRequest({
+        provider: "Gemini",
+        model,
+        request: async () => {
+          const generativeModel = getClient().getGenerativeModel({ model });
+          const result = await withRequestTimeout(
+            generativeModel.generateContent(prompt),
+            env.aiRequestTimeoutMs,
+            "Gemini",
+            model,
+          );
+          const responseText = result.response.text();
 
-      if (!text?.trim()) {
-        throw new Error("Gemini returned an empty response");
-      }
+          if (!responseText?.trim()) {
+            throw new Error("Gemini returned an empty response");
+          }
 
-      logInfo("[AI][GEMINI] Generation successful", { model: MODEL_NAME });
+          return responseText;
+        },
+      });
+
+      logInfo("[AI][GEMINI] Generation successful", { model });
       return text;
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unknown Gemini error";
-      logError("[AI][GEMINI] Generation failed", { message });
+      logError("[AI][GEMINI] Generation failed", { message, model });
       throw new Error(`Gemini generation failed: ${message}`);
     }
   }

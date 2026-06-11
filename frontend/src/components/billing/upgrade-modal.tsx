@@ -1,8 +1,9 @@
 "use client";
 
 import { Sparkles } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
-import toast from "react-hot-toast";
+import { ROUTES } from "@/lib/navigation/routes";
 import { useUserStore } from "@/store/user.store";
 
 const FOCUSABLE_SELECTOR =
@@ -13,6 +14,7 @@ const FOCUSABLE_SELECTOR =
  * a placeholder until billing is implemented in a later phase.
  */
 export function UpgradeModal() {
+  const router = useRouter();
   const open = useUserStore((state) => state.upgradeModalOpen);
   const onClose = useUserStore((state) => state.closeUpgradeModal);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -64,7 +66,8 @@ export function UpgradeModal() {
   if (!open) return null;
 
   function handleUpgrade(): void {
-    toast("Paid plans are coming soon.", { icon: "✨" });
+    onClose();
+    router.push(ROUTES.upgrade);
   }
 
   return (

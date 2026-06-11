@@ -2,7 +2,9 @@
 
 import { create } from "zustand";
 import apiClient from "@/lib/api/axios";
+import { fetchCurrentPlan } from "@/lib/api/billing";
 import { useAuthStore } from "@/store/auth.store";
+import type { BillingProfile } from "@/types/billing";
 
 export type UserPlan = "free" | "pro" | "enterprise";
 
@@ -26,9 +28,11 @@ export type ProfileStatus = "idle" | "loading" | "ready" | "error";
 
 interface UserState {
   profile: UserProfile | null;
+  billingProfile: BillingProfile | null;
   status: ProfileStatus;
   upgradeModalOpen: boolean;
   fetchProfile: () => Promise<void>;
+  fetchBillingProfile: () => Promise<void>;
   reset: () => void;
   openUpgradeModal: () => void;
   closeUpgradeModal: () => void;
@@ -36,6 +40,7 @@ interface UserState {
 
 export const useUserStore = create<UserState>((set) => ({
   profile: null,
+  billingProfile: null,
   status: "idle",
   upgradeModalOpen: false,
 
@@ -55,7 +60,28 @@ export const useUserStore = create<UserState>((set) => ({
     }
   },
 
-  reset: () => set({ profile: null, status: "idle", upgradeModalOpen: false }),
+  fetchBillingProfile: async () => {
+    const authStatus = useAuthStore.getState().status;
+    if (authStatus !== "authenticated") return;
+
+    const token = await useAuthStore.getState().getIdToken();
+    if (!token) return;
+
+    try {
+      const billingProfile = await fetchCurrentPlan();
+      set({ billingProfile });
+    } catch {
+      // Billing profile is supplementary; keep existing profile state.
+    }
+  },
+
+  reset: () =>
+    set({
+      profile: null,
+      billingProfile: null,
+      status: "idle",
+      upgradeModalOpen: false,
+    }),
 
   openUpgradeModal: () => set({ upgradeModalOpen: true }),
 

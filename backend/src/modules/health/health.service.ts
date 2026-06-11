@@ -29,8 +29,14 @@ export interface HealthReport {
   queue: QueueHealthStatus;
   worker: WorkerHealthState;
   aiProvider: (typeof env)["aiProvider"];
+  aiModel: string;
+  aiTimeoutMs: number;
   uptimeSeconds: number;
   timestamp: string;
+}
+
+function getActiveAIModel(): string {
+  return env.aiProvider === "gemini" ? env.geminiModel : env.groqModel;
 }
 
 function getMongoHealth(): DependencyStatus {
@@ -87,6 +93,8 @@ export function collectHealthReport(): HealthReport {
     queue,
     worker,
     aiProvider: env.aiProvider,
+    aiModel: getActiveAIModel(),
+    aiTimeoutMs: env.aiRequestTimeoutMs,
     uptimeSeconds: Math.floor(process.uptime()),
     timestamp: new Date().toISOString(),
   };

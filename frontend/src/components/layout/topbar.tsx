@@ -15,6 +15,8 @@ interface TopbarProps {
   subtitle?: string;
   onNotificationsClick?: () => void;
   onSearchInteract?: () => void;
+  onMenuClick?: () => void;
+  menuOpen?: boolean;
 }
 
 function UserAvatar({
@@ -52,6 +54,8 @@ export function Topbar({
   subtitle,
   onNotificationsClick,
   onSearchInteract,
+  onMenuClick,
+  menuOpen = false,
 }: TopbarProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -210,7 +214,14 @@ export function Topbar({
                 <LogIn className="h-[15px] w-[15px]" strokeWidth={2} />
               </button>
             )}
-            <button type="button" aria-label="Menu" className="topbar-icon-btn h-8 w-8">
+            <button
+              type="button"
+              aria-label="Menu"
+              aria-expanded={menuOpen}
+              aria-controls="mobile-nav-drawer"
+              onClick={onMenuClick}
+              className="topbar-icon-btn h-8 w-8"
+            >
               <Menu className="h-[15px] w-[15px]" strokeWidth={2} />
             </button>
           </div>

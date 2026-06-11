@@ -1,6 +1,8 @@
 import Groq from "groq-sdk";
 import { env } from "../../../config/env";
 import { logError, logInfo } from "../../../utils/logger";
+import { retryAIRequest } from "../retry-ai-request";
+import { withRequestTimeout } from "../request-timeout";
 import type { AIProvider } from "./ai-provider";
 
 let groqClient: Groq | undefined;
@@ -15,29 +17,43 @@ function getClient(): Groq {
 
 export class GroqProvider implements AIProvider {
   readonly name = "GROQ";
+  readonly model = env.groqModel;
 
   async generateAssignment(prompt: string): Promise<string> {
-    const model = env.groqModel;
+    const model = this.model;
     logInfo("[AI][GROQ] Generation started", { model });
 
     try {
-      const completion = await getClient().chat.completions.create({
+      const text = await retryAIRequest({
+        provider: "Groq",
         model,
-        temperature: 0.4,
-        response_format: { type: "json_object" },
-        messages: [
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
+        request: async () => {
+          const completion = await withRequestTimeout(
+            getClient().chat.completions.create({
+              model,
+              temperature: 0.4,
+              response_format: { type: "json_object" },
+              messages: [
+                {
+                  role: "user",
+                  content: prompt,
+                },
+              ],
+            }),
+            env.aiRequestTimeoutMs,
+            "Groq",
+            model,
+          );
+
+          const responseText = completion.choices[0]?.message?.content;
+
+          if (!responseText?.trim()) {
+            throw new Error("Groq returned an empty response");
+          }
+
+          return responseText;
+        },
       });
-
-      const text = completion.choices[0]?.message?.content;
-
-      if (!text?.trim()) {
-        throw new Error("Groq returned an empty response");
-      }
 
       logInfo("[AI][GROQ] Generation successful", { model });
       return text;

@@ -62,7 +62,9 @@ export function useAssignmentSocket(): void {
           : {}),
       });
 
-      void useUserStore.getState().fetchProfile();
+      const userStore = useUserStore.getState();
+      void userStore.fetchProfile();
+      void userStore.fetchBillingProfile();
     }
 
     function handleFailed(payload: AssignmentSocketPayload): void {

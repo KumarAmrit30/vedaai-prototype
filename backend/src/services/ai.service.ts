@@ -6,9 +6,10 @@ import type {
 import { MAX_MATERIAL_CHARS } from "./material-parser.service";
 import { getAIProvider } from "./ai/providers";
 import { parseAIResponse } from "./ai/response-parser";
-import { logDebug, logInfo } from "../utils/logger";
+import { logDebug, logError, logInfo } from "../utils/logger";
 
 export interface AssignmentGenerationInput {
+  assignmentId: string;
   title: string;
   topic: string;
   instructions: string;
@@ -103,43 +104,67 @@ Output rules:
 export async function generateAssignmentPaper(
   input: AssignmentGenerationInput,
 ): Promise<AssignmentGenerationResult> {
-  const materialChars = input.materialText?.trim().length ?? 0;
-
+  const startedAt = Date.now();
   const provider = getAIProvider();
+  const { assignmentId } = input;
 
-  logInfo(`[AI][${provider.name}] Generating assignment paper`, {
-    topic: input.topic,
-    questions: input.questionConfig.numberOfQuestions,
-    materialTextLength: materialChars,
+  logInfo("[AI][GENERATION] Started", {
+    assignmentId,
+    provider: provider.name,
+    model: provider.model,
   });
 
-  const prompt = buildAssignmentPrompt(input);
-  const rawResponse = await provider.generateAssignment(prompt);
-  const structured = parseAIResponse(rawResponse);
+  try {
+    const prompt = buildAssignmentPrompt(input);
+    const rawResponse = await provider.generateAssignment(prompt);
+    const structured = parseAIResponse(rawResponse);
 
-  const questionCount = structured.sections.reduce(
-    (total, section) => total + section.questions.length,
-    0,
-  );
-
-  // The parser guarantees answerKey aligns with the generated questions, but
-  // not that the model honored the requested count. Reject mismatches so a
-  // malformed paper is retried/failed instead of silently persisted.
-  const requestedCount = input.questionConfig.numberOfQuestions;
-  if (questionCount !== requestedCount) {
-    throw new Error(
-      `AI response validation failed: generated ${questionCount} questions but ${requestedCount} were requested`,
+    const questionCount = structured.sections.reduce(
+      (total, section) => total + section.questions.length,
+      0,
     );
+
+    // The parser guarantees answerKey aligns with the generated questions, but
+    // not that the model honored the requested count. Reject mismatches so a
+    // malformed paper is retried/failed instead of silently persisted.
+    const requestedCount = input.questionConfig.numberOfQuestions;
+    if (questionCount !== requestedCount) {
+      throw new Error(
+        `AI response validation failed: generated ${questionCount} questions but ${requestedCount} were requested`,
+      );
+    }
+
+    logDebug(`[AI][${provider.name}] Structured response validated`, {
+      sections: structured.sections.length,
+      questions: questionCount,
+      answerKeyEntries: structured.answerKey.length,
+    });
+
+    const result = {
+      generatedPaper: { sections: structured.sections },
+      answerKey: structured.answerKey,
+    };
+
+    logInfo("[AI][GENERATION] Completed", {
+      assignmentId,
+      provider: provider.name,
+      model: provider.model,
+      durationMs: Date.now() - startedAt,
+    });
+
+    return result;
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Unknown generation error";
+
+    logError("[AI][GENERATION] Failed", {
+      assignmentId,
+      provider: provider.name,
+      model: provider.model,
+      durationMs: Date.now() - startedAt,
+      message,
+    });
+
+    throw error;
   }
-
-  logDebug(`[AI][${provider.name}] Structured response validated`, {
-    sections: structured.sections.length,
-    questions: questionCount,
-    answerKeyEntries: structured.answerKey.length,
-  });
-
-  return {
-    generatedPaper: { sections: structured.sections },
-    answerKey: structured.answerKey,
-  };
 }

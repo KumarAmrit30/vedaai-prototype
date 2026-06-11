@@ -1,7 +1,10 @@
 "use client";
 
 import type { CreateAssignmentDraft } from "@/lib/workspace/create-draft";
-import { formatAssignmentDate } from "@/lib/utils/format-assignment";
+import {
+  formatDraftRelativeTime,
+  hasRestoredUploadMetadata,
+} from "@/lib/workspace/create-draft";
 
 interface DraftResumePromptProps {
   draft: CreateAssignmentDraft;
@@ -22,8 +25,15 @@ export function DraftResumePrompt({
         </h3>
         <p className="mt-1 text-[12px] text-[var(--text-secondary)]">
           {draft.form.title.trim() || "Untitled assignment"} · saved{" "}
-          {formatAssignmentDate(draft.savedAt, "long")}
+          {formatDraftRelativeTime(draft.savedAt)}
         </p>
+        {hasRestoredUploadMetadata(draft.uploadMetadata) ? (
+          <p className="mt-1 text-[12px] text-[var(--text-muted)]">
+            Includes {draft.uploadMetadata.uploadedFileCount} uploaded file
+            {draft.uploadMetadata.uploadedFileCount === 1 ? "" : "s"} that must
+            be re-added after restore.
+          </p>
+        ) : null}
       </div>
       <div className="flex flex-wrap gap-2">
         <button type="button" onClick={onDiscard} className="outline-pill-btn">

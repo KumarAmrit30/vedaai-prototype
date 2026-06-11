@@ -36,6 +36,11 @@ export function useShellNavigation() {
           next: ROUTES.createAssignment,
         });
         break;
+      case "settings":
+        requireAuth(() => router.push(ROUTES.settings), {
+          next: ROUTES.settings,
+        });
+        break;
       default:
         break;
     }

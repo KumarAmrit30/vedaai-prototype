@@ -3,27 +3,28 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ArrowRight,
-  Clock3,
+  ArrowUpRight,
+  BookOpen,
   FileText,
+  Layers,
+  ListChecks,
   LogIn,
   Plus,
   Sparkles,
+  TrendingUp,
 } from "lucide-react";
 import { AuthLoadingScreen } from "@/components/auth/auth-loading-screen";
-import { AssignmentCard } from "@/components/assignment/AssignmentCard";
-import { AssignmentListSkeleton } from "@/components/assignment/assignment-card-skeleton";
 import { PageTransition } from "@/components/layout/page-transition";
-import { useDashboardStats } from "@/hooks/use-assignments-loader";
+import { PlanBadge } from "@/components/ui/plan-badge";
 import { ROUTES } from "@/lib/navigation/routes";
 import {
-  getPendingAssignmentsSnapshot,
-  getRecentlyOpenedAssignments,
-} from "@/lib/utils/dashboard-assignments";
+  computeAssignmentStatistics,
+  computePlanAnalytics,
+  computeUsageAnalytics,
+} from "@/lib/utils/dashboard-analytics";
 import { useAssignmentStore } from "@/store/assignment.store";
 import { useAuthStore } from "@/store/auth.store";
-import { useWorkspaceStore } from "@/store/workspace.store";
-import type { Assignment } from "@/types/assignment";
+import { useUserStore } from "@/store/user.store";
 
 function GuestDashboard(): React.ReactNode {
   const router = useRouter();
@@ -72,13 +73,13 @@ interface HomeDashboardProps {
   onRetry?: () => void;
 }
 
-function StatCard({
+function AnalyticsStatCard({
   label,
   value,
   hint,
 }: {
   label: string;
-  value: number;
+  value: number | string;
   hint: string;
 }) {
   return (
@@ -90,58 +91,34 @@ function StatCard({
   );
 }
 
-function SectionHeader({
-  title,
-  subtitle,
-  href,
-  linkLabel,
-}: {
-  title: string;
-  subtitle: string;
-  href?: string;
-  linkLabel?: string;
-}) {
+function DashboardSkeleton(): React.ReactNode {
   return (
-    <div className="home-section-header">
-      <div>
-        <h2 className="section-title">{title}</h2>
-        <p className="mt-0.5 text-[11px] text-[var(--text-secondary)]">{subtitle}</p>
+    <PageTransition>
+      <div className="home-dashboard space-y-5">
+        <div className="home-dashboard__hero surface-card-compact">
+          <div className="shimmer-block h-5 w-40" />
+          <div className="mt-2 shimmer-block h-3 w-64" />
+        </div>
+        <section className="home-dashboard__analytics-row">
+          {[1, 2].map((key) => (
+            <div key={key} className="surface-card-compact p-4" aria-hidden="true">
+              <div className="shimmer-block h-3 w-24" />
+              <div className="mt-3 shimmer-block h-6 w-32" />
+              <div className="mt-2 shimmer-block h-3 w-40" />
+            </div>
+          ))}
+        </section>
+        <section className="home-dashboard__stats home-dashboard__stats--five">
+          {[1, 2, 3, 4, 5].map((key) => (
+            <div key={key} className="home-stat-card surface-card-compact" aria-hidden="true">
+              <div className="shimmer-block h-3 w-16" />
+              <div className="mt-2 shimmer-block h-8 w-10" />
+              <div className="mt-1 shimmer-block h-3 w-28" />
+            </div>
+          ))}
+        </section>
       </div>
-      {href && linkLabel ? (
-        <Link href={href} className="home-section-header__link">
-          {linkLabel}
-          <ArrowRight className="h-3.5 w-3.5" strokeWidth={2} />
-        </Link>
-      ) : null}
-    </div>
-  );
-}
-
-function EmptyHomeCard({ title, description }: { title: string; description: string }) {
-  return (
-    <div className="home-empty-card surface-card-compact">
-      <p className="text-[13px] font-medium text-[var(--text-primary)]">{title}</p>
-      <p className="mt-1 text-[12px] text-[var(--text-secondary)]">{description}</p>
-    </div>
-  );
-}
-
-function RecentCards({ assignments }: { assignments: Assignment[] }) {
-  const recentlyOpenedHighlightId = useWorkspaceStore(
-    (state) => state.recentlyOpenedHighlightId,
-  );
-
-  return (
-    <div className="home-recent-grid">
-      {assignments.map((assignment, index) => (
-        <AssignmentCard
-          key={assignment._id}
-          assignment={assignment}
-          index={index}
-          isRecentlyOpened={recentlyOpenedHighlightId === assignment._id || index === 0}
-        />
-      ))}
-    </div>
+    </PageTransition>
   );
 }
 
@@ -152,10 +129,26 @@ export function HomeDashboard({
 }: HomeDashboardProps) {
   const assignments = useAssignmentStore((state) => state.assignments);
   const authStatus = useAuthStore((state) => state.status);
-  const stats = useDashboardStats(assignments);
+  const profile = useUserStore((state) => state.profile);
+  const billingProfile = useUserStore((state) => state.billingProfile);
 
-  const recentlyOpened = getRecentlyOpenedAssignments(assignments, 5);
-  const pendingSnapshot = getPendingAssignmentsSnapshot(assignments, 4);
+  const assignmentStats = computeAssignmentStatistics(assignments);
+
+  const planAnalytics = computePlanAnalytics({
+    plan: billingProfile?.plan ?? profile?.plan,
+    subscriptionStatus: billingProfile?.subscription.status,
+  });
+
+  const usageAnalytics = computeUsageAnalytics({
+    assignmentsGenerated:
+      billingProfile?.usage.assignmentsGenerated ??
+      profile?.usage.assignmentsGenerated ??
+      0,
+    assignmentsAllowed:
+      billingProfile?.limits.assignmentsAllowed ??
+      profile?.limits.assignmentsAllowed ??
+      null,
+  });
 
   if (authStatus === "loading") {
     return <AuthLoadingScreen />;
@@ -186,135 +179,158 @@ export function HomeDashboard({
   }
 
   if (loading && assignments.length === 0) {
-    return (
-      <PageTransition>
-        <div className="home-dashboard space-y-5">
-          <div className="home-dashboard__hero surface-card-compact">
-            <div className="shimmer-block h-5 w-40" />
-            <div className="mt-2 shimmer-block h-3 w-64" />
-          </div>
-          <section className="home-dashboard__stats">
-            <div className="home-stat-card surface-card-compact" aria-hidden="true">
-              <div className="shimmer-block h-3 w-16" />
-              <div className="mt-2 shimmer-block h-8 w-10" />
-              <div className="mt-1 shimmer-block h-3 w-28" />
-            </div>
-            <div className="home-stat-card surface-card-compact" aria-hidden="true">
-              <div className="shimmer-block h-3 w-16" />
-              <div className="mt-2 shimmer-block h-8 w-10" />
-              <div className="mt-1 shimmer-block h-3 w-28" />
-            </div>
-            <div className="home-stat-card surface-card-compact" aria-hidden="true">
-              <div className="shimmer-block h-3 w-16" />
-              <div className="mt-2 shimmer-block h-8 w-10" />
-              <div className="mt-1 shimmer-block h-3 w-28" />
-            </div>
-          </section>
-          <AssignmentListSkeleton />
-        </div>
-      </PageTransition>
-    );
+    return <DashboardSkeleton />;
   }
+
+  const remainingLabel =
+    usageAnalytics.remainingGenerations === null
+      ? "Unlimited"
+      : String(usageAnalytics.remainingGenerations);
+
+  const limitLabel =
+    usageAnalytics.assignmentLimit === null
+      ? "Unlimited"
+      : String(usageAnalytics.assignmentLimit);
 
   return (
     <PageTransition>
       <div className="home-dashboard space-y-5">
         <section className="home-dashboard__hero surface-card-compact">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="home-dashboard__eyebrow">ExamForge AI</p>
-              <h1 className="home-dashboard__title">Your assessment overview</h1>
-              <p className="mt-1.5 max-w-xl text-[13px] leading-relaxed text-[var(--text-secondary)]">
-                Pick up where you left off, monitor pending generation, and jump into your full workspace when you need to manage assignments at scale.
-              </p>
+          <p className="home-dashboard__eyebrow">ExamForge AI</p>
+          <h1 className="home-dashboard__title">Account analytics</h1>
+          <p className="mt-1.5 max-w-xl text-[13px] leading-relaxed text-[var(--text-secondary)]">
+            Plan usage, assignment status breakdown, and shortcuts to your most
+            common workflows.
+          </p>
+        </section>
+
+        <section className="home-dashboard__analytics-row">
+          <div className="surface-card-compact p-4 md:p-5">
+            <div className="flex items-center gap-2">
+              <Layers className="h-4 w-4 text-[var(--text-secondary)]" strokeWidth={2} />
+              <h2 className="text-[13px] font-semibold text-[var(--text-primary)]">
+                Current Plan
+              </h2>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Link href={ROUTES.assignments} className="outline-pill-btn">
-                View All Assignments
-              </Link>
-              <Link href={ROUTES.createAssignment} className="submit-pill-btn">
-                <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
-                Create Assignment
-              </Link>
+            <div className="mt-3">
+              <PlanBadge plan={planAnalytics.plan} />
             </div>
+            <dl className="mt-4 space-y-2">
+              <div className="flex items-center justify-between gap-3 text-[12px]">
+                <dt className="text-[var(--text-muted)]">Plan tier</dt>
+                <dd className="font-medium capitalize text-[var(--text-primary)]">
+                  {planAnalytics.plan}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between gap-3 text-[12px]">
+                <dt className="text-[var(--text-muted)]">Subscription</dt>
+                <dd className="font-medium capitalize text-[var(--text-primary)]">
+                  {planAnalytics.subscriptionStatus}
+                </dd>
+              </div>
+            </dl>
+          </div>
+
+          <div className="surface-card-compact p-4 md:p-5">
+            <div className="flex items-center gap-2">
+              <ListChecks className="h-4 w-4 text-[var(--text-secondary)]" strokeWidth={2} />
+              <h2 className="text-[13px] font-semibold text-[var(--text-primary)]">
+                Usage
+              </h2>
+            </div>
+            <dl className="mt-4 space-y-2">
+              <div className="flex items-center justify-between gap-3 text-[12px]">
+                <dt className="text-[var(--text-muted)]">Generated</dt>
+                <dd className="font-medium text-[var(--text-primary)]">
+                  {usageAnalytics.assignmentsGenerated}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between gap-3 text-[12px]">
+                <dt className="text-[var(--text-muted)]">Limit</dt>
+                <dd className="font-medium text-[var(--text-primary)]">{limitLabel}</dd>
+              </div>
+              <div className="flex items-center justify-between gap-3 text-[12px]">
+                <dt className="text-[var(--text-muted)]">Remaining</dt>
+                <dd className="font-medium text-[var(--text-primary)]">{remainingLabel}</dd>
+              </div>
+            </dl>
           </div>
         </section>
 
-        <section className="home-dashboard__stats">
-          <StatCard label="Total" value={stats.total} hint="Assignments in workspace" />
-          <StatCard label="Pending" value={stats.pending} hint="Generating or awaiting paper" />
-          <StatCard label="Completed" value={stats.completed} hint="Ready to review and export" />
+        <section>
+          <h2 className="mb-3 text-[13px] font-semibold text-[var(--text-primary)]">
+            Assignment statistics
+          </h2>
+          <div className="home-dashboard__stats home-dashboard__stats--five">
+            <AnalyticsStatCard
+              label="Total"
+              value={assignmentStats.total}
+              hint="Assignments in workspace"
+            />
+            <AnalyticsStatCard
+              label="Pending"
+              value={assignmentStats.pending}
+              hint="Awaiting generation"
+            />
+            <AnalyticsStatCard
+              label="Processing"
+              value={assignmentStats.processing}
+              hint="Currently generating"
+            />
+            <AnalyticsStatCard
+              label="Completed"
+              value={assignmentStats.completed}
+              hint="Ready to review"
+            />
+            <AnalyticsStatCard
+              label="Failed"
+              value={assignmentStats.failed}
+              hint="Needs attention"
+            />
+          </div>
         </section>
 
-        <section className="home-dashboard__section">
-          <SectionHeader
-            title="Recently Opened"
-            subtitle="Last 5 assignments you viewed"
-            href={ROUTES.assignments}
-            linkLabel="Open workspace"
-          />
-          {recentlyOpened.length > 0 ? (
-            <RecentCards assignments={recentlyOpened} />
-          ) : (
-            <EmptyHomeCard
-              title="No recent activity yet"
-              description="Open an assignment to see it appear here for quick access."
-            />
-          )}
-        </section>
-
-        <section className="home-dashboard__section">
-          <SectionHeader
-            title="Pending Assignments"
-            subtitle="Snapshots of work still in progress"
-            href={ROUTES.assignments}
-            linkLabel="Manage all"
-          />
-          {pendingSnapshot.length > 0 ? (
-            <div className="home-pending-list">
-              {pendingSnapshot.map((assignment) => (
-                <Link
-                  key={assignment._id}
-                  href={ROUTES.assignmentDetail(assignment._id)}
-                  className="home-pending-item surface-card-compact"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-[13px] font-semibold text-[var(--text-primary)]">
-                      {assignment.title}
-                    </p>
-                    <p className="mt-0.5 truncate text-[11px] text-[var(--text-secondary)]">
-                      {assignment.topic}
-                    </p>
-                  </div>
-                  <span className="home-pending-item__status">
-                    <Clock3 className="h-3 w-3" strokeWidth={2} />
-                    Pending
-                  </span>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <EmptyHomeCard
-              title="Nothing pending right now"
-              description="Completed assignments and new drafts will show up here when action is needed."
-            />
-          )}
+        <section className="surface-card-compact p-4 md:p-5">
+          <h2 className="text-[13px] font-semibold text-[var(--text-primary)]">
+            Quick actions
+          </h2>
+          <p className="mt-1 text-[12px] text-[var(--text-secondary)]">
+            Jump straight into creation, review, or plan upgrades.
+          </p>
+          <div className="home-dashboard__actions mt-4">
+            <Link href={ROUTES.createAssignment} className="submit-pill-btn">
+              <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+              Create Assignment
+            </Link>
+            <Link href={ROUTES.assignments} className="outline-pill-btn">
+              <BookOpen className="h-3.5 w-3.5" strokeWidth={2} />
+              View Assignments
+            </Link>
+            <Link href={ROUTES.upgrade} className="outline-pill-btn">
+              <TrendingUp className="h-3.5 w-3.5" strokeWidth={2} />
+              Upgrade Plan
+            </Link>
+          </div>
         </section>
 
         {assignments.length === 0 ? (
-          <section className="empty-state-card surface-card-compact mx-auto">
+          <section className="empty-state-card surface-card-compact mx-auto max-w-lg">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-[18px] border border-[var(--border-light)] bg-[var(--surface-muted)]">
-              <FileText className="h-6 w-6 text-[var(--text-secondary)] opacity-50" strokeWidth={1.75} />
+              <Sparkles
+                className="h-6 w-6 text-[var(--text-secondary)] opacity-50"
+                strokeWidth={1.75}
+              />
             </div>
             <h3 className="text-[15px] font-semibold text-[var(--text-primary)]">
-              Start your first assessment
+              Create your first assignment
             </h3>
             <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--text-secondary)]">
-              Create an AI-generated assignment to populate your dashboard and workspace.
+              Your analytics are ready. Generate an assignment to populate your
+              workspace statistics.
             </p>
             <Link href={ROUTES.createAssignment} className="submit-pill-btn mt-5">
-              <Sparkles className="h-3.5 w-3.5" strokeWidth={2} />
-              Create Assignment
+              <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={2.5} />
+              Create Your First Assignment
             </Link>
           </section>
         ) : null}

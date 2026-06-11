@@ -8,7 +8,7 @@ import {
   LogOut,
   Plus,
   Settings,
-  Sparkles,
+  TrendingUp,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -19,6 +19,7 @@ import {
   getUserDisplayName,
   getUserInitials,
 } from "@/lib/auth/user-display";
+import { ROUTES } from "@/lib/navigation/routes";
 import { useAuthStore } from "@/store/auth.store";
 import { useUserStore } from "@/store/user.store";
 
@@ -62,6 +63,7 @@ export function Sidebar({
   const status = useAuthStore((state) => state.status);
   const signOut = useAuthStore((state) => state.signOut);
   const profile = useUserStore((state) => state.profile);
+  const billingProfile = useUserStore((state) => state.billingProfile);
 
   const isAuthLoading = status === "loading";
   const isAuthenticated = status === "authenticated" && Boolean(user);
@@ -69,9 +71,17 @@ export function Sidebar({
   const initials = isAuthenticated && user ? getUserInitials(user) : "GU";
   const email = user?.email ?? "";
 
-  const plan = profile?.plan ?? "free";
-  const generationsUsed = profile?.usage.assignmentsGenerated ?? 0;
-  const generationsAllowed = profile?.limits.assignmentsAllowed ?? null;
+  const plan = billingProfile?.plan ?? profile?.plan ?? "free";
+  const subscriptionStatus =
+    billingProfile?.subscription.status ?? "inactive";
+  const generationsUsed =
+    billingProfile?.usage.assignmentsGenerated ??
+    profile?.usage.assignmentsGenerated ??
+    0;
+  const generationsAllowed =
+    billingProfile?.limits.assignmentsAllowed ??
+    profile?.limits.assignmentsAllowed ??
+    null;
   const usageLabel =
     generationsAllowed === null
       ? `${generationsUsed} Generations Used`
@@ -151,15 +161,12 @@ export function Sidebar({
         <button
           type="button"
           onClick={() => onNavigate?.("settings")}
-          aria-label="Settings (coming soon)"
-          title="Settings — Coming soon"
+          aria-label="Settings"
+          title="Settings"
           className={`sidebar-item${activeItem === "settings" ? " active" : ""}`}
         >
           <Settings className="h-[15px] w-[15px] shrink-0" strokeWidth={2} />
           <span className="sidebar-item__label min-w-0 flex-1">Settings</span>
-          <span className="sidebar-item__soon hidden min-[1180px]:inline-flex">
-            <ComingSoonBadge />
-          </span>
         </button>
 
         {isAuthLoading ? (
@@ -206,7 +213,24 @@ export function Sidebar({
               <p className="sidebar-shell__plan-usage truncate text-[10px] text-[var(--text-muted)]">
                 {isAuthenticated ? usageLabel : "Sign in to start generating"}
               </p>
+              {isAuthenticated ? (
+                <p className="truncate text-[10px] capitalize text-[var(--text-muted)]">
+                  Subscription: {subscriptionStatus}
+                </p>
+              ) : null}
             </div>
+
+            {isAuthenticated ? (
+              <button
+                type="button"
+                onClick={() => router.push(ROUTES.upgrade)}
+                className="sidebar-item mt-1"
+                aria-label="Upgrade plan"
+              >
+                <TrendingUp className="h-[15px] w-[15px] shrink-0" strokeWidth={2} />
+                <span className="sidebar-item__label min-w-0 flex-1">Upgrade</span>
+              </button>
+            ) : null}
 
             {isAuthenticated ? (
               <button

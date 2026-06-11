@@ -36,6 +36,10 @@ export async function upsertUserFromFirebaseClaims(
         firebaseUid: claims.uid,
         email,
         plan: "free",
+        subscription: {
+          status: "inactive",
+          provider: null,
+        },
         usage: { assignmentsGenerated: 0 },
       },
     },

@@ -1,10 +1,5 @@
+import { serializeAssignmentLimit } from "../billing/plan.config";
 import type { UserDocument } from "./user.model";
-import { PLAN_ASSIGNMENT_LIMITS, type UserPlan } from "./user.types";
-
-function serializeLimit(plan: UserPlan): number | null {
-  const limit = PLAN_ASSIGNMENT_LIMITS[plan];
-  return Number.isFinite(limit) ? limit : null;
-}
 
 export function serializeUserProfile(user: UserDocument) {
   const plan = user.plan;
@@ -15,7 +10,7 @@ export function serializeUserProfile(user: UserDocument) {
       assignmentsGenerated: user.usage?.assignmentsGenerated ?? 0,
     },
     limits: {
-      assignmentsAllowed: serializeLimit(plan),
+      assignmentsAllowed: serializeAssignmentLimit(plan),
     },
   };
 }

@@ -1,7 +1,9 @@
 const DEFAULT_CLIENT_URL = "http://localhost:3000";
 const DEFAULT_PORT = 8000;
 const DEFAULT_AI_PROVIDER = "gemini";
+const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 const DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile";
+const DEFAULT_AI_REQUEST_TIMEOUT_MS = 45_000;
 
 export const AI_PROVIDERS = ["gemini", "groq"] as const;
 export type AIProviderName = (typeof AI_PROVIDERS)[number];
@@ -28,6 +30,22 @@ function readBoolean(name: string, fallback = false): boolean {
   if (!value) return fallback;
 
   return value === "true" || value === "1" || value === "yes";
+}
+
+function readOptionalPositiveNumber(name: string, fallback: number): number {
+  const value = process.env[name]?.trim();
+
+  if (!value) return fallback;
+
+  const parsed = Number(value);
+
+  if (Number.isNaN(parsed) || parsed <= 0) {
+    throw new Error(
+      `[ENV] ${name} must be a positive number. Got: ${value}`,
+    );
+  }
+
+  return parsed;
 }
 
 function readFirebasePrivateKey(): string | undefined {
@@ -57,8 +75,13 @@ export const env = {
   mongodbUri: readRequired("MONGODB_URI"),
   aiProvider: readAIProvider(),
   geminiApiKey: process.env.GEMINI_API_KEY?.trim() || undefined,
+  geminiModel: readOptional("GEMINI_MODEL", DEFAULT_GEMINI_MODEL),
   groqApiKey: process.env.GROQ_API_KEY?.trim() || undefined,
   groqModel: readOptional("GROQ_MODEL", DEFAULT_GROQ_MODEL),
+  aiRequestTimeoutMs: readOptionalPositiveNumber(
+    "AI_REQUEST_TIMEOUT_MS",
+    DEFAULT_AI_REQUEST_TIMEOUT_MS,
+  ),
   clientUrl: readOptional("CLIENT_URL", DEFAULT_CLIENT_URL),
   redisUrl: process.env.REDIS_URL?.trim() || undefined,
   redisHost: process.env.REDIS_HOST?.trim() || "127.0.0.1",

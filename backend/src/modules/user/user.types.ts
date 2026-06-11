@@ -2,12 +2,26 @@ export const USER_PLANS = ["free", "pro", "enterprise"] as const;
 
 export type UserPlan = (typeof USER_PLANS)[number];
 
-/** Free plan generation cap. Pro/enterprise are reserved for future phases. */
-export const PLAN_ASSIGNMENT_LIMITS: Record<UserPlan, number> = {
-  free: 3,
-  pro: Number.POSITIVE_INFINITY,
-  enterprise: Number.POSITIVE_INFINITY,
-};
+export const SUBSCRIPTION_STATUSES = [
+  "inactive",
+  "active",
+  "cancelled",
+  "expired",
+] as const;
+
+export type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number];
+
+export const SUBSCRIPTION_PROVIDERS = ["manual", "razorpay", "stripe"] as const;
+
+export type SubscriptionProvider = (typeof SUBSCRIPTION_PROVIDERS)[number];
+
+export interface UserSubscription {
+  status: SubscriptionStatus;
+  provider: SubscriptionProvider | null;
+  startedAt?: Date;
+  expiresAt?: Date;
+  providerSubscriptionId?: string;
+}
 
 export interface UserUsage {
   assignmentsGenerated: number;
@@ -19,6 +33,7 @@ export interface User {
   displayName?: string;
   photoURL?: string;
   plan: UserPlan;
+  subscription: UserSubscription;
   usage: UserUsage;
   createdAt: Date;
   updatedAt: Date;

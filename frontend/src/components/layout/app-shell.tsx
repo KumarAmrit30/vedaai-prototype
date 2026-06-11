@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
+import { MobileNavDrawer } from "@/components/layout/mobile-nav-drawer";
 import { Sidebar, type NavItemId } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { UpgradeModal } from "@/components/billing/upgrade-modal";
@@ -27,7 +29,13 @@ export function AppShell({
   onNavigate,
   comingSoon,
 }: AppShellProps) {
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   useAssignmentSocket();
+
+  function handleMobileNavigate(id: NavItemId): void {
+    onNavigate?.(id);
+    setMobileNavOpen(false);
+  }
 
   return (
     <div className="app-shell">
@@ -47,6 +55,8 @@ export function AppShell({
               subtitle={subtitle}
               onNotificationsClick={comingSoon?.showNotifications}
               onSearchInteract={comingSoon?.showSearch}
+              onMenuClick={() => setMobileNavOpen(true)}
+              menuOpen={mobileNavOpen}
             />
           </div>
 
@@ -60,6 +70,13 @@ export function AppShell({
         activeItem={activeNav}
         onNavigate={onNavigate}
         onCreateClick={onCreateClick}
+      />
+
+      <MobileNavDrawer
+        open={mobileNavOpen}
+        activeItem={activeNav}
+        onClose={() => setMobileNavOpen(false)}
+        onNavigate={handleMobileNavigate}
       />
 
       {comingSoon ? (

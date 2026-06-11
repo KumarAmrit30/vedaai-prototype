@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { logError } from "../../utils/logger";
 
 export const difficultySchema = z.enum(["easy", "medium", "hard"]);
 
@@ -113,12 +114,37 @@ function cleanRawText(rawText: string): string {
   return cleaned;
 }
 
+function countQuestionsFromParsed(parsed: unknown): number | undefined {
+  if (!parsed || typeof parsed !== "object" || !("sections" in parsed)) {
+    return undefined;
+  }
+
+  const sections = (parsed as { sections?: unknown }).sections;
+
+  if (!Array.isArray(sections)) {
+    return undefined;
+  }
+
+  return sections.reduce((total, section) => {
+    if (!section || typeof section !== "object" || !("questions" in section)) {
+      return total;
+    }
+
+    const questions = (section as { questions?: unknown }).questions;
+    return total + (Array.isArray(questions) ? questions.length : 0);
+  }, 0);
+}
+
 function parseJson(cleanedText: string): unknown {
   try {
     return JSON.parse(cleanedText) as unknown;
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unknown JSON parse error";
+    logError("[AI][PARSER] JSON parse failed", {
+      message,
+      responseLength: cleanedText.length,
+    });
     throw new Error(`Failed to parse AI response as JSON: ${message}`);
   }
 }
@@ -139,6 +165,11 @@ export function parseAIResponse(rawText: string): AssignmentResponse {
   const result = assignmentResponseSchema.safeParse(parsed);
 
   if (!result.success) {
+    const questionCount = countQuestionsFromParsed(parsed);
+    logError("[AI][PARSER] Schema validation failed", {
+      issues: formatZodError(result.error),
+      ...(questionCount !== undefined ? { questionCount } : {}),
+    });
     throw new Error(
       `AI response validation failed: ${formatZodError(result.error)}`,
     );

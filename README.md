@@ -18,6 +18,7 @@
 - [PDF/TXT Upload Grounding](#pdftxt-upload-grounding)
 - [Soft Delete Architecture](#soft-delete-architecture)
 - [Authentication & Free Plan](#authentication--free-plan)
+- [Subscription Architecture (Phase 1A)](#subscription-architecture-phase-1a)
 - [PDF Export System](#pdf-export-system)
 - [Mobile Support](#mobile-support)
 - [Getting Started](#getting-started)
@@ -169,15 +170,17 @@ Preview + PDF export available
    >
    > Material is truncated to **50,000 characters** before injection.
 3. **Provider call** — `ai.service.ts` selects the active provider via `AI_PROVIDER`:
-   - **Gemini (default):** `@google/generative-ai` → `gemini-2.5-flash`
-   - **Groq:** `groq-sdk` → `llama-3.3-70b-versatile`, temperature `0.4`, JSON-only output
-4. **Response parsing** — Raw text is cleaned (strips markdown fences) and validated with Zod:
+   - **Gemini (default):** `@google/generative-ai` → `GEMINI_MODEL` (default `gemini-2.5-flash`)
+   - **Groq:** `groq-sdk` → `GROQ_MODEL` (default `llama-3.3-70b-versatile`), temperature `0.4`, JSON-only output
+   - Each provider request is wrapped with a configurable timeout (`AI_REQUEST_TIMEOUT_MS`, default 45s) and a lightweight retry (max 2 attempts, 1s delay) for transient network, timeout, and 5xx failures
+4. **Response parsing** — Raw text is cleaned (strips markdown fences) and validated with Zod (parse/validation failures are logged with metadata only, never raw model output):
    - Sections with titles and instructions
    - Questions with difficulty (`easy` | `medium` | `hard`) and marks
    - `answerKey` entries (one per question): expected answer, explanation, marking guide
    - Generated question count must exactly match the requested `numberOfQuestions` — mismatches fail the job instead of persisting malformed papers
 5. **Persistence** — Validated `generatedPaper` and `answerKey` are saved to MongoDB in one step; status → `completed`.
-6. **Failure handling** — Up to 3 retries with exponential backoff; final failure sets `status: failed` and emits `assignment:failed`.
+6. **Failure handling** — Provider-level retry (2 attempts) for transient failures, then BullMQ job retries (3 attempts, exponential backoff); final failure sets `status: failed` and emits `assignment:failed`.
+7. **Observability** — Structured lifecycle logs: `[AI][GENERATION] Started` / `Completed` / `Failed` (includes `assignmentId`, provider, model, `durationMs`).
 
 ### Provider architecture
 
@@ -186,8 +189,8 @@ ai.service.ts
     │
     ├── buildAssignmentPrompt()
     ├── getAIProvider()  ← AI_PROVIDER env (default: gemini)
-    │       ├── GeminiProvider (gemini-provider.ts)
-    │       └── GroqProvider   (groq-provider.ts)
+    │       ├── GeminiProvider (gemini-provider.ts)  ← timeout + retry
+    │       └── GroqProvider   (groq-provider.ts)    ← timeout + retry
     └── parseAIResponse()  ← response-parser.ts
 ```
 
@@ -306,7 +309,7 @@ Zustand auth store                              upsertUserFromFirebaseClaims()
 | **Counting** | Usage counter increments **only after** a successful completed generation (never on create, never on failures) |
 | **Pro / Enterprise** | Reserved for future phases; treated as unlimited (`assignmentsAllowed: null`) |
 
-When the limit is reached, the frontend shows an **Upgrade modal** ("Free Plan Limit Reached") instead of a generic error. The **Upgrade Plan** button is a placeholder — billing and payments are not implemented in this phase.
+When the limit is reached, the frontend shows an **Upgrade modal** ("Free Plan Limit Reached") that links to `/upgrade`. Checkout and payment providers are not implemented in this phase.
 
 ### Assignment ownership
 
@@ -333,6 +336,53 @@ Every assignment stores the creator's Firebase UID (`userId`). All API reads and
 | `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | Yes | Firebase storage bucket |
 | `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Yes | Firebase messaging sender ID |
 | `NEXT_PUBLIC_FIREBASE_APP_ID` | Yes | Firebase app ID |
+
+---
+
+## Subscription Architecture (Phase 1A)
+
+Phase 1A prepares paid plans without payment integration. All users remain on the **free** plan with `subscription.status = inactive`.
+
+### User subscription fields (`users` collection)
+
+| Field | Type | Default |
+|-------|------|---------|
+| `subscription.status` | `inactive` \| `active` \| `cancelled` \| `expired` | `inactive` |
+| `subscription.provider` | `manual` \| `razorpay` \| `stripe` \| `null` | `null` |
+| `subscription.startedAt` | Date? | — |
+| `subscription.expiresAt` | Date? | — |
+| `subscription.providerSubscriptionId` | string? | — |
+
+### Centralized plan config
+
+`backend/src/modules/billing/plan.config.ts` (`PLAN_CONFIG`) is the single source of truth for:
+
+- Assignment limits per plan
+- Display names and monthly prices
+- Feature flags (`assignmentGeneration`, `pdfExport`, `library`, `groups`, `bulkActions`, `prioritySupport`)
+
+### Plan eligibility helpers
+
+`plan-eligibility.service.ts` exposes reusable checks:
+
+- `canGenerateAssignments()` / `checkGenerationEligibility()`
+- `canExportPdf()`
+- `canUseFeature(feature)`
+
+### Billing APIs
+
+| Endpoint | Auth | Response |
+|----------|------|----------|
+| `GET /api/billing/plans` | No | Plan catalog from `PLAN_CONFIG` |
+| `GET /api/billing/current-plan` | Yes | `{ plan, subscription, usage, limits }` |
+
+### Frontend
+
+- `/upgrade` — plan comparison page (Free, Pro, Enterprise) with **Coming Soon** CTAs
+- Sidebar — current plan, usage, subscription status, **Upgrade** link
+- Typed billing client — `frontend/src/types/billing.ts`, `frontend/src/lib/api/billing.ts`
+
+**Not in Phase 1A:** Stripe, Razorpay, webhooks, checkout, automatic plan upgrades, or admin tools.
 
 ---
 
@@ -434,8 +484,10 @@ npm run dev            # http://localhost:3000
 | `REDIS_URL` | Yes* | Redis URL (`redis://localhost:6379` or Upstash `rediss://...`) |
 | `AI_PROVIDER` | No | `gemini` (default) or `groq` |
 | `GEMINI_API_KEY` | Yes** | Google Gemini API key (when `AI_PROVIDER=gemini`) |
+| `GEMINI_MODEL` | No | Gemini model (default `gemini-2.5-flash`) |
 | `GROQ_API_KEY` | Yes** | Groq API key (when `AI_PROVIDER=groq`) |
 | `GROQ_MODEL` | No | Groq model (default `llama-3.3-70b-versatile`) |
+| `AI_REQUEST_TIMEOUT_MS` | No | Provider request timeout in ms (default `45000`) |
 | `CLIENT_URL` | No | Frontend origin for CORS + Socket.IO (default `http://localhost:3000`) |
 | `PORT` | No | HTTP port (default `8000`) |
 | `REDIS_HOST` | No | Fallback if `REDIS_URL` unset (default `127.0.0.1`) |
@@ -462,6 +514,8 @@ Base URL: `http://localhost:8000/api`
 |--------|----------|-------------|
 | `GET` | `/health` | Health check |
 | `GET` | `/users/me` | Current user plan + usage + limits (requires auth) |
+| `GET` | `/billing/plans` | Plan catalog (limits, pricing, feature flags) |
+| `GET` | `/billing/current-plan` | Current plan, subscription, usage, limits (requires auth) |
 | `POST` | `/assignments` | Create assignment + enqueue generation (JSON or `multipart/form-data`) — enforces free-plan limit |
 | `GET` | `/assignments` | List active assignments (newest first) |
 | `GET` | `/assignments/:id` | Get assignment by ID (404 if soft-deleted) |

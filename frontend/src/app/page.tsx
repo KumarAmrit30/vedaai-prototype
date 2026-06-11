@@ -17,7 +17,7 @@ export default function DashboardPage() {
   return (
     <AppShell
       title="Dashboard"
-      subtitle="Recent activity and quick access"
+      subtitle="Plan usage, assignment stats, and quick actions"
       activeNav="dashboard"
       onNavigate={handleNavigate}
       onCreateClick={navigateToCreate}
