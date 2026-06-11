@@ -2,7 +2,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import mongoose from "mongoose";
 import { env } from "../../config/env";
-import { isAssignmentQueueReady } from "../../queues/assignment.queue";
+import {
+  assignmentQueue,
+  isAssignmentQueueReady,
+} from "../../queues/assignment.queue";
 import { isRedisQuotaExceeded } from "../../queues/redis-quota";
 import { sharedConnection } from "../../queues/redis";
 import {
@@ -31,6 +34,10 @@ export interface HealthReport {
   aiProvider: (typeof env)["aiProvider"];
   aiModel: string;
   aiTimeoutMs: number;
+  authEnabled: boolean;
+  redisQuotaExceeded: boolean;
+  pendingJobs: number;
+  failedJobs: number;
   uptimeSeconds: number;
   timestamp: string;
 }
@@ -56,6 +63,22 @@ function getQueueHealth(): QueueHealthStatus {
   return isAssignmentQueueReady() ? "ready" : "not_ready";
 }
 
+async function getQueueJobCounts(): Promise<{
+  pendingJobs: number;
+  failedJobs: number;
+}> {
+  if (!isAssignmentQueueReady()) {
+    return { pendingJobs: 0, failedJobs: 0 };
+  }
+
+  const counts = await assignmentQueue.getJobCounts("wait", "delayed", "failed");
+
+  return {
+    pendingJobs: (counts.wait ?? 0) + (counts.delayed ?? 0),
+    failedJobs: counts.failed ?? 0,
+  };
+}
+
 function resolveOverallStatus(
   mongodb: DependencyStatus,
   redis: DependencyStatus,
@@ -78,11 +101,12 @@ function resolveOverallStatus(
   return "healthy";
 }
 
-export function collectHealthReport(): HealthReport {
+export async function collectHealthReport(): Promise<HealthReport> {
   const mongodb = getMongoHealth();
   const redis = getRedisHealth();
   const queue = getQueueHealth();
   const worker = getWorkerHealthState();
+  const { pendingJobs, failedJobs } = await getQueueJobCounts();
 
   return {
     status: resolveOverallStatus(mongodb, redis, queue),
@@ -95,6 +119,10 @@ export function collectHealthReport(): HealthReport {
     aiProvider: env.aiProvider,
     aiModel: getActiveAIModel(),
     aiTimeoutMs: env.aiRequestTimeoutMs,
+    authEnabled: env.authEnabled,
+    redisQuotaExceeded: isRedisQuotaExceeded(),
+    pendingJobs,
+    failedJobs,
     uptimeSeconds: Math.floor(process.uptime()),
     timestamp: new Date().toISOString(),
   };

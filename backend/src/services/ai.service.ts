@@ -1,10 +1,15 @@
 import type {
   AnswerKeyEntry,
   GeneratedPaper,
+  GenerationMetrics,
   QuestionConfig,
 } from "../modules/assignment/assignment.types";
 import { MAX_MATERIAL_CHARS } from "./material-parser.service";
 import { getAIProvider } from "./ai/providers";
+import {
+  AssignmentGenerationError,
+  classifyGenerationError,
+} from "./ai/generation-metrics";
 import { parseAIResponse } from "./ai/response-parser";
 import { logDebug, logError, logInfo } from "../utils/logger";
 
@@ -20,6 +25,7 @@ export interface AssignmentGenerationInput {
 export interface AssignmentGenerationResult {
   generatedPaper: GeneratedPaper;
   answerKey: AnswerKeyEntry[];
+  generationMetrics: GenerationMetrics;
 }
 
 function truncateMaterialText(materialText: string): string {
@@ -101,12 +107,29 @@ Output rules:
 - Do NOT include any text outside the JSON object`;
 }
 
+function buildFailureMetrics(
+  providerName: string,
+  model: string,
+  durationMs: number,
+  retryCount: number,
+  error: unknown,
+): GenerationMetrics {
+  return {
+    provider: providerName,
+    model,
+    durationMs,
+    retryCount,
+    errorCategory: classifyGenerationError(error),
+  };
+}
+
 export async function generateAssignmentPaper(
   input: AssignmentGenerationInput,
 ): Promise<AssignmentGenerationResult> {
   const startedAt = Date.now();
   const provider = getAIProvider();
   const { assignmentId } = input;
+  let retryCount = 0;
 
   logInfo("[AI][GENERATION] Started", {
     assignmentId,
@@ -116,8 +139,9 @@ export async function generateAssignmentPaper(
 
   try {
     const prompt = buildAssignmentPrompt(input);
-    const rawResponse = await provider.generateAssignment(prompt);
-    const structured = parseAIResponse(rawResponse);
+    const providerResult = await provider.generateAssignment(prompt);
+    retryCount = providerResult.retryCount;
+    const structured = parseAIResponse(providerResult.text);
 
     const questionCount = structured.sections.reduce(
       (total, section) => total + section.questions.length,
@@ -140,31 +164,48 @@ export async function generateAssignmentPaper(
       answerKeyEntries: structured.answerKey.length,
     });
 
+    const durationMs = Date.now() - startedAt;
+    const generationMetrics: GenerationMetrics = {
+      provider: provider.name,
+      model: provider.model,
+      durationMs,
+      retryCount,
+    };
+
     const result = {
       generatedPaper: { sections: structured.sections },
       answerKey: structured.answerKey,
+      generationMetrics,
     };
 
     logInfo("[AI][GENERATION] Completed", {
       assignmentId,
       provider: provider.name,
       model: provider.model,
-      durationMs: Date.now() - startedAt,
+      durationMs,
     });
 
     return result;
   } catch (error) {
+    const durationMs = Date.now() - startedAt;
     const message =
       error instanceof Error ? error.message : "Unknown generation error";
+    const metrics = buildFailureMetrics(
+      provider.name,
+      provider.model,
+      durationMs,
+      retryCount,
+      error,
+    );
 
     logError("[AI][GENERATION] Failed", {
       assignmentId,
       provider: provider.name,
       model: provider.model,
-      durationMs: Date.now() - startedAt,
+      durationMs,
       message,
     });
 
-    throw error;
+    throw new AssignmentGenerationError(message, metrics);
   }
 }

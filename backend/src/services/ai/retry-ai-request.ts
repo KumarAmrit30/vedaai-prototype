@@ -84,9 +84,14 @@ export interface RetryAIRequestOptions<T> {
   request: () => Promise<T>;
 }
 
+export interface RetryAIRequestResult<T> {
+  data: T;
+  retryCount: number;
+}
+
 export async function retryAIRequest<T>(
   options: RetryAIRequestOptions<T>,
-): Promise<T> {
+): Promise<RetryAIRequestResult<T>> {
   const { provider, model, request } = options;
   let lastError: unknown;
 
@@ -98,7 +103,10 @@ export async function retryAIRequest<T>(
         logInfo("[AI][RETRY] Retry successful", { provider, model });
       }
 
-      return result;
+      return {
+        data: result,
+        retryCount: attempt - 1,
+      };
     } catch (error) {
       lastError = error;
       const message =

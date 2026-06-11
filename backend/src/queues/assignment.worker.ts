@@ -6,6 +6,11 @@ import {
 } from "../modules/assignment/assignment.queries";
 import { incrementAssignmentUsage } from "../modules/user/user.service";
 import { generateAssignmentPaper } from "../services/ai.service";
+import { getAIProvider } from "../services/ai/providers";
+import {
+  AssignmentGenerationError,
+  classifyGenerationError,
+} from "../services/ai/generation-metrics";
 import { deleteUploadedFiles } from "../services/material-parser.service";
 import {
   emitAssignmentCompleted,
@@ -131,6 +136,7 @@ async function processAssignmentJob(
   }
 
   const materialText = formData.materialText ?? assignment.materialText;
+  const provider = getAIProvider();
 
   try {
     assignment.status = "processing";
@@ -139,6 +145,12 @@ async function processAssignmentJob(
     await assignment.save();
     emitAssignmentProcessing(userId, assignmentId, 5);
     await job.updateProgress(5);
+
+    logInfo("[WORKER] Assignment processing started", {
+      assignmentId,
+      uid: userId,
+      provider: provider.name,
+    });
 
     await updateAssignmentProgress(assignmentId, userId, 20);
     await job.updateProgress(20);
@@ -159,6 +171,7 @@ async function processAssignmentJob(
 
     assignment.generatedPaper = generationResult.generatedPaper;
     assignment.answerKey = generationResult.answerKey;
+    assignment.generationMetrics = generationResult.generationMetrics;
     assignment.status = "completed";
     assignment.progress = 100;
     assignment.completedAt = new Date();
@@ -179,11 +192,25 @@ async function processAssignmentJob(
       });
     }
 
-    logInfo("[WORKER] Assignment completed", { assignmentId, jobId: job.id });
+    logInfo("[WORKER] Assignment completed", {
+      assignmentId,
+      uid: userId,
+      provider: generationResult.generationMetrics.provider,
+      durationMs: generationResult.generationMetrics.durationMs,
+      jobId: job.id,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     const maxAttempts = job.opts.attempts ?? 3;
     const isFinalAttempt = job.attemptsMade + 1 >= maxAttempts;
+    const failureMetrics =
+      error instanceof AssignmentGenerationError
+        ? error.metrics
+        : {
+            provider: provider.name,
+            model: provider.model,
+            errorCategory: classifyGenerationError(error),
+          };
 
     logError("[WORKER] Job attempt failed", {
       assignmentId,
@@ -200,10 +227,21 @@ async function processAssignmentJob(
         if (failedAssignment) {
           failedAssignment.status = "failed";
           failedAssignment.failureReason = message;
+          failedAssignment.generationMetrics = failureMetrics;
           failedAssignment.progress = 0;
           failedAssignment.completedAt = new Date();
           await failedAssignment.save();
           emitAssignmentFailed(userId, assignmentId, message);
+
+          logError("[WORKER] Assignment failed", {
+            assignmentId,
+            uid: userId,
+            provider: failureMetrics.provider,
+            ...(failureMetrics.durationMs !== undefined
+              ? { durationMs: failureMetrics.durationMs }
+              : {}),
+            message,
+          });
         }
       } catch (saveError) {
         const saveMessage =

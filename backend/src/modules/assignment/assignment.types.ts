@@ -47,6 +47,14 @@ export interface MaterialSource {
   charCount: number;
 }
 
+export interface GenerationMetrics {
+  provider?: string;
+  model?: string;
+  durationMs?: number;
+  retryCount?: number;
+  errorCategory?: string;
+}
+
 export interface Assignment {
   userId: string;
   title: string;
@@ -62,6 +70,7 @@ export interface Assignment {
   startedAt?: Date;
   completedAt?: Date;
   failureReason?: string;
+  generationMetrics?: GenerationMetrics;
   materialText?: string;
   materialSourceType?: "pdf" | "txt";
   originalFileName?: string;

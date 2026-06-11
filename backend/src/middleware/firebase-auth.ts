@@ -2,7 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import { env } from "../config/env";
 import { getFirebaseAuth } from "../config/firebase-admin";
 import { upsertUserFromFirebaseClaims } from "../modules/user/user.service";
-import { logWarn } from "../utils/logger";
+import { logInfo, logWarn } from "../utils/logger";
 
 export interface RequestAuth {
   uid: string;
@@ -25,6 +25,14 @@ function readBearerToken(req: Request): string | null {
   return token;
 }
 
+function getVerificationFailureReason(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Unknown verification error";
+}
+
 export async function verifyFirebaseToken(
   req: Request,
   res: Response,
@@ -38,6 +46,9 @@ export async function verifyFirebaseToken(
   const token = readBearerToken(req);
 
   if (!token) {
+    logInfo("[AUTH] Token verification failed", {
+      reason: "Missing bearer token",
+    });
     res.status(401).json({
       success: false,
       message: "Authentication required.",
@@ -71,6 +82,8 @@ export async function verifyFirebaseToken(
 
     req.auth = auth;
 
+    logInfo("[AUTH] Verified token", { uid: auth.uid });
+
     // Lazily provision / sync the user profile on each authenticated request.
     // Profile sync should never block access if the write fails transiently.
     try {
@@ -83,7 +96,11 @@ export async function verifyFirebaseToken(
     }
 
     next();
-  } catch {
+  } catch (error) {
+    logInfo("[AUTH] Token verification failed", {
+      reason: getVerificationFailureReason(error),
+    });
+
     res.status(401).json({
       success: false,
       message: "Invalid or expired authentication token.",

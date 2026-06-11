@@ -59,6 +59,17 @@ const materialSourceSchema = new Schema(
   { _id: false },
 );
 
+const generationMetricsSchema = new Schema(
+  {
+    provider: { type: String, trim: true },
+    model: { type: String, trim: true },
+    durationMs: { type: Number, min: 0 },
+    retryCount: { type: Number, min: 0 },
+    errorCategory: { type: String, trim: true },
+  },
+  { _id: false },
+);
+
 const assignmentSchema = new Schema(
   {
     userId: { type: String, required: true, trim: true, index: true },
@@ -80,6 +91,7 @@ const assignmentSchema = new Schema(
     startedAt: { type: Date },
     completedAt: { type: Date },
     failureReason: { type: String, trim: true },
+    generationMetrics: { type: generationMetricsSchema, required: false },
     materialText: { type: String, trim: true },
     materialSourceType: { type: String, enum: ["pdf", "txt"], required: false },
     originalFileName: { type: String, trim: true },

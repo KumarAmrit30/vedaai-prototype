@@ -75,6 +75,12 @@ export async function enqueueAssignmentGeneration(
     jobId: data.assignmentId,
   });
 
+  logInfo("[QUEUE] Assignment queued", {
+    assignmentId: data.assignmentId,
+    ...(data.ownerUid ? { uid: data.ownerUid } : {}),
+    jobId: String(job.id),
+  });
+
   return String(job.id);
 }
 

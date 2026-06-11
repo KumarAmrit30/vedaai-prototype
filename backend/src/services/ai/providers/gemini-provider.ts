@@ -3,7 +3,7 @@ import { env } from "../../../config/env";
 import { logError, logInfo } from "../../../utils/logger";
 import { retryAIRequest } from "../retry-ai-request";
 import { withRequestTimeout } from "../request-timeout";
-import type { AIProvider } from "./ai-provider";
+import type { AIProvider, ProviderGenerationResult } from "./ai-provider";
 
 let genAI: GoogleGenerativeAI | undefined;
 
@@ -19,12 +19,12 @@ export class GeminiProvider implements AIProvider {
   readonly name = "GEMINI";
   readonly model = env.geminiModel;
 
-  async generateAssignment(prompt: string): Promise<string> {
+  async generateAssignment(prompt: string): Promise<ProviderGenerationResult> {
     const model = this.model;
     logInfo("[AI][GEMINI] Generation started", { model });
 
     try {
-      const text = await retryAIRequest({
+      const { data: text, retryCount } = await retryAIRequest({
         provider: "Gemini",
         model,
         request: async () => {
@@ -46,7 +46,7 @@ export class GeminiProvider implements AIProvider {
       });
 
       logInfo("[AI][GEMINI] Generation successful", { model });
-      return text;
+      return { text, retryCount };
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unknown Gemini error";
