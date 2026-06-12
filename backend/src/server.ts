@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { createServer, type Server as HttpServer } from "node:http";
 import app from "./app";
-import { env, validateEnv } from "./config/env";
+import { env, getActiveAIModel, validateEnv } from "./config/env";
 import { initFirebaseAdmin } from "./config/firebase-admin";
 import { connectDB, disconnectDB } from "./db/connect";
 import { recoverStaleAssignments } from "./modules/assignment/assignment-recovery.service";
@@ -20,6 +20,12 @@ import { logError, logInfo } from "./utils/logger";
 
 validateEnv();
 initFirebaseAdmin();
+
+logInfo("[ENV] AI provider configured", {
+  aiProvider: env.aiProvider,
+  aiModel: getActiveAIModel(),
+  aiTimeoutMs: env.aiRequestTimeoutMs,
+});
 
 let server: HttpServer | undefined;
 let isShuttingDown = false;

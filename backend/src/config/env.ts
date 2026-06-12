@@ -1,6 +1,6 @@
 const DEFAULT_CLIENT_URL = "http://localhost:3000";
 const DEFAULT_PORT = 8000;
-const DEFAULT_AI_PROVIDER = "gemini";
+const DEFAULT_AI_PROVIDER = "groq";
 const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 const DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile";
 const DEFAULT_AI_REQUEST_TIMEOUT_MS = 45_000;
@@ -68,6 +68,20 @@ function readAIProvider(): AIProviderName {
   return value as AIProviderName;
 }
 
+function readModelName(envKey: string, fallback: string): string {
+  const model = readOptional(envKey, fallback).trim();
+
+  if (!model) {
+    throw new Error(`[ENV] ${envKey} must not be empty.`);
+  }
+
+  return model;
+}
+
+export function getActiveAIModel(): string {
+  return env.aiProvider === "gemini" ? env.geminiModel : env.groqModel;
+}
+
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? "development",
   isProduction: process.env.NODE_ENV === "production",
@@ -75,9 +89,9 @@ export const env = {
   mongodbUri: readRequired("MONGODB_URI"),
   aiProvider: readAIProvider(),
   geminiApiKey: process.env.GEMINI_API_KEY?.trim() || undefined,
-  geminiModel: readOptional("GEMINI_MODEL", DEFAULT_GEMINI_MODEL),
+  geminiModel: readModelName("GEMINI_MODEL", DEFAULT_GEMINI_MODEL),
   groqApiKey: process.env.GROQ_API_KEY?.trim() || undefined,
-  groqModel: readOptional("GROQ_MODEL", DEFAULT_GROQ_MODEL),
+  groqModel: readModelName("GROQ_MODEL", DEFAULT_GROQ_MODEL),
   aiRequestTimeoutMs: readOptionalPositiveNumber(
     "AI_REQUEST_TIMEOUT_MS",
     DEFAULT_AI_REQUEST_TIMEOUT_MS,
@@ -103,6 +117,10 @@ export function validateEnv(): void {
 
   if (env.aiProvider === "groq" && !env.groqApiKey) {
     throw new Error("[ENV] GROQ_API_KEY is required when AI_PROVIDER=groq.");
+  }
+
+  if (env.aiProvider === "groq" && !env.groqModel.trim()) {
+    throw new Error("[ENV] GROQ_MODEL must not be empty when AI_PROVIDER=groq.");
   }
 
   if (!env.redisUrl && !env.redisHost) {

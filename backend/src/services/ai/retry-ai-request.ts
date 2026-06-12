@@ -13,6 +13,37 @@ const RETRYABLE_NETWORK_CODES = new Set([
   "ENETUNREACH",
 ]);
 
+const NON_RETRYABLE_HTTP_STATUSES = new Set([
+  400,
+  401,
+  402,
+  403,
+  404,
+  409,
+  413,
+  422,
+  429,
+]);
+
+const NON_RETRYABLE_MESSAGE_PATTERNS = [
+  "failed to parse ai response",
+  "ai response validation failed",
+  "validation failed",
+  "returned an empty response",
+  "insufficient",
+  "billing",
+  "payment required",
+  "quota exceeded",
+  "rate limit",
+  "exceeded your current quota",
+  "credits",
+  "insufficient_quota",
+  "invalid api key",
+  "incorrect api key",
+  "unauthorized",
+  "permission denied",
+];
+
 function getErrorStatus(error: unknown): number | undefined {
   if (!error || typeof error !== "object") {
     return undefined;
@@ -22,7 +53,15 @@ function getErrorStatus(error: unknown): number | undefined {
   return typeof status === "number" ? status : undefined;
 }
 
-function isRetryableError(error: unknown): boolean {
+function hasNonRetryableMessage(error: Error): boolean {
+  const message = error.message.toLowerCase();
+
+  return NON_RETRYABLE_MESSAGE_PATTERNS.some((pattern) =>
+    message.includes(pattern),
+  );
+}
+
+export function isRetryableAIError(error: unknown): boolean {
   if (error instanceof AIRequestTimeoutError) {
     return true;
   }
@@ -31,9 +70,17 @@ function isRetryableError(error: unknown): boolean {
     return false;
   }
 
+  if (hasNonRetryableMessage(error)) {
+    return false;
+  }
+
   const status = getErrorStatus(error);
 
   if (typeof status === "number") {
+    if (NON_RETRYABLE_HTTP_STATUSES.has(status)) {
+      return false;
+    }
+
     if (status >= 500 && status < 600) {
       return true;
     }
@@ -66,7 +113,7 @@ function isRetryableError(error: unknown): boolean {
 
   const cause = (error as { cause?: unknown }).cause;
   if (cause && cause !== error) {
-    return isRetryableError(cause);
+    return isRetryableAIError(cause);
   }
 
   return false;
@@ -112,7 +159,7 @@ export async function retryAIRequest<T>(
       const message =
         error instanceof Error ? error.message : "Unknown provider error";
       const isLastAttempt = attempt === MAX_ATTEMPTS;
-      const shouldRetry = !isLastAttempt && isRetryableError(error);
+      const shouldRetry = !isLastAttempt && isRetryableAIError(error);
 
       if (!shouldRetry) {
         if (attempt > 1) {

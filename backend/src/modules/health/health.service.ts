@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import mongoose from "mongoose";
-import { env } from "../../config/env";
+import { env, getActiveAIModel } from "../../config/env";
 import { countStuckAssignments } from "../assignment/assignment.queries";
 import {
   assignmentQueue,
@@ -48,8 +48,8 @@ export interface HealthReport {
   workerRunning: boolean;
 }
 
-function getActiveAIModel(): string {
-  return env.aiProvider === "gemini" ? env.geminiModel : env.groqModel;
+function getActiveAIModelForHealth(): string {
+  return getActiveAIModel();
 }
 
 function getMongoHealth(): DependencyStatus {
@@ -124,7 +124,7 @@ export async function collectHealthReport(): Promise<HealthReport> {
     queue,
     worker,
     aiProvider: env.aiProvider,
-    aiModel: getActiveAIModel(),
+    aiModel: getActiveAIModelForHealth(),
     aiTimeoutMs: env.aiRequestTimeoutMs,
     authEnabled: env.authEnabled,
     redisQuotaExceeded: isRedisQuotaExceeded(),
