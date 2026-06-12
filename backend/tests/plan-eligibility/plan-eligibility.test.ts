@@ -97,4 +97,20 @@ describe("checkGenerationEligibility", () => {
     expect(serializeAssignmentLimit("enterprise")).toBeNull();
     expect(mockCountInFlight).not.toHaveBeenCalled();
   });
+
+  it("allows an admin user regardless of plan, usage, or in-flight assignments", async () => {
+    mockCountInFlight.mockResolvedValue(5);
+    const user = buildUserFixture("free", 50, "admin-user-1", "admin");
+
+    const result = await checkGenerationEligibility(user);
+
+    expect(result).toEqual({
+      allowed: true,
+      limit: Number.MAX_SAFE_INTEGER,
+      completedCount: 50,
+      inFlightCount: 0,
+      effectiveCount: 50,
+    });
+    expect(mockCountInFlight).not.toHaveBeenCalled();
+  });
 });

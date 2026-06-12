@@ -2,6 +2,10 @@ export const USER_PLANS = ["free", "pro", "enterprise"] as const;
 
 export type UserPlan = (typeof USER_PLANS)[number];
 
+export const USER_ROLES = ["user", "admin"] as const;
+
+export type UserRole = (typeof USER_ROLES)[number];
+
 export const SUBSCRIPTION_STATUSES = [
   "inactive",
   "active",
@@ -33,6 +37,7 @@ export interface User {
   displayName?: string;
   photoURL?: string;
   plan: UserPlan;
+  role?: UserRole;
   subscription: UserSubscription;
   usage: UserUsage;
   createdAt: Date;

@@ -5,6 +5,7 @@ import {
 } from "../billing/plan.config";
 import { countInFlightAssignments } from "../assignment/assignment.queries";
 import type { UserDocument } from "./user.model";
+import { isAdmin } from "./user-role";
 
 export interface GenerationEligibility {
   allowed: boolean;
@@ -27,8 +28,19 @@ export interface GenerationEligibility {
 export async function checkGenerationEligibility(
   user: UserDocument,
 ): Promise<GenerationEligibility> {
-  const limit = getAssignmentLimit(user.plan);
   const completedCount = user.usage.assignmentsGenerated;
+
+  if (isAdmin(user)) {
+    return {
+      allowed: true,
+      limit: Number.MAX_SAFE_INTEGER,
+      completedCount,
+      inFlightCount: 0,
+      effectiveCount: completedCount,
+    };
+  }
+
+  const limit = getAssignmentLimit(user.plan);
 
   if (!hasPlanFeature(user.plan, "assignmentGeneration")) {
     return {

@@ -1,11 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.buildUserFixture = buildUserFixture;
-function buildUserFixture(plan, assignmentsGenerated = 0, firebaseUid = "user-test-1") {
+function buildUserFixture(plan, assignmentsGenerated = 0, firebaseUid = "user-test-1", role = "user") {
     return {
         firebaseUid,
         email: `${firebaseUid}@test.examforge.internal`,
         plan,
+        role,
         subscription: {
             status: "inactive",
             provider: null,

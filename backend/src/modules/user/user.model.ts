@@ -3,6 +3,7 @@ import {
   SUBSCRIPTION_PROVIDERS,
   SUBSCRIPTION_STATUSES,
   USER_PLANS,
+  USER_ROLES,
   type User as UserEntity,
 } from "./user.types";
 
@@ -44,6 +45,12 @@ const userSchema = new Schema(
       enum: USER_PLANS,
       required: true,
       default: "free",
+    },
+    role: {
+      type: String,
+      enum: USER_ROLES,
+      required: true,
+      default: "user",
     },
     subscription: {
       type: userSubscriptionSchema,
