@@ -129,8 +129,28 @@ Use this checklist before submission or a live demo. Test locally first, then re
 - [ ] **API connectivity** — Frontend loads assignments from production API
 - [ ] **CORS** — No cross-origin errors in browser console
 - [ ] **Health check** — `GET /api/health` returns OK with `aiProvider`, `aiModel`, and `aiTimeoutMs`
+- [ ] **Health V3 metrics** — Response includes `stuckAssignments` (number), `queuePaused` (boolean), and `workerRunning` (boolean); existing fields unchanged
 - [ ] **Cold start** — Warm backend before demo if on Render free tier
 - [ ] **End-to-end production** — Create → generate → export on live URLs
+
+---
+
+## Operational Health (Backend)
+
+- [ ] **Health V3 fields** — `GET /api/health` includes `stuckAssignments`, `queuePaused`, and `workerRunning`
+- [ ] **`stuckAssignments`** — Count only; matches processing assignments with `startedAt` older than 30 minutes (read-only, no mutation)
+- [ ] **`queuePaused`** — `true` when queue cannot accept jobs (not ready, Redis down, or quota exceeded)
+- [ ] **`workerRunning`** — `true` when worker exists and can process jobs; `false` when stopped/closed/unavailable
+- [ ] **Backward compatibility** — Legacy health fields (`status`, `mongodb`, `redis`, `queue`, `worker`, `pendingJobs`, etc.) still present
+
+---
+
+## Queue Failure Safety (Backend)
+
+- [ ] **Enqueue rollback** — If `POST /assignments` enqueue fails, the MongoDB assignment is removed (no orphan `pending` records)
+- [ ] **503 response** — Queue failures return HTTP 503 with `code: "QUEUE_UNAVAILABLE"` (no Redis internals in message)
+- [ ] **Free-plan capacity** — Failed enqueue does not consume in-flight assignment quota
+- [ ] **Frontend toast** — Create flow shows: *"Assignment generation is temporarily unavailable. Please try again in a few minutes."*
 
 ---
 

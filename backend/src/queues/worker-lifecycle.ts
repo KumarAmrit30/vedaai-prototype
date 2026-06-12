@@ -158,6 +158,19 @@ export function getWorkerHealthState(): WorkerHealthState {
   return "idle";
 }
 
+/** True when a worker is registered and able to process jobs. */
+export function isWorkerRunning(): boolean {
+  if (isRedisQuotaExceeded()) {
+    return false;
+  }
+
+  if (!workerRef || workerRef.closing) {
+    return false;
+  }
+
+  return true;
+}
+
 export async function closeRegisteredWorker(force = false): Promise<void> {
   clearIdlePauseTimer();
 

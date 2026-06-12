@@ -2,14 +2,17 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import mongoose from "mongoose";
 import { env } from "../../config/env";
+import { countStuckAssignments } from "../assignment/assignment.queries";
 import {
   assignmentQueue,
   isAssignmentQueueReady,
+  isQueuePaused,
 } from "../../queues/assignment.queue";
 import { isRedisQuotaExceeded } from "../../queues/redis-quota";
 import { sharedConnection } from "../../queues/redis";
 import {
   getWorkerHealthState,
+  isWorkerRunning,
   type WorkerHealthState,
 } from "../../queues/worker-lifecycle";
 
@@ -40,6 +43,9 @@ export interface HealthReport {
   failedJobs: number;
   uptimeSeconds: number;
   timestamp: string;
+  stuckAssignments: number;
+  queuePaused: boolean;
+  workerRunning: boolean;
 }
 
 function getActiveAIModel(): string {
@@ -107,6 +113,7 @@ export async function collectHealthReport(): Promise<HealthReport> {
   const queue = getQueueHealth();
   const worker = getWorkerHealthState();
   const { pendingJobs, failedJobs } = await getQueueJobCounts();
+  const stuckAssignments = await countStuckAssignments();
 
   return {
     status: resolveOverallStatus(mongodb, redis, queue),
@@ -125,5 +132,8 @@ export async function collectHealthReport(): Promise<HealthReport> {
     failedJobs,
     uptimeSeconds: Math.floor(process.uptime()),
     timestamp: new Date().toISOString(),
+    stuckAssignments,
+    queuePaused: isQueuePaused(),
+    workerRunning: isWorkerRunning(),
   };
 }

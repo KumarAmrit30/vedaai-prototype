@@ -33,6 +33,9 @@
 - [x] Assignment ownership (`userId` on assignments) + per-user scoped queries
 - [x] Socket.IO auth (Firebase token) + per-user room isolation (`user:{uid}`)
 - [x] Health check with MongoDB/Redis/queue/worker readiness + AI config visibility (`GET /api/health`: `aiProvider`, `aiModel`, `aiTimeoutMs`)
+- [x] **Health V3 (Phase 2B.2)** — `stuckAssignments`, `queuePaused`, `workerRunning` on `/api/health`
+- [x] **Stale assignment recovery (Phase 2B.1)** — startup scan marks processing assignments older than 30 minutes as failed
+- [x] **Queue failure safety (Phase 2B.5)** — rollback on enqueue failure, `QUEUE_UNAVAILABLE` HTTP 503, frontend toast
 - [x] IP rate limiting on assignment creation (10/hour)
 - [x] Answer key generation, validation, and persistence
 - [x] Heroku deployment support (Procfile, Node engines, deployment guide)

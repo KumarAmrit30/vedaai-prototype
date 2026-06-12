@@ -1,10 +1,28 @@
 import { Assignment } from "./assignment.model";
 import type { AssignmentDocument } from "./assignment.model";
 
+/** Assignments in `processing` longer than this are considered stuck. */
+export const STUCK_ASSIGNMENT_THRESHOLD_MS = 30 * 60 * 1000;
+
 /** Exclude soft-deleted assignments from all active reads. */
 export const NOT_DELETED_FILTER = {
   isDeleted: { $ne: true },
 } as const;
+
+export function buildStuckAssignmentFilter(now: Date = new Date()) {
+  return {
+    status: "processing" as const,
+    startedAt: {
+      $exists: true,
+      $lt: new Date(now.getTime() - STUCK_ASSIGNMENT_THRESHOLD_MS),
+    },
+    ...NOT_DELETED_FILTER,
+  };
+}
+
+export async function countStuckAssignments(): Promise<number> {
+  return Assignment.countDocuments(buildStuckAssignmentFilter());
+}
 
 export function isDeletedAssignment(
   assignment: Pick<AssignmentDocument, "isDeleted">,

@@ -8,6 +8,7 @@ import {
   enqueueAssignmentGeneration,
   type AssignmentGenerationJobData,
 } from "../../queues/assignment.queue";
+import { QueueUnavailableError } from "../../queues/queue-unavailable.error";
 import {
   deleteUploadedFiles,
   parseMaterialFiles,
@@ -224,23 +225,42 @@ export async function createAssignment(
       ownerUid: userId,
     };
 
-    const jobId = await enqueueAssignmentGeneration(jobPayload);
+    try {
+      const jobId = await enqueueAssignmentGeneration(jobPayload);
 
-    assignment.jobId = jobId;
-    await assignment.save();
+      assignment.jobId = jobId;
+      await assignment.save();
 
-    res.status(201).json({
-      success: true,
-      message: "Assignment created successfully",
-      assignmentId: assignment._id.toString(),
-      jobId,
-      status: "pending",
-      data: serializeAssignment(assignment),
-    });
+      res.status(201).json({
+        success: true,
+        message: "Assignment created successfully",
+        assignmentId: assignment._id.toString(),
+        jobId,
+        status: "pending",
+        data: serializeAssignment(assignment),
+      });
+    } catch (enqueueError) {
+      await Assignment.deleteOne({ _id: assignment._id });
+
+      if (enqueueError instanceof QueueUnavailableError) {
+        throw enqueueError;
+      }
+
+      throw new QueueUnavailableError();
+    }
   } catch (error) {
     if (isMaterialUploadError(error)) {
       res.status(400).json({
         success: false,
+        message: error.message,
+      });
+      return;
+    }
+
+    if (error instanceof QueueUnavailableError) {
+      res.status(error.statusCode).json({
+        success: false,
+        code: error.code,
         message: error.message,
       });
       return;

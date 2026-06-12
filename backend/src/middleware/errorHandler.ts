@@ -1,6 +1,11 @@
 import type { NextFunction, Request, Response } from "express";
 import multer from "multer";
 import { env } from "../config/env";
+import {
+  QUEUE_UNAVAILABLE_CODE,
+  QUEUE_UNAVAILABLE_MESSAGE,
+  QueueUnavailableError,
+} from "../queues/queue-unavailable.error";
 import { logError } from "../utils/logger";
 
 export function errorHandler(
@@ -18,6 +23,15 @@ export function errorHandler(
     res.status(400).json({
       success: false,
       message,
+    });
+    return;
+  }
+
+  if (err instanceof QueueUnavailableError) {
+    res.status(503).json({
+      success: false,
+      code: QUEUE_UNAVAILABLE_CODE,
+      message: QUEUE_UNAVAILABLE_MESSAGE,
     });
     return;
   }

@@ -512,7 +512,7 @@ Base URL: `http://localhost:8000/api`
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/health` | Health check |
+| `GET` | `/health` | Health check (V3 operational metrics — see below) |
 | `GET` | `/users/me` | Current user plan + usage + limits (requires auth) |
 | `GET` | `/billing/plans` | Plan catalog (limits, pricing, feature flags) |
 | `GET` | `/billing/current-plan` | Current plan, subscription, usage, limits (requires auth) |
@@ -546,6 +546,58 @@ Fields:
   "data": { ... }
 }
 ```
+
+**Queue unavailable (503):**
+
+When the assignment queue cannot accept jobs (Redis quota, connection issues, or enqueue failure), the API rolls back the newly created assignment document so no orphan `pending` records remain and free-plan in-flight capacity is not consumed.
+
+```json
+{
+  "success": false,
+  "code": "QUEUE_UNAVAILABLE",
+  "message": "Assignment generation is temporarily unavailable. Please try again later."
+}
+```
+
+The frontend shows a dedicated user-friendly toast when `code` is `QUEUE_UNAVAILABLE` (no Redis internals exposed).
+
+### GET `/health`
+
+Operational health report for MongoDB, Redis, queue, worker, and AI configuration. Existing fields are unchanged; **Health V3** appends operational visibility metrics.
+
+**Response (200 / 503):**
+
+```json
+{
+  "status": "healthy",
+  "service": "ExamForge AI",
+  "version": "1.0.0",
+  "mongodb": "connected",
+  "redis": "connected",
+  "queue": "ready",
+  "worker": "running",
+  "aiProvider": "gemini",
+  "aiModel": "gemini-2.5-flash",
+  "aiTimeoutMs": 45000,
+  "authEnabled": false,
+  "redisQuotaExceeded": false,
+  "pendingJobs": 0,
+  "failedJobs": 0,
+  "uptimeSeconds": 42,
+  "timestamp": "2026-06-11T12:00:00.000Z",
+  "stuckAssignments": 0,
+  "queuePaused": false,
+  "workerRunning": true
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `stuckAssignments` | number | Count of assignments stuck in `processing` for more than 30 minutes (read-only; does not mutate records) |
+| `queuePaused` | boolean | `true` when the queue cannot accept new jobs (not ready, Redis unavailable, or quota exceeded) |
+| `workerRunning` | boolean | `true` when a worker is registered and capable of processing jobs; `false` when stopped, closed, or unavailable |
+
+**Stale assignment recovery:** On server startup, assignments matching the same stuck criteria are automatically marked `failed` with `errorCategory: "timeout"` (see Phase 2B.1 recovery service).
 
 ### GET `/users/me`
 

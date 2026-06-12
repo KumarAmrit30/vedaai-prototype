@@ -4,6 +4,7 @@ import app from "./app";
 import { env, validateEnv } from "./config/env";
 import { initFirebaseAdmin } from "./config/firebase-admin";
 import { connectDB, disconnectDB } from "./db/connect";
+import { recoverStaleAssignments } from "./modules/assignment/assignment-recovery.service";
 import {
   closeAssignmentQueue,
   initAssignmentQueue,
@@ -60,6 +61,7 @@ async function shutdown(signal: string): Promise<void> {
 async function startServer(): Promise<void> {
   try {
     await connectDB();
+    await recoverStaleAssignments();
     await connectRedis();
     await cleanupStaleUploads();
 

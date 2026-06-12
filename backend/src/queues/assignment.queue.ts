@@ -1,7 +1,8 @@
 import { Queue } from "bullmq";
 import type { QuestionConfig } from "../modules/assignment/assignment.types";
 import { logError, logInfo } from "../utils/logger";
-import { isRedisQuotaExceeded, isRedisQuotaError } from "./redis-quota";
+import { isRedisQuotaError, isRedisQuotaExceeded } from "./redis-quota";
+import { QueueUnavailableError } from "./queue-unavailable.error";
 import { resumeWorkerIfPaused } from "./worker-lifecycle";
 import { queueConnection } from "./redis";
 
@@ -25,6 +26,24 @@ export let assignmentQueue: Queue<AssignmentGenerationJobData>;
 
 export function isAssignmentQueueReady(): boolean {
   return Boolean(assignmentQueue && !assignmentQueue.closing);
+}
+
+/** True when the queue cannot accept new jobs (not ready, Redis down, or quota exceeded). */
+export function isQueuePaused(): boolean {
+  if (!isAssignmentQueueReady()) {
+    return true;
+  }
+
+  if (isRedisQuotaExceeded()) {
+    return true;
+  }
+
+  if (!queueConnection) {
+    return true;
+  }
+
+  const { status } = queueConnection;
+  return status !== "ready" && status !== "connect";
 }
 
 export function initAssignmentQueue(): void {
@@ -63,25 +82,31 @@ export function initAssignmentQueue(): void {
 export async function enqueueAssignmentGeneration(
   data: AssignmentGenerationJobData,
 ): Promise<string> {
-  if (isRedisQuotaExceeded()) {
-    throw new Error(
-      "Assignment queue is temporarily unavailable (Redis quota exceeded). Please try again later.",
-    );
+  if (isQueuePaused()) {
+    throw new QueueUnavailableError();
   }
 
-  await resumeWorkerIfPaused();
+  try {
+    await resumeWorkerIfPaused();
 
-  const job = await assignmentQueue.add("generate-assignment", data, {
-    jobId: data.assignmentId,
-  });
+    const job = await assignmentQueue.add("generate-assignment", data, {
+      jobId: data.assignmentId,
+    });
 
-  logInfo("[QUEUE] Assignment queued", {
-    assignmentId: data.assignmentId,
-    ...(data.ownerUid ? { uid: data.ownerUid } : {}),
-    jobId: String(job.id),
-  });
+    logInfo("[QUEUE] Assignment queued", {
+      assignmentId: data.assignmentId,
+      ...(data.ownerUid ? { uid: data.ownerUid } : {}),
+      jobId: String(job.id),
+    });
 
-  return String(job.id);
+    return String(job.id);
+  } catch (error) {
+    if (error instanceof QueueUnavailableError) {
+      throw error;
+    }
+
+    throw new QueueUnavailableError();
+  }
 }
 
 export async function closeAssignmentQueue(): Promise<void> {
