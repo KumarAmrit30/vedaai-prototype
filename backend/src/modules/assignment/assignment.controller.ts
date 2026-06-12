@@ -37,7 +37,9 @@ import {
 } from "../user/user.service";
 import { checkGenerationEligibility } from "../user/plan-eligibility.service";
 import { logInfo } from "../../utils/logger";
-import type { MaterialSource, QuestionConfig, GeneratedPaper } from "./assignment.types";
+import type { MaterialSource, GeneratedPaper } from "./assignment.types";
+import { resolveAssignmentConfig, questionConfigSchema } from "./exam-blueprint.validation";
+import type { ValidatedQuestionConfig } from "./exam-blueprint.validation";
 import type { ManualAssignmentStatus } from "./assignment.constants";
 
 interface CreateAssignmentBody {
@@ -45,7 +47,7 @@ interface CreateAssignmentBody {
   topic: string;
   dueDate: string | Date;
   instructions: string;
-  questionConfig: QuestionConfig | string;
+  questionConfig: ValidatedQuestionConfig | string;
   materialText?: string;
   uploadedMaterialText?: string;
 }
@@ -63,9 +65,11 @@ interface PatchStatusBody {
   status: ManualAssignmentStatus;
 }
 
-function parseQuestionConfig(value: QuestionConfig | string): QuestionConfig {
+function parseQuestionConfig(
+  value: ValidatedQuestionConfig | string,
+): ValidatedQuestionConfig {
   if (typeof value === "string") {
-    return JSON.parse(value) as QuestionConfig;
+    return JSON.parse(value) as ValidatedQuestionConfig;
   }
 
   return value;
@@ -166,12 +170,17 @@ export async function createAssignment(
       topic,
       dueDate,
       instructions,
-      questionConfig: rawQuestionConfig,
+      questionConfig: rawQuestionConfigInput,
       materialText: bodyMaterialText,
       uploadedMaterialText,
     } = req.body as CreateAssignmentBody;
 
-    const questionConfig = parseQuestionConfig(rawQuestionConfig);
+    const validatedQuestionConfig = questionConfigSchema.parse(
+      parseQuestionConfig(rawQuestionConfigInput),
+    );
+    const { questionConfig, examBlueprint } = resolveAssignmentConfig(
+      validatedQuestionConfig,
+    );
     const uploadedFiles = req.files as Express.Multer.File[] | undefined;
 
     let materialText = bodyMaterialText ?? uploadedMaterialText;
@@ -194,6 +203,7 @@ export async function createAssignment(
       dueDate,
       instructions,
       questionConfig,
+      examBlueprint,
       status: "pending",
       progress: 0,
       isDeleted: false,

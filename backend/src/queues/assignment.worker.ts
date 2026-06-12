@@ -161,6 +161,9 @@ async function processAssignmentJob(
       topic: formData.topic,
       instructions: formData.instructions,
       questionConfig: formData.questionConfig,
+      ...(assignment.examBlueprint
+        ? { examBlueprint: assignment.examBlueprint }
+        : {}),
       ...(materialText ? { materialText } : {}),
     };
 

@@ -1,4 +1,8 @@
 import type { CreateAssignmentForm } from "@/components/assignment/assignment-create-flow";
+import {
+  DEFAULT_DIFFICULTY_LEVEL,
+  DEFAULT_EXAM_PATTERN,
+} from "@/lib/constants/exam-blueprint";
 import type { Assignment } from "@/types/assignment";
 
 export const DUPLICATE_ASSIGNMENT_KEY = "veda:duplicate-assignment";
@@ -9,6 +13,14 @@ export function assignmentToForm(assignment: Assignment): CreateAssignmentForm {
     topic: assignment.topic,
     dueDate: assignment.dueDate.slice(0, 10),
     instructions: assignment.instructions,
+    examPattern:
+      assignment.questionConfig.examPattern ??
+      assignment.examBlueprint?.examPattern ??
+      DEFAULT_EXAM_PATTERN,
+    difficultyLevel:
+      assignment.questionConfig.difficultyLevel ??
+      assignment.examBlueprint?.difficultyLevel ??
+      DEFAULT_DIFFICULTY_LEVEL,
     questionType: assignment.questionConfig.questionType,
     numberOfQuestions: String(assignment.questionConfig.numberOfQuestions),
     marksPerQuestion: String(assignment.questionConfig.marksPerQuestion),

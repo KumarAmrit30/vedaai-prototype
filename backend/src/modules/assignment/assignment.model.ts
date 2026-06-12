@@ -2,6 +2,8 @@ import mongoose, { Schema, type HydratedDocument, type Model } from "mongoose";
 import {
   ASSIGNMENT_STATUSES,
   DIFFICULTIES,
+  DIFFICULTY_LEVELS,
+  EXAM_PATTERNS,
   type Assignment as AssignmentEntity,
 } from "./assignment.types";
 
@@ -45,6 +47,31 @@ const questionConfigSchema = new Schema(
     questionType: { type: String, required: true, trim: true },
     numberOfQuestions: { type: Number, required: true, min: 1 },
     marksPerQuestion: { type: Number, required: true, min: 1 },
+    examPattern: { type: String, enum: EXAM_PATTERNS, required: false },
+    difficultyLevel: { type: String, enum: DIFFICULTY_LEVELS, required: false },
+  },
+  { _id: false },
+);
+
+const blueprintSectionSchema = new Schema(
+  {
+    sectionId: { type: String, required: true, trim: true },
+    title: { type: String, required: true, trim: true },
+    instruction: { type: String, required: true, trim: true },
+    questionType: { type: String, required: true, trim: true },
+    numberOfQuestions: { type: Number, required: true, min: 1 },
+    marksPerQuestion: { type: Number, required: true, min: 1 },
+  },
+  { _id: false },
+);
+
+const examBlueprintSchema = new Schema(
+  {
+    examPattern: { type: String, enum: EXAM_PATTERNS, required: true },
+    difficultyLevel: { type: String, enum: DIFFICULTY_LEVELS, required: true },
+    sections: { type: [blueprintSectionSchema], default: [] },
+    totalQuestions: { type: Number, required: true, min: 1 },
+    totalMarks: { type: Number, required: true, min: 1 },
   },
   { _id: false },
 );
@@ -84,6 +111,7 @@ const assignmentSchema = new Schema(
       default: "pending",
     },
     questionConfig: { type: questionConfigSchema, required: true },
+    examBlueprint: { type: examBlueprintSchema, required: false },
     generatedPaper: { type: generatedPaperSchema, required: false },
     answerKey: { type: [answerKeyEntrySchema], required: false },
     jobId: { type: String, trim: true },

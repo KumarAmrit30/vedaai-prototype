@@ -1,16 +1,15 @@
 import { z } from "zod";
+import {
+  questionConfigSchema,
+} from "./exam-blueprint.validation";
 
-export const QUESTION_TYPES = [
-  "short_answer",
-  "long_answer",
-  "mixed",
-  "mcq",
-  // Existing frontend values (hyphenated) — preserved for compatibility
-  "short-answer",
-  "long-answer",
-  "multiple-choice",
-  "true-false",
-] as const;
+export { QUESTION_TYPES } from "./assignment.constants";
+export {
+  questionConfigSchema,
+  resolveAssignmentConfig,
+  type ValidatedQuestionConfig,
+  type ResolvedAssignmentConfig,
+} from "./exam-blueprint.validation";
 
 export const ASSIGNMENT_STATUS_VALUES = [
   "pending",
@@ -22,22 +21,6 @@ export const ASSIGNMENT_STATUS_VALUES = [
 const mongoObjectIdSchema = z
   .string()
   .regex(/^[a-f\d]{24}$/i, "Invalid MongoDB ObjectId");
-
-const questionConfigSchema = z.object({
-  questionType: z.enum(QUESTION_TYPES, {
-    message: "questionType must be a supported question type",
-  }),
-  numberOfQuestions: z.coerce
-    .number()
-    .int("numberOfQuestions must be an integer")
-    .min(1)
-    .max(100),
-  marksPerQuestion: z.coerce
-    .number()
-    .int("marksPerQuestion must be an integer")
-    .min(1)
-    .max(100),
-});
 
 function parseQuestionConfigInput(value: unknown): unknown {
   if (typeof value === "string") {

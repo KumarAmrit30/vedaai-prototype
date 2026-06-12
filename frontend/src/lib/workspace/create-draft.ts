@@ -3,11 +3,20 @@ import {
   type CreateAssignmentForm,
 } from "@/components/assignment/assignment-create-flow";
 import type { FlowStepId } from "@/components/assignment/assignment-stepper";
+import {
+  DEFAULT_DIFFICULTY_LEVEL,
+  DEFAULT_EXAM_PATTERN,
+  DIFFICULTY_LEVELS,
+  EXAM_PATTERNS,
+} from "@/lib/constants/exam-blueprint";
 
 const DRAFT_KEY = "veda:create-assignment-draft";
-const DRAFT_SCHEMA_VERSION = 1;
+const DRAFT_SCHEMA_VERSION = 2;
 
 const PERSISTABLE_STEPS: FlowStepId[] = ["details", "upload", "generate"];
+
+const EXAM_PATTERN_VALUES = new Set<string>(EXAM_PATTERNS);
+const DIFFICULTY_LEVEL_VALUES = new Set<string>(DIFFICULTY_LEVELS);
 
 const QUESTION_TYPE_VALUES = new Set([
   "short-answer",
@@ -17,6 +26,8 @@ const QUESTION_TYPE_VALUES = new Set([
 ]);
 
 export interface DraftQuestionConfig {
+  examPattern: string;
+  difficultyLevel: string;
   questionType: string;
   numberOfQuestions: number;
   marksPerQuestion: number;
@@ -64,11 +75,24 @@ function sanitizeForm(raw: unknown): CreateAssignmentForm {
     ? questionType
     : "";
 
+  const examPattern = sanitizeString(record.examPattern);
+  const normalizedExamPattern = EXAM_PATTERN_VALUES.has(examPattern)
+    ? examPattern
+    : DEFAULT_EXAM_PATTERN;
+
+  const difficultyLevel = sanitizeString(record.difficultyLevel);
+  const normalizedDifficultyLevel = DIFFICULTY_LEVEL_VALUES.has(difficultyLevel)
+    ? difficultyLevel
+    : DEFAULT_DIFFICULTY_LEVEL;
+
   return {
     title: sanitizeString(record.title),
     topic: sanitizeString(record.topic),
     dueDate: sanitizeString(record.dueDate),
     instructions: sanitizeString(record.instructions),
+    examPattern: normalizedExamPattern as CreateAssignmentForm["examPattern"],
+    difficultyLevel:
+      normalizedDifficultyLevel as CreateAssignmentForm["difficultyLevel"],
     questionType: normalizedQuestionType,
     numberOfQuestions: sanitizeString(record.numberOfQuestions),
     marksPerQuestion: sanitizeString(record.marksPerQuestion),
@@ -85,6 +109,12 @@ function sanitizeQuestionConfig(
       : {};
 
   const questionType = sanitizeString(record.questionType) || form.questionType;
+  const examPattern =
+    sanitizeString(record.examPattern) || form.examPattern || DEFAULT_EXAM_PATTERN;
+  const difficultyLevel =
+    sanitizeString(record.difficultyLevel) ||
+    form.difficultyLevel ||
+    DEFAULT_DIFFICULTY_LEVEL;
   const numberOfQuestions = Number(
     record.numberOfQuestions ?? form.numberOfQuestions,
   );
@@ -93,6 +123,10 @@ function sanitizeQuestionConfig(
   );
 
   return {
+    examPattern: EXAM_PATTERN_VALUES.has(examPattern) ? examPattern : DEFAULT_EXAM_PATTERN,
+    difficultyLevel: DIFFICULTY_LEVEL_VALUES.has(difficultyLevel)
+      ? difficultyLevel
+      : DEFAULT_DIFFICULTY_LEVEL,
     questionType: QUESTION_TYPE_VALUES.has(questionType) ? questionType : "",
     numberOfQuestions: Number.isFinite(numberOfQuestions)
       ? Math.max(0, numberOfQuestions)
@@ -109,6 +143,10 @@ function mergeFormWithQuestionConfig(
 ): CreateAssignmentForm {
   return {
     ...form,
+    examPattern: form.examPattern || (questionConfig.examPattern as CreateAssignmentForm["examPattern"]),
+    difficultyLevel:
+      form.difficultyLevel ||
+      (questionConfig.difficultyLevel as CreateAssignmentForm["difficultyLevel"]),
     questionType: form.questionType || questionConfig.questionType,
     numberOfQuestions:
       form.numberOfQuestions ||
@@ -169,6 +207,8 @@ function extractLegacyUploadMetadata(raw: unknown): DraftUploadMetadata {
 
 function buildQuestionConfig(form: CreateAssignmentForm): DraftQuestionConfig {
   return {
+    examPattern: form.examPattern,
+    difficultyLevel: form.difficultyLevel,
     questionType: form.questionType,
     numberOfQuestions: Number(form.numberOfQuestions) || 0,
     marksPerQuestion: Number(form.marksPerQuestion) || 0,
@@ -292,6 +332,8 @@ export function hasMeaningfulDraft(draft: CreateAssignmentDraft | null): boolean
       form.topic.trim() ||
       form.instructions.trim() ||
       form.dueDate ||
+      form.examPattern !== DEFAULT_EXAM_PATTERN ||
+      form.difficultyLevel !== DEFAULT_DIFFICULTY_LEVEL ||
       form.questionType ||
       form.numberOfQuestions ||
       form.marksPerQuestion ||

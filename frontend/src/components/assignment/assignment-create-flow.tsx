@@ -18,6 +18,14 @@ import {
 } from "@/components/assignment/assignment-upload";
 import apiClient from "@/lib/api/axios";
 import { ASSIGNMENT_STATUS } from "@/lib/constants";
+import {
+  DEFAULT_DIFFICULTY_LEVEL,
+  DEFAULT_EXAM_PATTERN,
+  DIFFICULTY_LEVEL_OPTIONS,
+  EXAM_PATTERN_OPTIONS,
+  type DifficultyLevel,
+  type ExamPattern,
+} from "@/lib/constants/exam-blueprint";
 import { getApiErrorMessage } from "@/lib/utils/get-api-error-message";
 import {
   inputClassName,
@@ -46,6 +54,8 @@ export interface CreateAssignmentForm {
   topic: string;
   dueDate: string;
   instructions: string;
+  examPattern: ExamPattern;
+  difficultyLevel: DifficultyLevel;
   questionType: string;
   numberOfQuestions: string;
   marksPerQuestion: string;
@@ -62,6 +72,8 @@ export const initialFormState: CreateAssignmentForm = {
   topic: "",
   dueDate: "",
   instructions: "",
+  examPattern: DEFAULT_EXAM_PATTERN,
+  difficultyLevel: DEFAULT_DIFFICULTY_LEVEL,
   questionType: "",
   numberOfQuestions: "",
   marksPerQuestion: "",
@@ -88,14 +100,38 @@ interface AssignmentCreateFlowProps {
 }
 
 function validateDetailsForm(form: CreateAssignmentForm): boolean {
-  return Boolean(
+  const hasBaseFields = Boolean(
     form.title.trim() &&
       form.topic.trim() &&
       form.dueDate &&
       form.instructions.trim() &&
+      form.examPattern &&
+      form.difficultyLevel,
+  );
+
+  if (!hasBaseFields) return false;
+
+  if (form.examPattern === "CUSTOM") {
+    return Boolean(
       form.questionType &&
-      form.numberOfQuestions &&
-      form.marksPerQuestion,
+        form.numberOfQuestions &&
+        form.marksPerQuestion,
+    );
+  }
+
+  return true;
+}
+
+function formatExamPatternLabel(value: ExamPattern): string {
+  return (
+    EXAM_PATTERN_OPTIONS.find((option) => option.value === value)?.label ?? value
+  );
+}
+
+function formatDifficultyLabel(value: DifficultyLevel): string {
+  return (
+    DIFFICULTY_LEVEL_OPTIONS.find((option) => option.value === value)?.label ??
+    value
   );
 }
 
@@ -209,9 +245,15 @@ export function AssignmentCreateFlow({
       formData.append(
         "questionConfig",
         JSON.stringify({
-          questionType: form.questionType,
-          numberOfQuestions: Number(form.numberOfQuestions),
-          marksPerQuestion: Number(form.marksPerQuestion),
+          examPattern: form.examPattern,
+          difficultyLevel: form.difficultyLevel,
+          ...(form.examPattern === "CUSTOM"
+            ? {
+                questionType: form.questionType,
+                numberOfQuestions: Number(form.numberOfQuestions),
+                marksPerQuestion: Number(form.marksPerQuestion),
+              }
+            : {}),
         }),
       );
 
@@ -502,23 +544,20 @@ export function AssignmentCreateFlow({
                 />
               </div>
               <div>
-                <label htmlFor="questionType" className={labelClassName}>
-                  Question Type
+                <label htmlFor="examPattern" className={labelClassName}>
+                  Exam Pattern
                 </label>
                 <div className="relative">
                   <select
-                    id="questionType"
+                    id="examPattern"
                     required
-                    value={form.questionType}
+                    value={form.examPattern}
                     onChange={(e) =>
-                      handleChange("questionType", e.target.value)
+                      handleChange("examPattern", e.target.value)
                     }
                     className={selectClassName}
                   >
-                    <option value="" disabled>
-                      Select type
-                    </option>
-                    {questionTypeOptions.map((option) => (
+                    {EXAM_PATTERN_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
                         {option.label}
                       </option>
@@ -527,6 +566,66 @@ export function AssignmentCreateFlow({
                   <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-secondary)] opacity-60" />
                 </div>
               </div>
+            </div>
+
+            <div className="grid gap-2.5 sm:grid-cols-2">
+              <div>
+                <label htmlFor="difficultyLevel" className={labelClassName}>
+                  Difficulty
+                </label>
+                <div className="relative">
+                  <select
+                    id="difficultyLevel"
+                    required
+                    value={form.difficultyLevel}
+                    onChange={(e) =>
+                      handleChange("difficultyLevel", e.target.value)
+                    }
+                    className={selectClassName}
+                  >
+                    {DIFFICULTY_LEVEL_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-secondary)] opacity-60" />
+                </div>
+              </div>
+              {form.examPattern === "CUSTOM" ? (
+                <div>
+                  <label htmlFor="questionType" className={labelClassName}>
+                    Question Type
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="questionType"
+                      required
+                      value={form.questionType}
+                      onChange={(e) =>
+                        handleChange("questionType", e.target.value)
+                      }
+                      className={selectClassName}
+                    >
+                      <option value="" disabled>
+                        Select type
+                      </option>
+                      {questionTypeOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-secondary)] opacity-60" />
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-end">
+                  <p className="rounded-[var(--radius-input)] border border-[var(--border-light)] bg-[var(--surface-muted)] px-3 py-2 text-[11px] leading-relaxed text-[var(--text-secondary)]">
+                    Section layout is preset for {formatExamPatternLabel(form.examPattern)}.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div>
@@ -544,42 +643,44 @@ export function AssignmentCreateFlow({
               />
             </div>
 
-            <div className="grid gap-2.5 sm:grid-cols-2">
-              <div>
-                <label htmlFor="numberOfQuestions" className={labelClassName}>
-                  Questions
-                </label>
-                <input
-                  id="numberOfQuestions"
-                  type="number"
-                  min={1}
-                  required
-                  value={form.numberOfQuestions}
-                  onChange={(e) =>
-                    handleChange("numberOfQuestions", e.target.value)
-                  }
-                  className={inputClassName}
-                  placeholder="6"
-                />
+            {form.examPattern === "CUSTOM" ? (
+              <div className="grid gap-2.5 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="numberOfQuestions" className={labelClassName}>
+                    Questions
+                  </label>
+                  <input
+                    id="numberOfQuestions"
+                    type="number"
+                    min={1}
+                    required
+                    value={form.numberOfQuestions}
+                    onChange={(e) =>
+                      handleChange("numberOfQuestions", e.target.value)
+                    }
+                    className={inputClassName}
+                    placeholder="6"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="marksPerQuestion" className={labelClassName}>
+                    Marks Each
+                  </label>
+                  <input
+                    id="marksPerQuestion"
+                    type="number"
+                    min={1}
+                    required
+                    value={form.marksPerQuestion}
+                    onChange={(e) =>
+                      handleChange("marksPerQuestion", e.target.value)
+                    }
+                    className={inputClassName}
+                    placeholder="5"
+                  />
+                </div>
               </div>
-              <div>
-                <label htmlFor="marksPerQuestion" className={labelClassName}>
-                  Marks Each
-                </label>
-                <input
-                  id="marksPerQuestion"
-                  type="number"
-                  min={1}
-                  required
-                  value={form.marksPerQuestion}
-                  onChange={(e) =>
-                    handleChange("marksPerQuestion", e.target.value)
-                  }
-                  className={inputClassName}
-                  placeholder="5"
-                />
-              </div>
-            </div>
+            ) : null}
 
             <div className="flex justify-end pt-2">
               <button type="submit" className={primaryButtonClassName}>
@@ -672,11 +773,32 @@ export function AssignmentCreateFlow({
                 </span>
               </div>
               <div className="flex justify-between gap-4">
-                <span className="text-[var(--text-secondary)]">Questions</span>
+                <span className="text-[var(--text-secondary)]">Pattern</span>
                 <span className="font-medium text-[var(--text-primary)]">
-                  {form.numberOfQuestions} × {form.marksPerQuestion} marks
+                  {formatExamPatternLabel(form.examPattern)}
                 </span>
               </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-[var(--text-secondary)]">Difficulty</span>
+                <span className="font-medium text-[var(--text-primary)]">
+                  {formatDifficultyLabel(form.difficultyLevel)}
+                </span>
+              </div>
+              {form.examPattern === "CUSTOM" ? (
+                <div className="flex justify-between gap-4">
+                  <span className="text-[var(--text-secondary)]">Questions</span>
+                  <span className="font-medium text-[var(--text-primary)]">
+                    {form.numberOfQuestions} × {form.marksPerQuestion} marks
+                  </span>
+                </div>
+              ) : (
+                <div className="flex justify-between gap-4">
+                  <span className="text-[var(--text-secondary)]">Layout</span>
+                  <span className="font-medium text-[var(--text-primary)]">
+                    Preset sections
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between gap-4">
                 <span className="text-[var(--text-secondary)]">Materials</span>
                 <span className="font-medium text-[var(--text-primary)]">

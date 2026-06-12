@@ -1,9 +1,30 @@
 import { ASSIGNMENT_STATUS } from "@/lib/constants";
+import type {
+  DifficultyLevel,
+  ExamPattern,
+} from "@/lib/constants/exam-blueprint";
 
 export type AssignmentStatus =
   (typeof ASSIGNMENT_STATUS)[keyof typeof ASSIGNMENT_STATUS];
 
 export type Difficulty = "easy" | "medium" | "hard";
+
+export interface BlueprintSectionDefinition {
+  sectionId: string;
+  title: string;
+  instruction: string;
+  questionType: string;
+  numberOfQuestions: number;
+  marksPerQuestion: number;
+}
+
+export interface ExamBlueprint {
+  examPattern: ExamPattern;
+  difficultyLevel: DifficultyLevel;
+  sections: BlueprintSectionDefinition[];
+  totalQuestions: number;
+  totalMarks: number;
+}
 
 export interface Question {
   question: string;
@@ -32,6 +53,8 @@ export interface QuestionConfig {
   questionType: string;
   numberOfQuestions: number;
   marksPerQuestion: number;
+  examPattern?: ExamPattern;
+  difficultyLevel?: DifficultyLevel;
 }
 
 export interface MaterialSource {
@@ -49,6 +72,7 @@ export interface Assignment {
   instructions: string;
   status: AssignmentStatus;
   questionConfig: QuestionConfig;
+  examBlueprint?: ExamBlueprint;
   generatedPaper?: GeneratedPaper;
   answerKey?: AnswerKeyEntry[];
   materialSource?: MaterialSource;

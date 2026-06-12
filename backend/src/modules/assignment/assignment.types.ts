@@ -1,3 +1,9 @@
+import type {
+  DifficultyLevel,
+  ExamBlueprint,
+  ExamPattern,
+} from "./exam-blueprint.types";
+
 export const ASSIGNMENT_STATUSES = [
   "pending",
   "processing",
@@ -10,6 +16,18 @@ export type AssignmentStatus = (typeof ASSIGNMENT_STATUSES)[number];
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 
 export type Difficulty = (typeof DIFFICULTIES)[number];
+
+export type {
+  BlueprintSectionDefinition,
+  DifficultyLevel,
+  ExamBlueprint,
+  ExamPattern,
+} from "./exam-blueprint.types";
+
+export {
+  DIFFICULTY_LEVELS,
+  EXAM_PATTERNS,
+} from "./exam-blueprint.types";
 
 export interface Question {
   question: string;
@@ -38,6 +56,8 @@ export interface QuestionConfig {
   questionType: string;
   numberOfQuestions: number;
   marksPerQuestion: number;
+  examPattern?: ExamPattern;
+  difficultyLevel?: DifficultyLevel;
 }
 
 export interface MaterialSource {
@@ -63,6 +83,7 @@ export interface Assignment {
   instructions: string;
   status: AssignmentStatus;
   questionConfig: QuestionConfig;
+  examBlueprint?: ExamBlueprint;
   generatedPaper?: GeneratedPaper;
   answerKey?: AnswerKeyEntry[];
   jobId?: string;
