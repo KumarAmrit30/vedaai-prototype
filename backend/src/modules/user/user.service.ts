@@ -34,7 +34,6 @@ export async function upsertUserFromFirebaseClaims(
       $set: profileUpdate,
       $setOnInsert: {
         firebaseUid: claims.uid,
-        email,
         plan: "free",
         subscription: {
           status: "inactive",
@@ -43,7 +42,7 @@ export async function upsertUserFromFirebaseClaims(
         usage: { assignmentsGenerated: 0 },
       },
     },
-    { new: true, upsert: true, setDefaultsOnInsert: true },
+    { returnDocument: "after", upsert: true, setDefaultsOnInsert: true },
   );
 
   if (!user) {
