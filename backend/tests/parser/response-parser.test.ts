@@ -116,6 +116,33 @@ describe("parseAIResponse", () => {
     );
   });
 
+  it("accepts global answerKey numbering when answerKeyStartNumber is set", () => {
+    const payload = buildValidPayload(15);
+    payload.answerKey = Array.from({ length: 15 }, (_, index) => ({
+      questionNumber: 16 + index,
+      answer: `Answer ${16 + index}`,
+    }));
+
+    const result = parseAIResponse(JSON.stringify(payload), {
+      answerKeyStartNumber: 16,
+    });
+
+    expect(result.answerKey[0]?.questionNumber).toBe(16);
+    expect(result.answerKey.at(-1)?.questionNumber).toBe(30);
+  });
+
+  it("rejects global numbering when default local validation is used", () => {
+    const payload = buildValidPayload(15);
+    payload.answerKey = Array.from({ length: 15 }, (_, index) => ({
+      questionNumber: 16 + index,
+      answer: `Answer ${16 + index}`,
+    }));
+
+    expect(() => parseAIResponse(JSON.stringify(payload))).toThrow(
+      /sequential from 1 to the total question count/i,
+    );
+  });
+
   it("throws when required top-level schema fields are missing", () => {
     const payload = {
       answerKey: buildValidPayload(1).answerKey,

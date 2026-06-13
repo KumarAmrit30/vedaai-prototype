@@ -76,16 +76,6 @@ function buildFailureMetrics(
   };
 }
 
-function offsetAnswerKeyEntries(
-  entries: AnswerKeyEntry[],
-  offset: number,
-): AnswerKeyEntry[] {
-  return entries.map((entry) => ({
-    ...entry,
-    questionNumber: entry.questionNumber + offset,
-  }));
-}
-
 function resolveAnswerKeyMode(input: AssignmentGenerationInput): AnswerKeyMode {
   return (
     input.examBlueprint?.answerKeyMode ??
@@ -223,7 +213,10 @@ async function generateBlueprintAssignmentPaper(
       retryCount += providerResult.retryCount;
       sectionRetryCount += providerResult.retryCount;
 
-      const structured = parseAIResponse(providerResult.text);
+      const answerKeyStartNumber = batch.globalQuestionOffset + 1;
+      const structured = parseAIResponse(providerResult.text, {
+        answerKeyStartNumber,
+      });
       validateBatchResponseAgainstBlueprint(
         structured,
         blueprint,
@@ -239,12 +232,9 @@ async function generateBlueprintAssignmentPaper(
       }
 
       mergedQuestions.push(...parsedSection.questions);
-      mergedAnswerKey.push(
-        ...offsetAnswerKeyEntries(
-          structured.answerKey,
-          batch.globalQuestionOffset,
-        ),
-      );
+      // Batch prompts use global question numbering; answerKey entries are
+      // already in paper-wide order — do not offset again on merge.
+      mergedAnswerKey.push(...structured.answerKey);
 
       const batchDurationMs = Date.now() - batchStartedAt;
       sectionDurationMs += batchDurationMs;

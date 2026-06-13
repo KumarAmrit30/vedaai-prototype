@@ -36,62 +36,103 @@ export const answerKeyEntrySchema = z.object({
   rubric: z.string().min(1).optional(),
 });
 
-export const assignmentResponseSchema = z
-  .object({
-    sections: z
-      .array(sectionSchema)
-      .min(1, "Assignment must contain at least one section"),
-    answerKey: z
-      .array(answerKeyEntrySchema)
-      .min(1, "answerKey must contain at least one entry"),
-  })
-  .superRefine((data, ctx) => {
-    const totalQuestions = data.sections.reduce(
-      (sum, section) => sum + section.questions.length,
-      0,
-    );
+export type AnswerKeyEntry = z.infer<typeof answerKeyEntrySchema>;
 
-    if (data.answerKey.length !== totalQuestions) {
+export interface ParseAIResponseOptions {
+  /**
+   * First expected answerKey questionNumber. Defaults to 1 (local / legacy).
+   * Batched generation passes the batch's global start (e.g. 16 for batch 2).
+   */
+  answerKeyStartNumber?: number;
+}
+
+function buildExpectedAnswerKeyNumbers(
+  questionCount: number,
+  startNumber: number,
+): number[] {
+  return Array.from(
+    { length: questionCount },
+    (_, index) => startNumber + index,
+  );
+}
+
+function validateAnswerKeySequence(
+  answerKey: Array<{ questionNumber: number }>,
+  questionCount: number,
+  startNumber: number,
+  ctx: z.RefinementCtx,
+): void {
+  if (answerKey.length !== questionCount) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `answerKey must contain exactly ${questionCount} entries (one per question)`,
+      path: ["answerKey"],
+    });
+    return;
+  }
+
+  const numbers = answerKey.map((entry) => entry.questionNumber);
+  const uniqueNumbers = new Set(numbers);
+
+  if (uniqueNumbers.size !== numbers.length) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "answerKey questionNumber values must be unique",
+      path: ["answerKey"],
+    });
+    return;
+  }
+
+  const expected = buildExpectedAnswerKeyNumbers(questionCount, startNumber);
+  const sorted = [...numbers].sort((a, b) => a - b);
+  const endNumber = startNumber + questionCount - 1;
+
+  for (let index = 0; index < expected.length; index += 1) {
+    if (sorted[index] !== expected[index]) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `answerKey must contain exactly ${totalQuestions} entries (one per question)`,
+        message:
+          startNumber === 1
+            ? "answerKey questionNumber values must be sequential from 1 to the total question count (section order)"
+            : `answerKey questionNumber values must be sequential from ${startNumber} to ${endNumber}`,
         path: ["answerKey"],
       });
       return;
     }
+  }
+}
 
-    const numbers = data.answerKey.map((entry) => entry.questionNumber);
-    const uniqueNumbers = new Set(numbers);
+function buildAssignmentResponseSchema(answerKeyStartNumber: number) {
+  return z
+    .object({
+      sections: z
+        .array(sectionSchema)
+        .min(1, "Assignment must contain at least one section"),
+      answerKey: z
+        .array(answerKeyEntrySchema)
+        .min(1, "answerKey must contain at least one entry"),
+    })
+    .superRefine((data, ctx) => {
+      const totalQuestions = data.sections.reduce(
+        (sum, section) => sum + section.questions.length,
+        0,
+      );
 
-    if (uniqueNumbers.size !== numbers.length) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "answerKey questionNumber values must be unique",
-        path: ["answerKey"],
-      });
-      return;
-    }
+      validateAnswerKeySequence(
+        data.answerKey,
+        totalQuestions,
+        answerKeyStartNumber,
+        ctx,
+      );
+    });
+}
 
-    const expected = Array.from({ length: totalQuestions }, (_, index) => index + 1);
-    const sorted = [...numbers].sort((a, b) => a - b);
-
-    for (let index = 0; index < expected.length; index += 1) {
-      if (sorted[index] !== expected[index]) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message:
-            "answerKey questionNumber values must be sequential from 1 to the total question count (section order)",
-          path: ["answerKey"],
-        });
-        return;
-      }
-    }
-  });
+/** Default schema: answerKey numbered 1..N (legacy and non-batched paths). */
+const assignmentResponseSchema = buildAssignmentResponseSchema(1);
 
 export type Difficulty = z.infer<typeof difficultySchema>;
 export type Question = z.infer<typeof questionSchema>;
 export type Section = z.infer<typeof sectionSchema>;
-export type AnswerKeyEntry = z.infer<typeof answerKeyEntrySchema>;
 export type AssignmentResponse = z.infer<typeof assignmentResponseSchema>;
 
 function cleanRawText(rawText: string): string {
@@ -184,11 +225,20 @@ function formatZodError(error: z.ZodError): string {
     .join("; ");
 }
 
-export function parseAIResponse(rawText: string): AssignmentResponse {
+export function parseAIResponse(
+  rawText: string,
+  options?: ParseAIResponseOptions,
+): AssignmentResponse {
   const cleanedText = cleanRawText(rawText);
   const parsed = parseJson(cleanedText);
 
-  const result = assignmentResponseSchema.safeParse(parsed);
+  const answerKeyStartNumber = options?.answerKeyStartNumber ?? 1;
+  const schema =
+    answerKeyStartNumber === 1
+      ? assignmentResponseSchema
+      : buildAssignmentResponseSchema(answerKeyStartNumber);
+
+  const result = schema.safeParse(parsed);
 
   if (!result.success) {
     const questionCount = countQuestionsFromParsed(parsed);

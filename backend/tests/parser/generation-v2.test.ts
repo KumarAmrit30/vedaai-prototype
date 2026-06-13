@@ -28,8 +28,8 @@ function buildBatchResponse(batch: GenerationBatch): AssignmentResponse {
   );
 
   const answerKey = Array.from({ length: batch.questionCount }, (_, index) => ({
-    questionNumber: index + 1,
-    answer: `Answer ${index + 1}`,
+    questionNumber: batch.globalQuestionOffset + index + 1,
+    answer: `Answer ${batch.globalQuestionOffset + index + 1}`,
   }));
 
   return {
