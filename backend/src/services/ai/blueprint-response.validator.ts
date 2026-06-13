@@ -1,4 +1,5 @@
 import type { ExamBlueprint } from "../../modules/assignment/exam-blueprint.types";
+import type { QuestionSection } from "../../modules/assignment/assignment.types";
 import type { AssignmentResponse, Section } from "./response-parser";
 
 function formatSectionLabel(sectionIndex: number): string {
@@ -114,10 +115,11 @@ export function validateMergedPaperAgainstBlueprint(
 export function normalizeSectionFromBlueprint(
   section: Section,
   blueprintSection: ExamBlueprint["sections"][number],
-): Section {
+): QuestionSection {
   return {
     title: blueprintSection.title,
     instruction: blueprintSection.instruction,
     questions: section.questions,
+    ...(blueprintSection.subject ? { subject: blueprintSection.subject } : {}),
   };
 }

@@ -8,6 +8,7 @@ import {
   createAssignment,
   createAssignmentUploadMiddleware,
   deleteAssignment,
+  generateSolutions,
   getAssignmentById,
   getAssignments,
   patchAssignmentStatus,
@@ -47,6 +48,7 @@ assignmentRouter.patch(
   validateRequest(patchStatusSchema),
   patchAssignmentStatus,
 );
+assignmentRouter.post("/:id/generate-solutions", generateSolutions);
 assignmentRouter.delete("/:id", deleteAssignment);
 
 export default assignmentRouter;

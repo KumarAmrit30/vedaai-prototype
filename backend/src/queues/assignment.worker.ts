@@ -164,6 +164,12 @@ async function processAssignmentJob(
       ...(assignment.examBlueprint
         ? { examBlueprint: assignment.examBlueprint }
         : {}),
+      ...(assignment.materialSummary
+        ? { materialSummary: assignment.materialSummary }
+        : {}),
+      ...(assignment.syllabusConcepts?.length
+        ? { syllabusConcepts: assignment.syllabusConcepts }
+        : {}),
       ...(materialText ? { materialText } : {}),
     };
 
@@ -174,6 +180,13 @@ async function processAssignmentJob(
 
     assignment.generatedPaper = generationResult.generatedPaper;
     assignment.answerKey = generationResult.answerKey;
+    assignment.answerKeyMode = generationResult.answerKeyMode;
+    // BASIC papers ship a complete answer key; richer modes defer solutions
+    // until they are requested on demand (Phase 4).
+    assignment.solutionsStatus =
+      generationResult.answerKeyMode === "BASIC"
+        ? "not_applicable"
+        : "pending";
     assignment.generationMetrics = generationResult.generationMetrics;
     assignment.status = "completed";
     assignment.progress = 100;

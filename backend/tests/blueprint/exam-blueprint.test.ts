@@ -30,15 +30,64 @@ describe("buildExamBlueprint", () => {
     expect(blueprint.totalMarks).toBe(30);
   });
 
-  it("builds predefined sections for JEE pattern", () => {
+  it("builds subject sections for JEE Main pattern", () => {
     const blueprint = buildExamBlueprint({
       examPattern: "JEE",
       difficultyLevel: "HARD",
     });
 
-    expect(blueprint.sections).toHaveLength(2);
-    expect(blueprint.totalQuestions).toBe(25);
-    expect(blueprint.totalMarks).toBe(100);
+    expect(blueprint.sections).toHaveLength(3);
+    expect(blueprint.sections.map((s) => s.subject)).toEqual([
+      "Physics",
+      "Chemistry",
+      "Mathematics",
+    ]);
+    expect(blueprint.totalQuestions).toBe(75);
+    expect(blueprint.totalMarks).toBe(300);
+    expect(blueprint.answerKeyMode).toBe("BASIC");
+  });
+
+  it("builds the NEET blueprint with Physics/Chemistry/Biology subjects", () => {
+    const blueprint = buildExamBlueprint({
+      examPattern: "NEET",
+      difficultyLevel: "MIXED",
+    });
+
+    expect(blueprint.sections).toHaveLength(3);
+    expect(
+      blueprint.sections.map((s) => ({
+        subject: s.subject,
+        count: s.numberOfQuestions,
+        marks: s.marksPerQuestion,
+      })),
+    ).toEqual([
+      { subject: "Physics", count: 45, marks: 4 },
+      { subject: "Chemistry", count: 45, marks: 4 },
+      { subject: "Biology", count: 90, marks: 4 },
+    ]);
+    expect(blueprint.totalQuestions).toBe(180);
+    expect(blueprint.totalMarks).toBe(720);
+    expect(blueprint.answerKeyMode).toBe("BASIC");
+    expect(blueprint.difficultyDistribution).toEqual({
+      easy: 20,
+      medium: 55,
+      hard: 25,
+    });
+  });
+
+  it("maps answer-key modes per the exam-template registry", () => {
+    expect(
+      buildExamBlueprint({ examPattern: "CBSE", difficultyLevel: "MIXED" })
+        .answerKeyMode,
+    ).toBe("STANDARD");
+    expect(
+      buildExamBlueprint({ examPattern: "UNIVERSITY", difficultyLevel: "MIXED" })
+        .answerKeyMode,
+    ).toBe("DETAILED");
+    expect(
+      buildExamBlueprint({ examPattern: "CUET", difficultyLevel: "MIXED" })
+        .answerKeyMode,
+    ).toBe("BASIC");
   });
 
   it("builds predefined sections for QUIZ pattern", () => {
@@ -84,7 +133,7 @@ describe("deriveLegacyQuestionConfig", () => {
 
     expect(deriveLegacyQuestionConfig(blueprint)).toEqual({
       questionType: "multiple-choice",
-      numberOfQuestions: 45,
+      numberOfQuestions: 180,
       marksPerQuestion: 4,
     });
   });

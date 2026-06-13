@@ -35,6 +35,13 @@ export interface AIProvider {
   generateText(options: GenerateTextOptions): Promise<ProviderGenerationResult>;
   generateJson(options: GenerateJsonOptions): Promise<ProviderGenerationResult>;
   healthCheck(): Promise<HealthCheckResult>;
-  /** Backward-compatible entry point used by the assignment pipeline. */
-  generateAssignment(prompt: string): Promise<ProviderGenerationResult>;
+  /**
+   * Backward-compatible entry point used by the assignment pipeline. An
+   * optional structured-output schema can be supplied (used by Vertex for
+   * both paper generation and on-demand solution generation).
+   */
+  generateAssignment(
+    prompt: string,
+    responseSchema?: unknown,
+  ): Promise<ProviderGenerationResult>;
 }

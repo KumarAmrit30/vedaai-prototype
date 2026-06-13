@@ -3,7 +3,7 @@ import { env } from "../../../config/env";
 import { logError, logInfo } from "../../../utils/logger";
 import { retryAIRequest } from "../retry-ai-request";
 import { withRequestTimeout } from "../request-timeout";
-import { VERTEX_ASSIGNMENT_RESPONSE_SCHEMA } from "../vertex-exam-schema";
+import { VERTEX_GENERATION_RESPONSE_SCHEMA } from "../vertex-exam-schema";
 import {
   VertexGenerationBlockedError,
   VertexGenerationTruncatedError,
@@ -161,13 +161,14 @@ export class VertexProvider implements AIProvider {
 
   async generateAssignment(
     prompt: string,
+    responseSchema?: unknown,
   ): Promise<ProviderGenerationResult> {
     logInfo("[AI][VERTEX] Generation started", { model: this.model });
 
     try {
       const result = await this.generateJson({
         prompt,
-        schema: VERTEX_ASSIGNMENT_RESPONSE_SCHEMA,
+        schema: responseSchema ?? VERTEX_GENERATION_RESPONSE_SCHEMA,
       });
 
       logInfo("[AI][VERTEX] Generation successful", {

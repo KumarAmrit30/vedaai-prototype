@@ -45,7 +45,11 @@ export class GroqProvider implements AIProvider {
     });
   }
 
-  async generateAssignment(prompt: string): Promise<ProviderGenerationResult> {
+  async generateAssignment(
+    prompt: string,
+    _responseSchema?: unknown,
+  ): Promise<ProviderGenerationResult> {
+    void _responseSchema;
     const model = this.model;
     logInfo("[AI][GROQ] Generation started", { model });
 

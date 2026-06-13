@@ -1,6 +1,7 @@
 import { env } from "../config/env";
 import type {
   AnswerKeyEntry,
+  AnswerKeyMode,
   ExamBlueprint,
   GeneratedPaper,
   GenerationMetrics,
@@ -81,6 +82,26 @@ function offsetAnswerKeyEntries(
     ...entry,
     questionNumber: entry.questionNumber + offset,
   }));
+}
+
+function resolveAnswerKeyMode(input: AssignmentGenerationInput): AnswerKeyMode {
+  return (
+    input.examBlueprint?.answerKeyMode ??
+    input.questionConfig.answerKeyMode ??
+    "STANDARD"
+  );
+}
+
+function resolveExamType(input: AssignmentGenerationInput): string {
+  return (
+    input.examBlueprint?.examPattern ??
+    input.questionConfig.examPattern ??
+    "CUSTOM"
+  );
+}
+
+function countAnswerKey(answerKey: AnswerKeyEntry[]): number {
+  return answerKey.length;
 }
 
 async function generateLegacyAssignmentPaper(
@@ -231,11 +252,15 @@ export async function generateAssignmentPaper(
     retryCount = generationResult.retryCount;
 
     const durationMs = Date.now() - startedAt;
+    const answerKeyMode = resolveAnswerKeyMode(input);
     const generationMetrics: GenerationMetrics = {
       provider: provider.name,
       model: provider.model,
       durationMs,
       retryCount,
+      examType: resolveExamType(input),
+      questionCount: countAnswerKey(generationResult.answerKey),
+      answerKeyMode,
     };
 
     if ("providerResult" in generationResult) {
@@ -249,8 +274,26 @@ export async function generateAssignmentPaper(
     const result = {
       generatedPaper: generationResult.generatedPaper,
       answerKey: generationResult.answerKey,
+      answerKeyMode,
       generationMetrics,
     };
+
+    // Phase 7 — structured telemetry for cost analysis.
+    logInfo("[TELEMETRY][GENERATION]", {
+      assignmentId,
+      provider: provider.name,
+      model: provider.model,
+      examType: generationMetrics.examType,
+      questionCount: generationMetrics.questionCount,
+      answerKeyMode: generationMetrics.answerKeyMode,
+      promptTokens: generationMetrics.promptTokens,
+      completionTokens: generationMetrics.completionTokens,
+      totalTokens: generationMetrics.totalTokens,
+      thoughtsTokens: generationMetrics.thoughtsTokens,
+      durationMs,
+      retryCount,
+      mode: input.examBlueprint ? "blueprint" : "legacy",
+    });
 
     logInfo("[AI][GENERATION] Completed", {
       assignmentId,

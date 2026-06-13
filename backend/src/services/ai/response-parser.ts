@@ -8,6 +8,8 @@ export const questionSchema = z.object({
   question: z.string().min(1, "Question text is required"),
   difficulty: difficultySchema,
   marks: z.number().int().positive("Marks must be a positive integer"),
+  // Present for objective question types; optional for written-answer types.
+  options: z.array(z.string().min(1)).min(2).optional(),
 });
 
 export const sectionSchema = z.object({
@@ -18,14 +20,20 @@ export const sectionSchema = z.object({
     .min(1, "Each section must contain at least one question"),
 });
 
+/**
+ * Deferred-solution answer key (Phase 4): paper generation emits only the
+ * question number and the correct answer. Explanations, marking guides, and
+ * rubrics are added later on demand and are therefore optional here.
+ */
 export const answerKeyEntrySchema = z.object({
   questionNumber: z
     .number()
     .int()
     .positive("questionNumber must be a positive integer"),
   answer: z.string().min(1, "answer is required"),
-  explanation: z.string().min(1, "explanation is required"),
-  markingGuide: z.string().min(1, "markingGuide is required"),
+  explanation: z.string().min(1).optional(),
+  markingGuide: z.string().min(1).optional(),
+  rubric: z.string().min(1).optional(),
 });
 
 export const assignmentResponseSchema = z

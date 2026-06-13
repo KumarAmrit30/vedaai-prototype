@@ -17,6 +17,8 @@ function serializeAssignmentCore(assignment: AssignmentDocument) {
   const status = normalizeAssignmentStatus(raw.status);
   const {
     materialText: _materialText,
+    materialSummary: _materialSummary,
+    syllabusConcepts: _syllabusConcepts,
     userId: _userId,
     isDeleted: _isDeleted,
     deletedAt: _deletedAt,

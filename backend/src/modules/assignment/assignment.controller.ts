@@ -13,6 +13,9 @@ import {
   deleteUploadedFiles,
   parseMaterialFiles,
 } from "../../services/material-parser.service";
+import { compressMaterial } from "../../services/material-compression.service";
+import { generateAssignmentSolutions } from "../../services/ai/solutions.service";
+import { AssignmentGenerationError } from "../../services/ai/generation-metrics";
 import {
   emitAssignmentDeleted,
   emitAssignmentUpdated,
@@ -36,8 +39,13 @@ import {
   upsertUserFromFirebaseClaims,
 } from "../user/user.service";
 import { checkGenerationEligibility } from "../user/plan-eligibility.service";
-import { logInfo } from "../../utils/logger";
-import type { MaterialSource, GeneratedPaper } from "./assignment.types";
+import { logInfo, logError } from "../../utils/logger";
+import type {
+  AnswerKeyMode,
+  GeneratedPaper,
+  GenerationMetrics,
+  MaterialSource,
+} from "./assignment.types";
 import { resolveAssignmentConfig, questionConfigSchema } from "./exam-blueprint.validation";
 import type { ValidatedQuestionConfig } from "./exam-blueprint.validation";
 import type { ManualAssignmentStatus } from "./assignment.constants";
@@ -196,6 +204,25 @@ export async function createAssignment(
       originalFileName = parsed.originalFileName;
     }
 
+    // Phase 5 — compress material once at creation so every generation prompt
+    // uses a compact summary + syllabus concepts instead of the full text.
+    let materialSummary: string | undefined;
+    let syllabusConcepts: string[] | undefined;
+
+    if (materialText?.trim()) {
+      const compressed = compressMaterial(materialText);
+      materialSummary = compressed.summary || undefined;
+      syllabusConcepts =
+        compressed.concepts.length > 0 ? compressed.concepts : undefined;
+
+      logInfo("[MATERIAL] Compressed for generation", {
+        originalChars: compressed.originalChars,
+        compressedChars: compressed.compressedChars,
+        reductionPct: Math.round(compressed.reductionRatio * 100),
+        concepts: compressed.concepts.length,
+      });
+    }
+
     const assignment = await Assignment.create({
       userId,
       title,
@@ -204,10 +231,13 @@ export async function createAssignment(
       instructions,
       questionConfig,
       examBlueprint,
+      answerKeyMode: examBlueprint.answerKeyMode,
       status: "pending",
       progress: 0,
       isDeleted: false,
       ...(materialText ? { materialText } : {}),
+      ...(materialSummary ? { materialSummary } : {}),
+      ...(syllabusConcepts ? { syllabusConcepts } : {}),
       ...(materialSourceType ? { materialSourceType } : {}),
       ...(originalFileName ? { originalFileName } : {}),
       ...(materialSource ? { materialSource } : {}),
@@ -348,6 +378,163 @@ export async function getAssignmentById(
       success: true,
       data: serializeAssignment(assignment),
     });
+  } catch (error) {
+    next(error);
+  }
+}
+
+function resolveAssignmentAnswerKeyMode(assignment: {
+  answerKeyMode?: AnswerKeyMode;
+  examBlueprint?: { answerKeyMode?: AnswerKeyMode };
+}): AnswerKeyMode {
+  return (
+    assignment.answerKeyMode ??
+    assignment.examBlueprint?.answerKeyMode ??
+    "STANDARD"
+  );
+}
+
+/**
+ * POST /assignments/:id/generate-solutions
+ *
+ * Generates explanations (and, for DETAILED mode, marking guides + rubrics)
+ * for an already-generated paper on demand (Phase 4). BASIC answer-key exams
+ * need no separate solutions and short-circuit.
+ */
+export async function generateSolutions(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const userId = resolveRequestUserId(req, res);
+    if (!userId) return;
+
+    const id = getRouteParam(req.params.id);
+    if (!id) {
+      res.status(400).json({ success: false, message: "Invalid assignment id" });
+      return;
+    }
+
+    const assignment = await findActiveAssignmentById(id, userId);
+
+    if (!assignment) {
+      res.status(404).json({ success: false, message: "Assignment not found" });
+      return;
+    }
+
+    if (
+      assignment.status !== "completed" ||
+      !assignment.generatedPaper ||
+      !assignment.answerKey?.length
+    ) {
+      res.status(409).json({
+        success: false,
+        message: "Solutions can only be generated after the paper is completed.",
+      });
+      return;
+    }
+
+    const answerKeyMode = resolveAssignmentAnswerKeyMode(assignment);
+
+    if (answerKeyMode === "BASIC") {
+      assignment.solutionsStatus = "not_applicable";
+      await assignment.save();
+      res.json({
+        success: true,
+        message: "BASIC answer-key exams do not require generated solutions.",
+        data: serializeAssignment(assignment),
+      });
+      return;
+    }
+
+    if (assignment.solutionsStatus === "generating") {
+      res.status(409).json({
+        success: false,
+        message: "Solution generation is already in progress.",
+      });
+      return;
+    }
+
+    if (assignment.solutionsStatus === "completed") {
+      res.json({
+        success: true,
+        message: "Solutions already generated.",
+        data: serializeAssignment(assignment),
+      });
+      return;
+    }
+
+    assignment.solutionsStatus = "generating";
+    await assignment.save();
+
+    try {
+      const result = await generateAssignmentSolutions({
+        assignmentId: assignment._id.toString(),
+        title: assignment.title,
+        topic: assignment.topic,
+        instructions: assignment.instructions,
+        answerKeyMode,
+        generatedPaper: assignment.generatedPaper,
+        answerKey: assignment.answerKey,
+      });
+
+      assignment.answerKey = result.answerKey;
+      assignment.solutionsStatus = "completed";
+
+      const existingMetrics: GenerationMetrics =
+        assignment.generationMetrics ?? {};
+      assignment.generationMetrics = {
+        ...existingMetrics,
+        ...(result.promptTokens !== undefined
+          ? { solutionPromptTokens: result.promptTokens }
+          : {}),
+        ...(result.completionTokens !== undefined
+          ? { solutionCompletionTokens: result.completionTokens }
+          : {}),
+      };
+
+      await assignment.save();
+
+      emitAssignmentUpdated(userId, buildUpdatedSocketPayload(assignment));
+
+      logInfo("[TELEMETRY][SOLUTIONS]", {
+        assignmentId: assignment._id.toString(),
+        answerKeyMode,
+        solutionPromptTokens: result.promptTokens,
+        solutionCompletionTokens: result.completionTokens,
+        retryCount: result.retryCount,
+      });
+
+      res.json({
+        success: true,
+        message: "Solutions generated.",
+        data: serializeAssignment(assignment),
+      });
+    } catch (generationError) {
+      assignment.solutionsStatus = "failed";
+      await assignment.save();
+
+      const message =
+        generationError instanceof Error
+          ? generationError.message
+          : "Solution generation failed";
+
+      logError("[SOLUTIONS] Generation failed", {
+        assignmentId: assignment._id.toString(),
+        message,
+      });
+
+      if (generationError instanceof AssignmentGenerationError) {
+        res.status(502).json({
+          success: false,
+          message: "Solution generation failed. Please try again.",
+        });
+        return;
+      }
+
+      next(generationError);
+    }
   } catch (error) {
     next(error);
   }
