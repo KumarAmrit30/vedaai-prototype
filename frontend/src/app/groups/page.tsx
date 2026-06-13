@@ -4,7 +4,6 @@ import {
   Building2,
   GitPullRequest,
   Share2,
-  Users,
   UsersRound,
 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
@@ -34,11 +33,11 @@ const FEATURE_CARDS = [
   },
 ];
 
-const DEPARTMENTS = [
-  { name: "Computer Science", members: 12, papers: 48 },
-  { name: "Physics", members: 8, papers: 31 },
-  { name: "Chemistry", members: 9, papers: 27 },
-  { name: "Mathematics", members: 10, papers: 36 },
+const ROADMAP_BENEFITS = [
+  "Department workspaces",
+  "Faculty collaboration",
+  "Shared question banks",
+  "Review workflows",
 ];
 
 export default function GroupsPage() {
@@ -65,25 +64,6 @@ export default function GroupsPage() {
             Give every department a shared workspace — collaborate on papers,
             question banks, and review workflows without leaving ExamForge AI.
           </p>
-
-          <div className="stat-preview-grid mt-8">
-            <div className="stat-preview-card">
-              <strong>39</strong>
-              <span>Faculty members</span>
-            </div>
-            <div className="stat-preview-card">
-              <strong>142</strong>
-              <span>Shared papers</span>
-            </div>
-            <div className="stat-preview-card">
-              <strong>4</strong>
-              <span>Departments</span>
-            </div>
-            <div className="stat-preview-card">
-              <strong>18</strong>
-              <span>Pending reviews</span>
-            </div>
-          </div>
         </section>
 
         <div className="feature-preview-grid">
@@ -102,28 +82,26 @@ export default function GroupsPage() {
           ))}
         </div>
 
-        <section>
-          <div className="mb-4 flex items-center gap-2">
-            <Users className="h-4 w-4 text-[var(--text-secondary)]" />
-            <h2 className="font-display text-[16px] font-semibold text-[var(--text-primary)]">
-              Departments
-            </h2>
-          </div>
-          <div className="grid gap-3">
-            {DEPARTMENTS.map((dept) => (
-              <article key={dept.name} className="department-card">
-                <div>
-                  <h3 className="font-display text-[14px] font-semibold text-[var(--text-primary)]">
-                    {dept.name}
-                  </h3>
-                  <p className="department-card__meta mt-1">
-                    {dept.members} members · {dept.papers} shared papers
-                  </p>
-                </div>
-                <ComingSoonBadge compact />
-              </article>
+        <section className="roadmap-panel">
+          <h2 className="font-display text-[18px] font-semibold text-[var(--text-primary)]">
+            Planned capabilities
+          </h2>
+          <p className="mt-2 text-[14px] text-[var(--text-secondary)]">
+            Groups are in preview. Department lists, member counts, and activity
+            metrics will appear here after launch — none are shown until the
+            feature is live.
+          </p>
+          <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+            {ROADMAP_BENEFITS.map((benefit) => (
+              <li
+                key={benefit}
+                className="flex items-center gap-2 text-[13px] text-[var(--text-primary)]"
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent-primary)]" />
+                {benefit}
+              </li>
             ))}
-          </div>
+          </ul>
         </section>
       </div>
     </AppShell>

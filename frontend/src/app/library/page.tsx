@@ -13,11 +13,11 @@ import { ComingSoonBadge } from "@/components/ui/coming-soon-badge";
 import { useShellNavigation } from "@/hooks/use-shell-navigation";
 
 const LIBRARY_SECTIONS = [
-  { title: "Syllabus PDFs", count: "24 files", icon: BookMarked },
-  { title: "Question Banks", count: "1,240 items", icon: FileStack },
-  { title: "Templates", count: "18 patterns", icon: Layers },
-  { title: "Previous Year Papers", count: "56 papers", icon: NotebookPen },
-  { title: "Notes", count: "92 documents", icon: FolderOpen },
+  { title: "Syllabus PDFs", status: "Planned", icon: BookMarked },
+  { title: "Question Banks", status: "Planned", icon: FileStack },
+  { title: "Templates", status: "Preview", icon: Layers },
+  { title: "Previous Year Papers", status: "Planned", icon: NotebookPen },
+  { title: "Notes", status: "Planned", icon: FolderOpen },
 ];
 
 const ROADMAP_BENEFITS = [
@@ -70,7 +70,7 @@ export default function LibraryPage() {
                 {section.title}
               </h2>
               <p className="mt-1 text-[12px] text-[var(--text-muted)]">
-                {section.count}
+                {section.status}
               </p>
             </article>
           ))}
@@ -82,7 +82,8 @@ export default function LibraryPage() {
           </h2>
           <p className="mt-2 text-[14px] text-[var(--text-secondary)]">
             The Resource Library is designed to make every generation faster by
-            keeping your best content one click away.
+            keeping your best content one click away. No inventory or usage data
+            is shown until this feature launches.
           </p>
           <ul className="mt-4 grid gap-2 sm:grid-cols-2">
             {ROADMAP_BENEFITS.map((benefit) => (

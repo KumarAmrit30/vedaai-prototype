@@ -35,21 +35,21 @@ export function DashboardMetricsGrid({ metrics }: DashboardMetricsGridProps) {
       icon: Hash,
     },
     {
-      label: "PDF Exports",
-      value: String(metrics.pdfExports),
-      hint: "Ready to download",
+      label: "Exportable Papers",
+      value: String(metrics.exportablePapers),
+      hint: "Completed papers ready to export",
       icon: Download,
     },
     {
-      label: "Remaining Monthly Credits",
+      label: "Remaining Generations",
       value:
         metrics.remainingCredits === null
           ? "Unlimited"
           : String(metrics.remainingCredits),
       hint:
         metrics.remainingCredits === null
-          ? "Pro plan"
-          : "This billing period",
+          ? "Unlimited on paid plans"
+          : "On your current plan",
       icon: FileStack,
     },
   ];

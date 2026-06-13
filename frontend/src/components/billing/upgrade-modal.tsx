@@ -9,6 +9,17 @@ import { useUserStore } from "@/store/user.store";
 const FOCUSABLE_SELECTOR =
   'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
+function formatLimitMessage(
+  used: number,
+  limit: number | null | undefined,
+): string {
+  if (limit == null) {
+    return `You have used ${used} assignment generation${used === 1 ? "" : "s"} on your current plan.`;
+  }
+
+  return `You have used ${used} of ${limit} assignment generation${limit === 1 ? "" : "s"} included in your plan.`;
+}
+
 /**
  * Shown when a free-plan user hits the generation limit. The Upgrade action is
  * a placeholder until billing is implemented in a later phase.
@@ -17,8 +28,18 @@ export function UpgradeModal() {
   const router = useRouter();
   const open = useUserStore((state) => state.upgradeModalOpen);
   const onClose = useUserStore((state) => state.closeUpgradeModal);
+  const billingProfile = useUserStore((state) => state.billingProfile);
+  const profile = useUserStore((state) => state.profile);
   const panelRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+
+  const generationsUsed =
+    billingProfile?.usage.assignmentsGenerated ??
+    profile?.usage.assignmentsGenerated ??
+    0;
+  const assignmentLimit =
+    billingProfile?.limits.assignmentsAllowed ??
+    profile?.limits.assignmentsAllowed;
 
   useEffect(() => {
     if (!open) return;
@@ -90,13 +111,13 @@ export function UpgradeModal() {
               id="upgrade-modal-title"
               className="text-[15px] font-semibold text-[var(--text-primary)]"
             >
-              Free Plan Limit Reached
+              Plan Limit Reached
             </h2>
             <p
               id="upgrade-modal-description"
               className="mt-2 text-[13px] leading-relaxed text-[var(--text-secondary)]"
             >
-              You&apos;ve used all 3 free assignment generations.
+              {formatLimitMessage(generationsUsed, assignmentLimit)}
             </p>
           </div>
         </div>
@@ -114,7 +135,7 @@ export function UpgradeModal() {
             onClick={handleUpgrade}
             className="submit-pill-btn w-full sm:w-auto"
           >
-            Upgrade Plan
+            View Plans
           </button>
         </div>
       </div>

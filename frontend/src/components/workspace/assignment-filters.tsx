@@ -7,7 +7,7 @@ const STATUS_FILTERS: { id: StatusFilter; label: string }[] = [
   { id: "pending", label: "Draft" },
   { id: "processing", label: "Generating" },
   { id: "completed", label: "Completed" },
-  { id: "failed", label: "Archived" },
+  { id: "failed", label: "Failed" },
 ];
 
 interface AssignmentFiltersProps {

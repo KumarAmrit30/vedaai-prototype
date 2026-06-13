@@ -19,22 +19,22 @@ const CATEGORIES = [
     label: "Generation",
     items: [
       {
-        title: "Exam Generated",
-        body: "Your NEET Physics paper is ready to preview.",
+        title: "Paper Generated",
+        body: "Sample: A generated exam is ready to preview and export.",
         icon: Sparkles,
-        time: "2 min ago",
+        time: "Sample",
       },
       {
-        title: "PDF Ready",
-        body: "CBSE Class 12 export completed successfully.",
+        title: "Ready for Export",
+        body: "Sample: A completed paper can be exported as PDF.",
         icon: FileCheck2,
-        time: "1 hr ago",
+        time: "Sample",
       },
       {
-        title: "Limit Reached",
-        body: "You have used 5 of 5 free generations this month.",
+        title: "Plan Limit Reached",
+        body: "Sample: Assignment generation limit notification.",
         icon: Gauge,
-        time: "Yesterday",
+        time: "Sample",
         muted: true,
       },
     ],
@@ -45,9 +45,9 @@ const CATEGORIES = [
     items: [
       {
         title: "Assignment Shared",
-        body: "Dr. Sharma shared a Midterm draft with your department.",
+        body: "Sample: A colleague shares a draft with your department.",
         icon: Share2,
-        time: "3 hr ago",
+        time: "Sample",
       },
     ],
   },
@@ -57,9 +57,9 @@ const CATEGORIES = [
     items: [
       {
         title: "Plan Renewal",
-        body: "Your Pro subscription renews on July 1.",
+        body: "Sample: Subscription renewal reminder.",
         icon: CreditCard,
-        time: "2 days ago",
+        time: "Sample",
         muted: true,
       },
     ],
@@ -70,9 +70,9 @@ const CATEGORIES = [
     items: [
       {
         title: "New Feature",
-        body: "Solutions tab with step-by-step explanations is coming soon.",
+        body: "Sample: Product update announcement.",
         icon: Megaphone,
-        time: "This week",
+        time: "Sample",
       },
     ],
   },
@@ -99,17 +99,24 @@ export default function NotificationsPage() {
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="font-display text-[28px] font-semibold tracking-tight text-[var(--text-primary)]">
-                  Notification Center
+                  Notifications Preview
                 </h1>
                 <ComingSoonBadge />
               </div>
               <p className="mt-2 text-[14px] text-[var(--text-secondary)]">
-                Preview of how generation, workspace, and billing alerts will
-                appear when notifications ship.
+                Sample notifications are shown below. Personalized alerts for
+                your account will be available in a future release.
               </p>
             </div>
           </div>
         </section>
+
+        <div
+          className="rounded-[var(--radius-md)] border border-[var(--border-light)] bg-[var(--surface-muted)] px-4 py-3 text-[13px] text-[var(--text-secondary)]"
+          role="note"
+        >
+          These are illustrative examples only — not your account activity.
+        </div>
 
         {CATEGORIES.map((category) => (
           <section key={category.id} className="notification-category">
@@ -122,6 +129,7 @@ export default function NotificationsPage() {
                 className={`notification-item-preview feature-preview-card--blurred${
                   item.muted ? " notification-item-preview--muted" : ""
                 }`}
+                aria-label={`Sample notification: ${item.title}`}
               >
                 <div className="metric-card__icon shrink-0">
                   <item.icon className="h-4 w-4" strokeWidth={2} />
@@ -131,7 +139,7 @@ export default function NotificationsPage() {
                     <h3 className="font-display text-[14px] font-semibold text-[var(--text-primary)]">
                       {item.title}
                     </h3>
-                    <span className="text-[11px] text-[var(--text-muted)]">
+                    <span className="text-[11px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
                       {item.time}
                     </span>
                   </div>
@@ -145,14 +153,17 @@ export default function NotificationsPage() {
         ))}
 
         <section className="stitch-card">
-          <h2 className="font-display text-[15px] font-semibold text-[var(--text-primary)]">
-            Notification Settings
-          </h2>
-          <p className="mt-1 text-[13px] text-[var(--text-secondary)]">
+          <div className="mb-4 flex items-center gap-2">
+            <h2 className="font-display text-[15px] font-semibold text-[var(--text-primary)]">
+              Notification Settings
+            </h2>
+            <ComingSoonBadge compact />
+          </div>
+          <p className="text-[13px] text-[var(--text-secondary)]">
             Configure alerts from Settings when notifications launch.
           </p>
-          <div className="mt-4">
-            {["Generation complete", "PDF exports", "Usage limits", "Product updates"].map(
+          <div className="mt-4 opacity-60" aria-disabled="true">
+            {["Generation complete", "Ready for export", "Usage limits", "Product updates"].map(
               (label) => (
                 <div key={label} className="settings-toggle-row">
                   <span className="text-[13px] text-[var(--text-primary)]">

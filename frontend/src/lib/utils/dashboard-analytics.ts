@@ -30,7 +30,7 @@ export interface PlanAnalytics {
 export interface DashboardMetrics {
   assignmentsGenerated: number;
   questionsGenerated: number;
-  pdfExports: number;
+  exportablePapers: number;
   remainingCredits: number | null;
 }
 
@@ -43,7 +43,6 @@ export interface WorkspaceStats {
 
 export type ActivityEventType =
   | "exam_generated"
-  | "pdf_ready"
   | "material_uploaded"
   | "draft_created"
   | "generation_failed";
@@ -143,7 +142,7 @@ export function computeDashboardMetrics(
   return {
     assignmentsGenerated: usage.assignmentsGenerated,
     questionsGenerated: countQuestionsGenerated(assignments),
-    pdfExports: completedWithPaper.length,
+    exportablePapers: completedWithPaper.length,
     remainingCredits: usage.remainingGenerations,
   };
 }
@@ -169,9 +168,7 @@ export function computeWorkspaceStats(assignments: Assignment[]): WorkspaceStats
 function activityLabel(type: ActivityEventType): string {
   switch (type) {
     case "exam_generated":
-      return "Exam Generated";
-    case "pdf_ready":
-      return "PDF Ready";
+      return "Paper Generated";
     case "material_uploaded":
       return "Material Uploaded";
     case "draft_created":
@@ -234,14 +231,6 @@ export function buildActivityTimeline(
         type: "exam_generated",
         title: activityLabel("exam_generated"),
         subtitle: `${assignment.title}${pattern ? ` · ${formatExamPatternLabel(pattern)}` : ""}`,
-        timestamp: assignment.updatedAt,
-      });
-
-      events.push({
-        id: `${assignment._id}-pdf`,
-        type: "pdf_ready",
-        title: activityLabel("pdf_ready"),
-        subtitle: assignment.title,
         timestamp: assignment.updatedAt,
       });
     }

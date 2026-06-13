@@ -179,13 +179,17 @@ export default function SettingsPage() {
             <div className="mb-4 flex items-center gap-2">
               <ComingSoonBadge />
             </div>
+            <p className="text-[13px] leading-relaxed text-[var(--text-secondary)]">
+              Email and in-app alerts are not available yet. The toggles below
+              show planned notification types only.
+            </p>
             {[
-              "Exam generated",
-              "PDF ready",
+              "Paper generated",
+              "Ready for export",
               "Usage limit reached",
               "Product updates",
             ].map((label) => (
-              <div key={label} className="settings-toggle-row">
+              <div key={label} className="settings-toggle-row opacity-60">
                 <span className="text-[13px] text-[var(--text-primary)]">
                   {label}
                 </span>

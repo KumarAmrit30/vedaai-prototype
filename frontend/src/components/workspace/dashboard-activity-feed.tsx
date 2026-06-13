@@ -3,7 +3,6 @@
 import { useState } from "react";
 import {
   AlertCircle,
-  CheckCircle2,
   ChevronDown,
   FileUp,
   Sparkles,
@@ -19,8 +18,6 @@ function ActivityIcon({ type }: { type: ActivityEvent["type"] }) {
   switch (type) {
     case "exam_generated":
       return <Sparkles className="h-3.5 w-3.5" strokeWidth={2} />;
-    case "pdf_ready":
-      return <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={2} />;
     case "material_uploaded":
       return <FileUp className="h-3.5 w-3.5" strokeWidth={2} />;
     case "generation_failed":

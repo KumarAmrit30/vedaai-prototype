@@ -99,10 +99,12 @@ export function Topbar({
             <input
               type="search"
               readOnly
+              disabled
               placeholder="Search assignments, groups, library..."
               aria-label="Global search (coming soon)"
               aria-describedby="topbar-search-hint"
-              className="topbar-search topbar-search--coming-soon cursor-pointer placeholder:text-[var(--text-secondary)] placeholder:opacity-70"
+              title="Global search — coming soon"
+              className="topbar-search topbar-search--coming-soon cursor-not-allowed opacity-80 placeholder:text-[var(--text-secondary)] placeholder:opacity-70"
               onFocus={handleSearchInteract}
               onClick={handleSearchInteract}
               onKeyDown={handleSearchKeyDown}
@@ -120,7 +122,7 @@ export function Topbar({
 
           <button
             type="button"
-            aria-label="Notifications (coming soon)"
+            aria-label="Open notifications preview"
             className="topbar-icon-btn relative"
             onClick={handleNotificationsClick}
           >
@@ -180,14 +182,15 @@ export function Topbar({
             <button
               type="button"
               aria-label="Global search (coming soon)"
-              className="topbar-icon-btn h-8 w-8"
+              title="Global search — coming soon"
+              className="topbar-icon-btn h-8 w-8 cursor-not-allowed opacity-80"
               onClick={handleSearchInteract}
             >
               <Search className="h-[15px] w-[15px]" strokeWidth={2} />
             </button>
             <button
               type="button"
-              aria-label="Notifications (coming soon)"
+              aria-label="Open notifications preview"
               className="topbar-icon-btn h-8 w-8"
               onClick={handleNotificationsClick}
             >

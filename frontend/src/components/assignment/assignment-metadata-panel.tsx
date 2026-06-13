@@ -46,7 +46,7 @@ export function AssignmentMetadataPanel({
   const aiModel =
     assignment.generationMetrics?.model ??
     assignment.generationMetrics?.provider ??
-    "ExamForge AI";
+    null;
   const sourceMaterial =
     assignment.materialSource?.fileName ??
     assignment.originalFileName ??
@@ -66,7 +66,7 @@ export function AssignmentMetadataPanel({
       icon: Hash,
     },
     { label: "Marks", value: String(totalMarks), icon: Layers },
-    { label: "AI Model", value: aiModel, icon: Brain },
+    { label: "AI Model", value: aiModel ?? "Not available", icon: Brain },
     { label: "Source Material", value: sourceMaterial, icon: FileText },
     {
       label: "Question Style",

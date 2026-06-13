@@ -140,7 +140,7 @@ export function HomeDashboard({
   const usageLabel =
     usageAnalytics.assignmentLimit === null
       ? `${usageAnalytics.assignmentsGenerated} assignments generated`
-      : `${usageAnalytics.assignmentsGenerated} of ${usageAnalytics.assignmentLimit} credits used`;
+      : `${usageAnalytics.assignmentsGenerated} of ${usageAnalytics.assignmentLimit} generations used`;
 
   const activityHint =
     assignmentStats.processing > 0

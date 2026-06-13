@@ -71,7 +71,7 @@ export function AssignmentOverviewCards({
       icon: Layers,
     },
     {
-      label: "Time",
+      label: "Est. Completion Time",
       value: `${estimateCompletionMinutes(assignment)} min`,
       icon: Clock3,
     },

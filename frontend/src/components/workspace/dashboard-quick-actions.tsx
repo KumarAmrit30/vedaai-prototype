@@ -30,14 +30,14 @@ const ACTIONS: {
   },
   {
     href: ROUTES.createAssignment,
-    title: "Browse Templates",
+    title: "Choose Exam Pattern",
     description: "Pick CBSE, JEE, NEET, and other exam patterns.",
     icon: LayoutTemplate,
   },
   {
     href: ROUTES.library,
     title: "Resource Library",
-    description: "Access reusable banks, templates, and notes.",
+    description: "Preview upcoming reusable banks, templates, and notes.",
     icon: BookOpen,
   },
 ];

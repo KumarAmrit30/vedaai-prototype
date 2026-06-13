@@ -1,6 +1,6 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { Check, Clock3 } from "lucide-react";
 import type { Plan } from "@/types/billing";
 
 interface PlanCardProps {
@@ -12,11 +12,17 @@ interface PlanCardProps {
 const FEATURE_LABELS: Record<keyof Plan["features"], string> = {
   assignmentGeneration: "AI assignment generation",
   pdfExport: "PDF export",
-  library: "Material library",
-  groups: "Class groups",
+  library: "Resource library",
+  groups: "Department groups",
   bulkActions: "Bulk workspace actions",
   prioritySupport: "Priority support",
 };
+
+/** Shipped in catalog but not yet available in the product. */
+const PREVIEW_ONLY_FEATURES = new Set<keyof Plan["features"]>([
+  "library",
+  "groups",
+]);
 
 function formatPrice(monthlyPrice: number | null): string {
   if (monthlyPrice === null) {
@@ -76,18 +82,38 @@ export function PlanCard({
       </p>
 
       <ul className="mt-5 flex flex-1 flex-col gap-2">
-        {enabledFeatures.map(([key]) => (
-          <li
-            key={key}
-            className="flex items-start gap-2 text-[13px] text-[var(--text-secondary)]"
-          >
-            <Check
-              className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--orange-primary)]"
-              strokeWidth={2.5}
-            />
-            <span>{FEATURE_LABELS[key]}</span>
-          </li>
-        ))}
+        {enabledFeatures.map(([key]) => {
+          const isPreviewOnly = PREVIEW_ONLY_FEATURES.has(key);
+          const label = isPreviewOnly
+            ? `${FEATURE_LABELS[key]} (Coming Soon)`
+            : FEATURE_LABELS[key];
+
+          return (
+            <li
+              key={key}
+              className={`flex items-start gap-2 text-[13px] ${
+                isPreviewOnly
+                  ? "text-[var(--text-muted)]"
+                  : "text-[var(--text-secondary)]"
+              }`}
+            >
+              {isPreviewOnly ? (
+                <Clock3
+                  className="mt-0.5 h-3.5 w-3.5 shrink-0"
+                  strokeWidth={2}
+                  aria-hidden="true"
+                />
+              ) : (
+                <Check
+                  className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--orange-primary)]"
+                  strokeWidth={2.5}
+                  aria-hidden="true"
+                />
+              )}
+              <span>{label}</span>
+            </li>
+          );
+        })}
       </ul>
 
       <button

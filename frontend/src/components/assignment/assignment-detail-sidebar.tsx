@@ -37,10 +37,18 @@ export function AssignmentDetailSidebar({
 
   const insightItems = [
     materialPages != null
-      ? { label: "Material Pages", value: String(materialPages), icon: FileText }
+      ? {
+          label: "Approx. Material Pages",
+          value: String(materialPages),
+          icon: FileText,
+        }
       : null,
     compression
-      ? { label: "Compression Savings", value: compression, icon: Zap }
+      ? {
+          label: "Approx. Compression Savings",
+          value: compression,
+          icon: Zap,
+        }
       : null,
     generationTime
       ? { label: "Generation Time", value: generationTime, icon: Timer }
