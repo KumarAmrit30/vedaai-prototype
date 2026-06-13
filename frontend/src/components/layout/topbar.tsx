@@ -3,6 +3,7 @@
 import type { KeyboardEvent } from "react";
 import { Bell, LogIn, Menu, Search } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
+import { ExamForgeLogo } from "@/components/branding/examforge-logo";
 import { ComingSoonBadge } from "@/components/ui/coming-soon-badge";
 import {
   getUserDisplayName,
@@ -162,20 +163,13 @@ export function Topbar({
       {/* Mobile topbar */}
       <header className="md:hidden">
         <div className="flex items-center justify-between gap-2 py-0.5">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[var(--black-primary)] text-[11px] font-bold text-white">
-              E
-            </div>
-            <div>
-              <p className="text-[13px] font-semibold leading-none text-[var(--text-primary)]">
-                ExamForge AI
+          <div className="min-w-0">
+            <ExamForgeLogo variant="navbar" />
+            {title ? (
+              <p className="mt-0.5 truncate text-[11px] text-[var(--text-secondary)]">
+                {subtitle ?? title}
               </p>
-              {title ? (
-                <p className="mt-0.5 truncate text-[11px] text-[var(--text-secondary)]">
-                  {subtitle ?? title}
-                </p>
-              ) : null}
-            </div>
+            ) : null}
           </div>
 
           <div className="flex items-center gap-1.5">

@@ -2,6 +2,9 @@ import packageJson from "../../package.json";
 
 export const APP_NAME = "ExamForge AI";
 
+export const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL?.trim() || "http://localhost:3000";
+
 export const APP_VERSION = packageJson.version;
 
 export function getAppEnvironment(): "development" | "production" {

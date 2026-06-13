@@ -13,6 +13,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
+import { ExamForgeLogo } from "@/components/branding/examforge-logo";
 import { ComingSoonBadge } from "@/components/ui/coming-soon-badge";
 import { PlanBadge } from "@/components/ui/plan-badge";
 import {
@@ -99,19 +100,7 @@ export function Sidebar({
   return (
     <aside className="sidebar-shell hidden h-full shrink-0 flex-col md:flex">
       <div className="sidebar-shell__header flex flex-col gap-3 px-3 pt-4 pb-2">
-        <div className="sidebar-shell__brand flex items-center gap-2">
-          <div className="sidebar-shell__logo flex h-7 w-7 shrink-0 items-center justify-center rounded-[9px] bg-[var(--black-primary)] text-[10px] font-bold text-white">
-            E
-          </div>
-          <div className="sidebar-shell__brand-text min-w-0">
-            <p className="text-[14px] font-semibold leading-none tracking-[-0.02em] text-[var(--text-primary)]">
-              ExamForge AI
-            </p>
-            <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">
-              Exam Generation Platform
-            </p>
-          </div>
-        </div>
+        <ExamForgeLogo variant="sidebar" />
 
         <button
           type="button"

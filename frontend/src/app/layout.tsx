@@ -4,6 +4,8 @@ import { GeistSans } from "geist/font/sans";
 import { AppToaster } from "@/components/layout/app-toaster";
 import { AuthProvider } from "@/providers/auth-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
+import { APP_URL } from "@/lib/app-metadata";
+import { BRANDING } from "@/lib/branding";
 import { THEME_STORAGE_KEY } from "@/lib/preferences/theme";
 import "./globals.css";
 
@@ -13,13 +15,33 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(APP_URL),
   title: "ExamForge AI",
   description:
     "AI-powered assessment and exam generation platform with real-time processing, study material grounding, and PDF export.",
+  icons: {
+    icon: BRANDING.favicon,
+    apple: BRANDING.icon,
+  },
   openGraph: {
     title: "ExamForge AI",
     description:
       "AI-powered assessment and exam generation platform with real-time processing, study material grounding, and PDF export.",
+    images: [
+      {
+        url: BRANDING.icon,
+        width: 512,
+        height: 512,
+        alt: "ExamForge AI",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary",
+    title: "ExamForge AI",
+    description:
+      "AI-powered assessment and exam generation platform with real-time processing, study material grounding, and PDF export.",
+    images: [BRANDING.icon],
   },
 };
 

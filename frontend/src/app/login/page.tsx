@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { ExamForgeLogo } from "@/components/branding/examforge-logo";
 import { useAuthStore } from "@/store/auth.store";
 
 function getAuthErrorMessage(error: unknown): string {
@@ -92,14 +93,9 @@ function LoginContent(): React.ReactNode {
     <div className="flex min-h-full items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         <div className="surface-card-compact px-8 py-10 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-[14px] bg-[var(--black-primary)] text-sm font-bold text-white">
-            E
-          </div>
+          <ExamForgeLogo variant="auth" className="mb-2" />
 
-          <h1 className="mt-5 text-[24px] font-semibold tracking-[-0.03em] text-[var(--text-primary)]">
-            ExamForge AI
-          </h1>
-          <p className="mt-2 text-[14px] leading-relaxed text-[var(--text-secondary)]">
+          <p className="mt-4 text-[14px] leading-relaxed text-[var(--text-secondary)]">
             AI-powered assessment generation for educators. Sign in to access your
             workspace.
           </p>

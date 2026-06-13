@@ -500,6 +500,14 @@ body {
   }
 }
 
+/* Desktop sidebar — full horizontal logo replaces icon on light theme */
+
+@media (min-width: 1180px) {
+  html:not(.dark) .sidebar-shell__logo--icon {
+    display: none;
+  }
+}
+
 /* Tablet icon rail (768px – 1179px) */
 
 @media (min-width: 768px) and (max-width: 1179px) {
@@ -512,7 +520,9 @@ body {
     justify-content: center;
   }
 
+  .sidebar-shell__logo-image,
   .sidebar-shell__brand-text,
+  .sidebar-shell__brand-text--navbar,
   .sidebar-item__label,
   .create-assignment-btn__label,
   .sidebar-shell__profile-text {

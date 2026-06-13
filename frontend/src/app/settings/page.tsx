@@ -10,6 +10,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/layout/app-shell";
+import { ExamForgeLogo } from "@/components/branding/examforge-logo";
 import { AppearanceSection } from "@/components/settings/appearance-section";
 import { GenerationPreferencesSection } from "@/components/settings/generation-preferences-section";
 import { WorkspacePreferencesSection } from "@/components/settings/workspace-preferences-section";
@@ -283,6 +284,9 @@ export default function SettingsPage() {
             description="Application information."
             icon={Shield}
           >
+            <div className="mb-5">
+              <ExamForgeLogo variant="about" />
+            </div>
             <dl>
               <SettingsDetailRow label="App name" value={APP_NAME} />
               <SettingsDetailRow label="Version" value={`v${APP_VERSION}`} />
