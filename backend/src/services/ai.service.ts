@@ -1,3 +1,4 @@
+import { env } from "../config/env";
 import type {
   AnswerKeyEntry,
   ExamBlueprint,
@@ -5,6 +6,7 @@ import type {
   GenerationMetrics,
 } from "../modules/assignment/assignment.types";
 import { getAIProvider } from "./ai/providers";
+import type { ProviderGenerationResult } from "./ai/interfaces/AIProvider";
 import {
   AssignmentGenerationError,
   classifyGenerationError,
@@ -23,6 +25,37 @@ import { parseAIResponse } from "./ai/response-parser";
 import { logDebug, logError, logInfo } from "../utils/logger";
 
 export type { AssignmentGenerationInput, AssignmentGenerationResult } from "./ai/assignment-generation.types";
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function accumulateTokenMetrics(
+  metrics: GenerationMetrics,
+  providerResult: ProviderGenerationResult,
+): void {
+  if (providerResult.promptTokens !== undefined) {
+    metrics.promptTokens =
+      (metrics.promptTokens ?? 0) + providerResult.promptTokens;
+  }
+
+  if (providerResult.completionTokens !== undefined) {
+    metrics.completionTokens =
+      (metrics.completionTokens ?? 0) + providerResult.completionTokens;
+  }
+
+  if (providerResult.totalTokens !== undefined) {
+    metrics.totalTokens =
+      (metrics.totalTokens ?? 0) + providerResult.totalTokens;
+  }
+
+  if (providerResult.thoughtsTokens !== undefined) {
+    metrics.thoughtsTokens =
+      (metrics.thoughtsTokens ?? 0) + providerResult.thoughtsTokens;
+  }
+}
 
 function buildFailureMetrics(
   providerName: string,
@@ -57,6 +90,7 @@ async function generateLegacyAssignmentPaper(
   generatedPaper: GeneratedPaper;
   answerKey: AnswerKeyEntry[];
   retryCount: number;
+  providerResult: ProviderGenerationResult;
 }> {
   const prompt = buildAssignmentPrompt(input);
   const providerResult = await provider.generateAssignment(prompt);
@@ -84,6 +118,7 @@ async function generateLegacyAssignmentPaper(
     generatedPaper: { sections: structured.sections },
     answerKey: structured.answerKey,
     retryCount: providerResult.retryCount,
+    providerResult,
   };
 }
 
@@ -95,13 +130,18 @@ async function generateBlueprintAssignmentPaper(
   generatedPaper: GeneratedPaper;
   answerKey: AnswerKeyEntry[];
   retryCount: number;
+  providerResults: ProviderGenerationResult[];
 }> {
   const mergedSections: GeneratedPaper["sections"] = [];
   const mergedAnswerKey: AnswerKeyEntry[] = [];
+  const providerResults: ProviderGenerationResult[] = [];
   let retryCount = 0;
   let globalQuestionOffset = 0;
 
   for (let sectionIndex = 0; sectionIndex < blueprint.sections.length; sectionIndex += 1) {
+    if (sectionIndex > 0 && env.vertexSectionDelayMs > 0) {
+      await sleep(env.vertexSectionDelayMs);
+    }
     const section = blueprint.sections[sectionIndex];
     if (!section) continue;
 
@@ -113,6 +153,7 @@ async function generateBlueprintAssignmentPaper(
     });
 
     const providerResult = await provider.generateAssignment(prompt);
+    providerResults.push(providerResult);
     retryCount += providerResult.retryCount;
 
     const structured = parseAIResponse(providerResult.text);
@@ -152,6 +193,7 @@ async function generateBlueprintAssignmentPaper(
     generatedPaper: { sections: mergedSections },
     answerKey: mergedAnswerKey,
     retryCount,
+    providerResults,
   };
 }
 
@@ -196,6 +238,14 @@ export async function generateAssignmentPaper(
       retryCount,
     };
 
+    if ("providerResult" in generationResult) {
+      accumulateTokenMetrics(generationMetrics, generationResult.providerResult);
+    } else {
+      for (const providerResult of generationResult.providerResults) {
+        accumulateTokenMetrics(generationMetrics, providerResult);
+      }
+    }
+
     const result = {
       generatedPaper: generationResult.generatedPaper,
       answerKey: generationResult.answerKey,
@@ -207,6 +257,11 @@ export async function generateAssignmentPaper(
       provider: provider.name,
       model: provider.model,
       durationMs,
+      retryCount,
+      promptTokens: generationMetrics.promptTokens,
+      completionTokens: generationMetrics.completionTokens,
+      totalTokens: generationMetrics.totalTokens,
+      thoughtsTokens: generationMetrics.thoughtsTokens,
       mode: input.examBlueprint ? "blueprint" : "legacy",
     });
 

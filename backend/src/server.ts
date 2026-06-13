@@ -82,6 +82,7 @@ async function startServer(): Promise<void> {
         port: env.port,
         clientUrl: env.clientUrl,
         healthCheck: `/api/health`,
+        aiHealthCheck: `/api/health/ai`,
       });
     });
 

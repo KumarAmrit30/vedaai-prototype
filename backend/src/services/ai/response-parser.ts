@@ -1,5 +1,6 @@
+import { jsonrepair } from "jsonrepair";
 import { z } from "zod";
-import { logError } from "../../utils/logger";
+import { logError, logInfo } from "../../utils/logger";
 
 export const difficultySchema = z.enum(["easy", "medium", "hard"]);
 
@@ -138,14 +139,31 @@ function countQuestionsFromParsed(parsed: unknown): number | undefined {
 function parseJson(cleanedText: string): unknown {
   try {
     return JSON.parse(cleanedText) as unknown;
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Unknown JSON parse error";
-    logError("[AI][PARSER] JSON parse failed", {
-      message,
-      responseLength: cleanedText.length,
-    });
-    throw new Error(`Failed to parse AI response as JSON: ${message}`);
+  } catch (parseError) {
+    const parseMessage =
+      parseError instanceof Error
+        ? parseError.message
+        : "Unknown JSON parse error";
+
+    try {
+      const repaired = jsonrepair(cleanedText);
+      const parsed = JSON.parse(repaired) as unknown;
+      logInfo("[AI][PARSER] JSON repaired successfully", {
+        responseLength: cleanedText.length,
+      });
+      return parsed;
+    } catch (repairError) {
+      const repairMessage =
+        repairError instanceof Error
+          ? repairError.message
+          : "Unknown JSON repair error";
+      logError("[AI][PARSER] JSON parse and repair failed", {
+        parseMessage,
+        repairMessage,
+        responseLength: cleanedText.length,
+      });
+      throw new Error(`Failed to parse AI response as JSON: ${parseMessage}`);
+    }
   }
 }
 

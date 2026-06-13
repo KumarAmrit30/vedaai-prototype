@@ -1,10 +1,8 @@
-export interface ProviderGenerationResult {
-  text: string;
-  retryCount: number;
-}
-
-export interface AIProvider {
-  readonly name: string;
-  readonly model: string;
-  generateAssignment(prompt: string): Promise<ProviderGenerationResult>;
-}
+/** @deprecated Import from ../interfaces/AIProvider instead. */
+export type {
+  AIProvider,
+  ProviderGenerationResult,
+  GenerateTextOptions,
+  GenerateJsonOptions,
+  HealthCheckResult,
+} from "../interfaces/AIProvider";

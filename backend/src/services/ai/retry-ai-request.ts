@@ -1,8 +1,10 @@
 import { logError, logInfo, logWarn } from "../../utils/logger";
 import { AIRequestTimeoutError } from "./request-timeout";
 
-const RETRY_DELAY_MS = 1000;
-const MAX_ATTEMPTS = 2;
+export const MAX_ATTEMPTS = 4;
+const MAX_BACKOFF_MS = 15_000;
+const BASE_BACKOFF_MS = 1000;
+const JITTER_MAX_MS = 500;
 
 const RETRYABLE_NETWORK_CODES = new Set([
   "ECONNRESET",
@@ -22,7 +24,6 @@ const NON_RETRYABLE_HTTP_STATUSES = new Set([
   409,
   413,
   422,
-  429,
 ]);
 
 const NON_RETRYABLE_MESSAGE_PATTERNS = [
@@ -34,7 +35,6 @@ const NON_RETRYABLE_MESSAGE_PATTERNS = [
   "billing",
   "payment required",
   "quota exceeded",
-  "rate limit",
   "exceeded your current quota",
   "credits",
   "insufficient_quota",
@@ -42,6 +42,8 @@ const NON_RETRYABLE_MESSAGE_PATTERNS = [
   "incorrect api key",
   "unauthorized",
   "permission denied",
+  "generation truncated",
+  "generation blocked",
 ];
 
 function getErrorStatus(error: unknown): number | undefined {
@@ -61,6 +63,16 @@ function hasNonRetryableMessage(error: Error): boolean {
   );
 }
 
+export function computeRetryDelayMs(attempt: number): number {
+  const exponentialDelay = Math.min(
+    BASE_BACKOFF_MS * 2 ** attempt,
+    MAX_BACKOFF_MS,
+  );
+  const jitter = Math.floor(Math.random() * (JITTER_MAX_MS + 1));
+
+  return exponentialDelay + jitter;
+}
+
 export function isRetryableAIError(error: unknown): boolean {
   if (error instanceof AIRequestTimeoutError) {
     return true;
@@ -70,11 +82,15 @@ export function isRetryableAIError(error: unknown): boolean {
     return false;
   }
 
+  const status = getErrorStatus(error);
+
+  if (status === 429) {
+    return true;
+  }
+
   if (hasNonRetryableMessage(error)) {
     return false;
   }
-
-  const status = getErrorStatus(error);
 
   if (typeof status === "number") {
     if (NON_RETRYABLE_HTTP_STATUSES.has(status)) {
@@ -169,13 +185,16 @@ export async function retryAIRequest<T>(
         throw error;
       }
 
+      const delayMs = computeRetryDelayMs(attempt);
+
       logWarn(`[AI][RETRY] Attempt ${attempt} failed`, {
         provider,
         model,
         message,
+        delayMs,
       });
-      logInfo("[AI][RETRY] Retrying request", { provider, model });
-      await sleep(RETRY_DELAY_MS);
+      logInfo("[AI][RETRY] Retrying request", { provider, model, delayMs });
+      await sleep(delayMs);
     }
   }
 

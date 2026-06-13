@@ -72,6 +72,10 @@ export interface GenerationMetrics {
   model?: string;
   durationMs?: number;
   retryCount?: number;
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+  thoughtsTokens?: number;
   errorCategory?: string;
 }
 

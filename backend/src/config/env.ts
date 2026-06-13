@@ -3,9 +3,14 @@ const DEFAULT_PORT = 8000;
 const DEFAULT_AI_PROVIDER = "groq";
 const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 const DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile";
+const DEFAULT_VERTEX_MODEL = "gemini-2.5-flash";
+const DEFAULT_VERTEX_LOCATION = "asia-south1";
+const DEFAULT_VERTEX_MAX_OUTPUT_TOKENS = 8192;
+const DEFAULT_VERTEX_TOP_P = 0.95;
+const DEFAULT_VERTEX_SECTION_DELAY_MS = 0;
 const DEFAULT_AI_REQUEST_TIMEOUT_MS = 45_000;
 
-export const AI_PROVIDERS = ["gemini", "groq"] as const;
+export const AI_PROVIDERS = ["gemini", "groq", "vertex"] as const;
 export type AIProviderName = (typeof AI_PROVIDERS)[number];
 
 function readRequired(name: string): string {
@@ -48,6 +53,43 @@ function readOptionalPositiveNumber(name: string, fallback: number): number {
   return parsed;
 }
 
+function readOptionalNonNegativeNumber(name: string, fallback: number): number {
+  const value = process.env[name]?.trim();
+
+  if (!value) return fallback;
+
+  const parsed = Number(value);
+
+  if (Number.isNaN(parsed) || parsed < 0) {
+    throw new Error(
+      `[ENV] ${name} must be a non-negative number. Got: ${value}`,
+    );
+  }
+
+  return parsed;
+}
+
+function readOptionalNumberInRange(
+  name: string,
+  fallback: number,
+  min: number,
+  max: number,
+): number {
+  const value = process.env[name]?.trim();
+
+  if (!value) return fallback;
+
+  const parsed = Number(value);
+
+  if (Number.isNaN(parsed) || parsed < min || parsed > max) {
+    throw new Error(
+      `[ENV] ${name} must be between ${min} and ${max}. Got: ${value}`,
+    );
+  }
+
+  return parsed;
+}
+
 function readFirebasePrivateKey(): string | undefined {
   const value = process.env.FIREBASE_PRIVATE_KEY?.trim();
 
@@ -79,7 +121,15 @@ function readModelName(envKey: string, fallback: string): string {
 }
 
 export function getActiveAIModel(): string {
-  return env.aiProvider === "gemini" ? env.geminiModel : env.groqModel;
+  switch (env.aiProvider) {
+    case "gemini":
+      return env.geminiModel;
+    case "vertex":
+      return env.vertexModel;
+    case "groq":
+    default:
+      return env.groqModel;
+  }
 }
 
 export const env = {
@@ -92,6 +142,23 @@ export const env = {
   geminiModel: readModelName("GEMINI_MODEL", DEFAULT_GEMINI_MODEL),
   groqApiKey: process.env.GROQ_API_KEY?.trim() || undefined,
   groqModel: readModelName("GROQ_MODEL", DEFAULT_GROQ_MODEL),
+  gcpProjectId: process.env.GCP_PROJECT_ID?.trim() || undefined,
+  vertexLocation: readOptional("VERTEX_LOCATION", DEFAULT_VERTEX_LOCATION),
+  vertexModel: readModelName("VERTEX_MODEL", DEFAULT_VERTEX_MODEL),
+  vertexMaxOutputTokens: readOptionalPositiveNumber(
+    "VERTEX_MAX_OUTPUT_TOKENS",
+    DEFAULT_VERTEX_MAX_OUTPUT_TOKENS,
+  ),
+  vertexTopP: readOptionalNumberInRange(
+    "VERTEX_TOP_P",
+    DEFAULT_VERTEX_TOP_P,
+    0,
+    1,
+  ),
+  vertexSectionDelayMs: readOptionalNonNegativeNumber(
+    "VERTEX_SECTION_DELAY_MS",
+    DEFAULT_VERTEX_SECTION_DELAY_MS,
+  ),
   aiRequestTimeoutMs: readOptionalPositiveNumber(
     "AI_REQUEST_TIMEOUT_MS",
     DEFAULT_AI_REQUEST_TIMEOUT_MS,
@@ -121,6 +188,12 @@ export function validateEnv(): void {
 
   if (env.aiProvider === "groq" && !env.groqModel.trim()) {
     throw new Error("[ENV] GROQ_MODEL must not be empty when AI_PROVIDER=groq.");
+  }
+
+  if (env.aiProvider === "vertex" && !env.gcpProjectId) {
+    throw new Error(
+      "[ENV] GCP_PROJECT_ID is required when AI_PROVIDER=vertex.",
+    );
   }
 
   if (!env.redisUrl && !env.redisHost) {

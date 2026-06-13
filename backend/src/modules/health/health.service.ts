@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import mongoose from "mongoose";
 import { env, getActiveAIModel } from "../../config/env";
+import { getAIProvider } from "../../services/ai/providers";
 import { countStuckAssignments } from "../assignment/assignment.queries";
 import {
   assignmentQueue,
@@ -105,6 +106,44 @@ function resolveOverallStatus(
   }
 
   return "healthy";
+}
+
+export interface AIHealthReport {
+  provider: string;
+  model: string;
+  ok: boolean;
+  latencyMs?: number;
+  error?: string;
+  timestamp: string;
+}
+
+export async function collectAIHealthReport(): Promise<AIHealthReport> {
+  const provider = getAIProvider();
+  const startedAt = Date.now();
+
+  try {
+    const result = await provider.healthCheck();
+
+    return {
+      provider: provider.name,
+      model: provider.model,
+      ok: result.ok,
+      latencyMs: result.latencyMs ?? Date.now() - startedAt,
+      ...(result.error ? { error: result.error } : {}),
+      timestamp: new Date().toISOString(),
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+
+    return {
+      provider: provider.name,
+      model: provider.model,
+      ok: false,
+      latencyMs: Date.now() - startedAt,
+      error: message,
+      timestamp: new Date().toISOString(),
+    };
+  }
 }
 
 export async function collectHealthReport(): Promise<HealthReport> {

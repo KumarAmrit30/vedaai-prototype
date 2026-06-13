@@ -1,3 +1,17 @@
+jest.mock("jsonrepair", () => {
+  const actual = jest.requireActual<typeof import("jsonrepair")>("jsonrepair");
+
+  return {
+    jsonrepair: jest.fn((text: string) => {
+      if (text.includes("__FORCE_REPAIR_FAIL__")) {
+        throw new Error("repair failed");
+      }
+
+      return actual.jsonrepair(text);
+    }),
+  };
+});
+
 import { parseAIResponse } from "../../src/services/ai/response-parser";
 
 function buildValidPayload(questionCount = 2) {
@@ -44,10 +58,20 @@ describe("parseAIResponse", () => {
     expect(result.answerKey).toHaveLength(2);
   });
 
-  it("throws on malformed JSON", () => {
-    expect(() => parseAIResponse("{ not valid json")).toThrow(
-      /Failed to parse AI response as JSON/i,
-    );
+  it("throws on malformed JSON that cannot be repaired", () => {
+    expect(() =>
+      parseAIResponse("{ not valid json __FORCE_REPAIR_FAIL__"),
+    ).toThrow(/Failed to parse AI response as JSON/i);
+  });
+
+  it("repairs malformed JSON before Zod validation", () => {
+    const payload = buildValidPayload(2);
+    const malformed = `${JSON.stringify(payload)},`;
+
+    const result = parseAIResponse(malformed);
+
+    expect(result.sections).toHaveLength(1);
+    expect(result.answerKey).toHaveLength(2);
   });
 
   it("throws when answer key count mismatches question count", () => {

@@ -1,27 +1,24 @@
 import { env } from "../../../config/env";
-import type { AIProvider } from "./ai-provider";
-import { GeminiProvider } from "./gemini-provider";
-import { GroqProvider } from "./groq-provider";
+import { createAIProvider } from "../factory/AIProviderFactory";
+import type { AIProvider } from "../interfaces/AIProvider";
 
 let cachedProvider: AIProvider | undefined;
+let cachedProviderType: string | undefined;
 
 export function getAIProvider(): AIProvider {
-  if (cachedProvider) {
+  if (cachedProvider && cachedProviderType === env.aiProvider) {
     return cachedProvider;
   }
 
-  switch (env.aiProvider) {
-    case "gemini":
-      cachedProvider = new GeminiProvider();
-      break;
-    case "groq":
-      cachedProvider = new GroqProvider();
-      break;
-    default:
-      throw new Error(`Unsupported AI provider: ${env.aiProvider}`);
-  }
-
+  cachedProvider = createAIProvider(env.aiProvider);
+  cachedProviderType = env.aiProvider;
   return cachedProvider;
 }
 
-export type { AIProvider } from "./ai-provider";
+/** Clears cached provider — useful in tests when env overrides change. */
+export function resetAIProviderCache(): void {
+  cachedProvider = undefined;
+  cachedProviderType = undefined;
+}
+
+export type { AIProvider } from "../interfaces/AIProvider";

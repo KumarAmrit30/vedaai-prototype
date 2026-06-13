@@ -200,6 +200,11 @@ async function processAssignmentJob(
       uid: userId,
       provider: generationResult.generationMetrics.provider,
       durationMs: generationResult.generationMetrics.durationMs,
+      retryCount: generationResult.generationMetrics.retryCount,
+      promptTokens: generationResult.generationMetrics.promptTokens,
+      completionTokens: generationResult.generationMetrics.completionTokens,
+      totalTokens: generationResult.generationMetrics.totalTokens,
+      thoughtsTokens: generationResult.generationMetrics.thoughtsTokens,
       jobId: job.id,
     });
   } catch (error) {
