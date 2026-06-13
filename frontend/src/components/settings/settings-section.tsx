@@ -16,21 +16,17 @@ export function SettingsSection({
   children,
 }: SettingsSectionProps) {
   return (
-    <section className="surface-card-compact p-5 md:p-6">
-      <header className="mb-5 flex items-start gap-3">
+    <section className="section-card">
+      <header className="section-card__header mb-5 flex items-start gap-3">
         {Icon ? (
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] border border-[var(--border-light)] bg-[var(--surface-muted)] text-[var(--text-secondary)]">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] border border-[var(--border-light)] bg-[var(--surface-muted)] text-[var(--text-secondary)]">
             <Icon className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
           </div>
         ) : null}
         <div className="min-w-0">
-          <h2 className="font-display text-[15px] font-semibold text-[var(--text-primary)]">
-            {title}
-          </h2>
+          <h2 className="section-card__title">{title}</h2>
           {description ? (
-            <p className="mt-1 text-[13px] leading-relaxed text-[var(--text-secondary)]">
-              {description}
-            </p>
+            <p className="section-card__description">{description}</p>
           ) : null}
         </div>
       </header>

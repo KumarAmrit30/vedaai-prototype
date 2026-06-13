@@ -66,7 +66,7 @@ export function WorkspacePreferencesSection() {
         <div className="metric-card">
           <div className="metric-card__content">
             <span className="metric-card__value">{generationsUsed}</span>
-            <span className="metric-card__label">Assignments generated</span>
+            <span className="metric-card__label">Lifetime assignments generated</span>
           </div>
         </div>
       </div>

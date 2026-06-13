@@ -4,21 +4,11 @@ import { Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { ROUTES } from "@/lib/navigation/routes";
+import { formatUpgradeLimitMessage } from "@/lib/utils/usage-label";
 import { useUserStore } from "@/store/user.store";
 
 const FOCUSABLE_SELECTOR =
   'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
-
-function formatLimitMessage(
-  used: number,
-  limit: number | null | undefined,
-): string {
-  if (limit == null) {
-    return `You have used ${used} assignment generation${used === 1 ? "" : "s"} on your current plan.`;
-  }
-
-  return `You have used ${used} of ${limit} assignment generation${limit === 1 ? "" : "s"} included in your plan.`;
-}
 
 /**
  * Shown when a free-plan user hits the generation limit. The Upgrade action is
@@ -117,7 +107,7 @@ export function UpgradeModal() {
               id="upgrade-modal-description"
               className="mt-2 text-[13px] leading-relaxed text-[var(--text-secondary)]"
             >
-              {formatLimitMessage(generationsUsed, assignmentLimit)}
+              {formatUpgradeLimitMessage(generationsUsed, assignmentLimit)}
             </p>
           </div>
         </div>

@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { PlanCard } from "@/components/billing/plan-card";
 import { AppShell } from "@/components/layout/app-shell";
+import { PageHeader } from "@/components/ui/page-header";
 import { fetchPlanCatalog } from "@/lib/api/billing";
 import { useShellNavigation } from "@/hooks/use-shell-navigation";
 import { useAuthStore } from "@/store/auth.store";
@@ -57,28 +58,16 @@ export default function UpgradePage() {
       comingSoon={comingSoon}
     >
       <div className="mx-auto w-full max-w-5xl px-4 py-6 md:px-6 md:py-8">
-        <div className="mb-8">
-          <h1 className="text-[28px] font-semibold tracking-[-0.03em] text-[var(--text-primary)]">
-            Plans & Pricing
-          </h1>
-          <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-[var(--text-secondary)]">
-            Paid plans are not available yet. All users remain on the free plan
-            while we prepare checkout and subscription management.
-          </p>
-          {authStatus === "authenticated" ? (
-            <p className="mt-3 text-[13px] text-[var(--text-muted)]">
-              Current plan:{" "}
-              <span className="font-medium text-[var(--text-secondary)]">
-                {currentPlan}
-              </span>
-              {" · "}
-              Subscription:{" "}
-              <span className="font-medium capitalize text-[var(--text-secondary)]">
-                {subscriptionStatus}
-              </span>
-            </p>
-          ) : null}
-        </div>
+        <PageHeader
+          className="mb-8"
+          title="Plans & Pricing"
+          description="Paid plans are not available yet. All users remain on the free plan while we prepare checkout and subscription management."
+          meta={
+            authStatus === "authenticated"
+              ? `Current plan: ${currentPlan} · Subscription: ${subscriptionStatus}`
+              : undefined
+          }
+        />
 
         {loading ? (
           <div className="flex items-center justify-center py-16">

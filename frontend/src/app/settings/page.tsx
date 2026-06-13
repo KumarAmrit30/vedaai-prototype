@@ -33,6 +33,7 @@ import {
   getUserInitials,
 } from "@/lib/auth/user-display";
 import { ROUTES } from "@/lib/navigation/routes";
+import { formatSettingsUsageLabel } from "@/lib/utils/usage-label";
 import { useAuthStore } from "@/store/auth.store";
 import { useUserStore } from "@/store/user.store";
 
@@ -98,10 +99,10 @@ export default function SettingsPage() {
     billingProfile?.limits.assignmentsAllowed ??
     profile?.limits.assignmentsAllowed ??
     null;
-  const usageLabel =
-    generationsAllowed === null
-      ? String(generationsUsed)
-      : `${generationsUsed} / ${generationsAllowed}`;
+  const usageLabel = formatSettingsUsageLabel(
+    generationsUsed,
+    generationsAllowed,
+  );
 
   const isLoading = authStatus === "loading" || profileStatus === "loading";
 
@@ -255,11 +256,11 @@ export default function SettingsPage() {
                 value={<span className="capitalize">{subscriptionStatus}</span>}
               />
               <SettingsDetailRow
-                label="Assignments generated"
+                label="Assignments generated (lifetime)"
                 value={String(generationsUsed)}
               />
               <SettingsDetailRow
-                label="Assignment limit"
+                label="Assignment limit (lifetime)"
                 value={
                   generationsAllowed === null
                     ? "Unlimited"

@@ -2,6 +2,7 @@
 
 import { Check, Clock3 } from "lucide-react";
 import type { Plan } from "@/types/billing";
+import { formatPlanAssignmentLimit } from "@/lib/utils/usage-label";
 
 interface PlanCardProps {
   plan: Plan;
@@ -36,14 +37,6 @@ function formatPrice(monthlyPrice: number | null): string {
   return `$${monthlyPrice}/mo`;
 }
 
-function formatAssignmentLimit(limit: number | null): string {
-  if (limit === null) {
-    return "Unlimited generations";
-  }
-
-  return `${limit} generations`;
-}
-
 export function PlanCard({
   plan,
   isCurrentPlan = false,
@@ -57,13 +50,13 @@ export function PlanCard({
     <article
       className={`surface-card-compact flex h-full flex-col p-6 ${
         highlight
-          ? "ring-2 ring-[var(--orange-primary)] ring-offset-2 ring-offset-[var(--surface-base)]"
+          ? "ring-2 ring-[var(--accent-primary)] ring-offset-2 ring-offset-[var(--surface-base)]"
           : ""
       }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-[18px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]">
+          <h2 className="font-display text-[18px] font-semibold tracking-[-0.02em] text-[var(--text-primary)]">
             {plan.displayName}
           </h2>
           <p className="mt-1 text-[24px] font-bold text-[var(--text-primary)]">
@@ -78,7 +71,7 @@ export function PlanCard({
       </div>
 
       <p className="mt-3 text-[13px] text-[var(--text-secondary)]">
-        {formatAssignmentLimit(plan.assignmentLimit)}
+        {formatPlanAssignmentLimit(plan.assignmentLimit)}
       </p>
 
       <ul className="mt-5 flex flex-1 flex-col gap-2">

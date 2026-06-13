@@ -18,6 +18,7 @@ import {
   computeUsageAnalytics,
   getRecentAssignments,
 } from "@/lib/utils/dashboard-analytics";
+import { formatDashboardUsageLabel } from "@/lib/utils/usage-label";
 import { useAssignmentStore } from "@/store/assignment.store";
 import { useAuthStore } from "@/store/auth.store";
 import { useUserStore } from "@/store/user.store";
@@ -137,10 +138,10 @@ export function HomeDashboard({
     );
   }
 
-  const usageLabel =
-    usageAnalytics.assignmentLimit === null
-      ? `${usageAnalytics.assignmentsGenerated} assignments generated`
-      : `${usageAnalytics.assignmentsGenerated} of ${usageAnalytics.assignmentLimit} generations used`;
+  const usageLabel = formatDashboardUsageLabel(
+    usageAnalytics.assignmentsGenerated,
+    usageAnalytics.assignmentLimit,
+  );
 
   const activityHint =
     assignmentStats.processing > 0

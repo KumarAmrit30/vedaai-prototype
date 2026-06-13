@@ -26,14 +26,12 @@ export function DashboardHero({
   return (
     <section className="dashboard-hero stitch-card">
       <div className="dashboard-hero__content">
-        <p className="dashboard-hero__eyebrow">{greeting}</p>
-        <h1 className="font-display text-[28px] font-semibold tracking-tight text-[var(--text-primary)] md:text-[32px]">
-          {name}
-        </h1>
-        <p className="mt-2 max-w-xl text-[15px] text-[var(--text-secondary)]">
+        <p className="page-header__eyebrow">{greeting}</p>
+        <h1 className="page-header__title">{name}</h1>
+        <p className="page-header__description">
           Ready to generate today&apos;s assessments?
         </p>
-        <p className="mt-2 text-[13px] text-[var(--text-muted)]">
+        <p className="page-header__meta">
           {usageLabel}
           {activityHint ? ` · ${activityHint}` : null}
         </p>

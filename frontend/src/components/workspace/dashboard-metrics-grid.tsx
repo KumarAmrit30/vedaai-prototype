@@ -7,6 +7,7 @@ import {
   Hash,
   Sparkles,
 } from "lucide-react";
+import { MetricCard } from "@/components/ui/metric-card";
 import type { DashboardMetrics } from "@/lib/utils/dashboard-analytics";
 
 interface DashboardMetricsGridProps {
@@ -41,7 +42,7 @@ export function DashboardMetricsGrid({ metrics }: DashboardMetricsGridProps) {
       icon: Download,
     },
     {
-      label: "Remaining Generations",
+      label: "Remaining Lifetime Generations",
       value:
         metrics.remainingCredits === null
           ? "Unlimited"
@@ -49,7 +50,7 @@ export function DashboardMetricsGrid({ metrics }: DashboardMetricsGridProps) {
       hint:
         metrics.remainingCredits === null
           ? "Unlimited on paid plans"
-          : "On your current plan",
+          : "Lifetime quota on your current plan",
       icon: FileStack,
     },
   ];
@@ -57,18 +58,14 @@ export function DashboardMetricsGrid({ metrics }: DashboardMetricsGridProps) {
   return (
     <section className="dashboard-metrics-grid" aria-label="Dashboard metrics">
       {cards.map((card) => (
-        <article key={card.label} className="metric-card dashboard-metric-card">
-          <div className="metric-card__icon">
-            <card.icon className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
-          </div>
-          <div className="metric-card__content">
-            <span className="metric-card__value">{card.value}</span>
-            <span className="metric-card__label">{card.label}</span>
-            {card.hint ? (
-              <span className="dashboard-metric-card__hint">{card.hint}</span>
-            ) : null}
-          </div>
-        </article>
+        <MetricCard
+          key={card.label}
+          label={card.label}
+          value={card.value}
+          hint={card.hint}
+          icon={card.icon}
+          className="dashboard-metric-card"
+        />
       ))}
     </section>
   );

@@ -18,6 +18,7 @@ import {
   getUserInitials,
 } from "@/lib/auth/user-display";
 import { ROUTES } from "@/lib/navigation/routes";
+import { formatSidebarUsageLabel } from "@/lib/utils/usage-label";
 import { useAuthStore } from "@/store/auth.store";
 import { useUserStore } from "@/store/user.store";
 
@@ -96,10 +97,11 @@ export function MobileNavDrawer({
     billingProfile?.limits.assignmentsAllowed ??
     profile?.limits.assignmentsAllowed ??
     null;
-  const usageLabel =
-    generationsAllowed === null
-      ? `${generationsUsed} Generations Used`
-      : `${generationsUsed} / ${generationsAllowed} Generations Used`;
+  const usageLabel = formatSidebarUsageLabel(
+    generationsUsed,
+    generationsAllowed,
+    isAuthenticated,
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -233,7 +235,7 @@ export function MobileNavDrawer({
 
           {isAuthLoading ? (
             <div
-              className="sidebar-shell__profile mt-1 flex items-center gap-2 rounded-[10px] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-2"
+              className="sidebar-shell__profile mt-1 flex items-center gap-2 p-2"
               aria-hidden="true"
             >
               <div className="shimmer-block h-7 w-7 shrink-0 rounded-full" />
@@ -244,7 +246,7 @@ export function MobileNavDrawer({
             </div>
           ) : (
             <>
-              <div className="sidebar-shell__profile mt-1 flex items-center gap-2 rounded-[10px] border border-[var(--border-subtle)] bg-[var(--surface-muted)] p-2">
+              <div className="sidebar-shell__profile mt-1 flex items-center gap-2 p-2">
                 {isAuthenticated && user?.photoURL ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -271,7 +273,7 @@ export function MobileNavDrawer({
               </div>
 
               {isAuthenticated ? (
-                <div className="sidebar-shell__plan mt-1 flex min-w-0 flex-col gap-1 overflow-hidden rounded-[10px] border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-2.5 py-2">
+                <div className="sidebar-shell__plan mt-1 flex min-w-0 flex-col gap-1 overflow-hidden px-2.5 py-2">
                   <PlanBadge
                     plan={plan}
                     className="sidebar-shell__plan-badge self-start"

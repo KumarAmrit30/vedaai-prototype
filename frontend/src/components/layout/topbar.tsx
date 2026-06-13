@@ -93,7 +93,7 @@ export function Topbar({
         <div className="topbar-shell">
           <div className="relative min-w-0 flex-1">
             <Search
-              className="pointer-events-none absolute left-3.5 top-1/2 h-[15px] w-[15px] -translate-y-1/2 text-[var(--text-secondary)] opacity-70"
+              className="pointer-events-none absolute left-3.5 top-1/2 h-[15px] w-[15px] -translate-y-1/2 text-[var(--text-muted)] opacity-60"
               strokeWidth={2}
               aria-hidden="true"
             />
@@ -105,7 +105,7 @@ export function Topbar({
               aria-label="Global search (coming soon)"
               aria-describedby="topbar-search-hint"
               title="Global search — coming soon"
-              className="topbar-search topbar-search--coming-soon cursor-not-allowed opacity-80 placeholder:text-[var(--text-secondary)] placeholder:opacity-70"
+              className="topbar-search topbar-search--coming-soon"
               onFocus={handleSearchInteract}
               onClick={handleSearchInteract}
               onKeyDown={handleSearchKeyDown}
@@ -177,7 +177,7 @@ export function Topbar({
               type="button"
               aria-label="Global search (coming soon)"
               title="Global search — coming soon"
-              className="topbar-icon-btn h-8 w-8 cursor-not-allowed opacity-80"
+              className="topbar-icon-btn topbar-icon-btn--disabled h-8 w-8"
               onClick={handleSearchInteract}
             >
               <Search className="h-[15px] w-[15px]" strokeWidth={2} />
