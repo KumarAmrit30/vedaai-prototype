@@ -1650,6 +1650,15 @@ body {
   transition: background-color var(--duration-slow) var(--ease-out-soft);
 }
 
+.dark .preview-document-canvas {
+  background: #1e293b;
+  background-image: radial-gradient(
+    ellipse 70% 55% at 50% 18%,
+    rgba(255, 255, 255, 0.05) 0%,
+    transparent 68%
+  );
+}
+
 @media (min-width: 768px) {
   .preview-document-canvas {
     padding: 28px 32px 40px;
@@ -1814,17 +1823,28 @@ body {
 }
 
 .preview-a4-paper {
+  --paper-bg: #ffffff;
+  --paper-text: #0f172a; /* slate-900 */
+  --paper-text-mcq: #1e293b; /* slate-800 */
+  --paper-text-meta: #334155; /* slate-700 */
+  --paper-text-muted: #64748b; /* slate-500 */
+  --paper-border: #cbd5e1; /* slate-300 */
+  --paper-border-strong: #0f172a; /* slate-900 */
+
   position: relative;
   width: 100%;
   max-width: 595px;
   min-height: 842px;
   margin: 0 auto;
-  background: #ffffff;
-  border: 1px solid color-mix(in srgb, var(--border-light) 65%, #ffffff);
+  background: var(--paper-bg);
+  color: var(--paper-text);
+  border: 1px solid var(--paper-border);
   box-shadow:
     0 1px 2px rgba(0, 0, 0, 0.04),
     0 12px 32px rgba(0, 0, 0, 0.08),
     0 32px 72px rgba(0, 0, 0, 0.06);
+  color-scheme: light;
+  isolation: isolate;
 }
 
 @media (max-width: 767px) {
@@ -1838,6 +1858,7 @@ body {
 
 .preview-a4-paper__inner {
   padding: 40px 44px 48px;
+  color: inherit;
 }
 
 @media (max-width: 767px) {
@@ -1846,29 +1867,29 @@ body {
   }
 }
 
-.preview-exam-header {
+.preview-a4-paper .preview-exam-header {
   text-align: center;
   padding-bottom: 16px;
-  border-bottom: 1px solid color-mix(in srgb, var(--text-primary) 85%, transparent);
+  border-bottom: 1px solid var(--paper-border-strong);
 }
 
-.preview-exam-header__school {
+.preview-a4-paper .preview-exam-header__school {
   font-size: 24px;
   font-weight: var(--font-weight-bold);
   line-height: 1.2;
   letter-spacing: -0.02em;
-  color: var(--text-primary);
+  color: var(--paper-text);
 }
 
-.preview-exam-header__title {
+.preview-a4-paper .preview-exam-header__title {
   margin-top: 8px;
   font-size: 18px;
   font-weight: var(--font-weight-medium);
   line-height: 1.35;
-  color: var(--text-primary);
+  color: var(--paper-text);
 }
 
-.preview-exam-header__meta {
+.preview-a4-paper .preview-exam-header__meta {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -1877,94 +1898,94 @@ body {
   margin-top: 14px;
   font-size: 13px;
   line-height: 1.5;
-  color: var(--text-secondary);
+  color: var(--paper-text-meta);
 }
 
-.preview-exam-header__meta-item {
+.preview-a4-paper .preview-exam-header__meta-item {
   display: inline-flex;
   align-items: center;
 }
 
-.preview-exam-header__meta-item:not(:last-child)::after {
+.preview-a4-paper .preview-exam-header__meta-item:not(:last-child)::after {
   content: "|";
   margin: 0 10px;
-  color: color-mix(in srgb, var(--text-muted) 70%, transparent);
+  color: var(--paper-text-muted);
   font-weight: var(--font-weight-normal);
 }
 
-.preview-exam-instructions {
+.preview-a4-paper .preview-exam-instructions {
   margin: 20px 0 24px;
   font-size: 13px;
   line-height: 1.65;
-  color: var(--text-secondary);
+  color: var(--paper-text-meta);
 }
 
-.preview-exam-instructions__label {
+.preview-a4-paper .preview-exam-instructions__label {
   display: block;
   margin-bottom: 6px;
   font-size: 11px;
   font-weight: var(--font-weight-semibold);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: var(--paper-text);
 }
 
-.preview-exam-section {
+.preview-a4-paper .preview-exam-section {
   margin-bottom: 28px;
 }
 
-.preview-exam-section__heading {
+.preview-a4-paper .preview-exam-section__heading {
   font-size: 12px;
   font-weight: var(--font-weight-bold);
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: var(--paper-text);
 }
 
-.preview-exam-section__subtitle {
+.preview-a4-paper .preview-exam-section__subtitle {
   margin-top: 4px;
   font-size: 13px;
   line-height: 1.5;
   font-style: italic;
-  color: var(--text-secondary);
+  color: var(--paper-text-meta);
 }
 
-.preview-exam-question {
+.preview-a4-paper .preview-exam-question {
   padding: 16px 0 4px;
 }
 
-.preview-exam-question__row {
+.preview-a4-paper .preview-exam-question__row {
   display: grid;
   grid-template-columns: 28px 1fr auto;
   gap: 4px 8px;
   align-items: start;
 }
 
-.preview-exam-question__num {
+.preview-a4-paper .preview-exam-question__num {
   padding-top: 2px;
   font-size: 15px;
   font-weight: var(--font-weight-semibold);
   line-height: 1.7;
-  color: var(--text-primary);
+  color: var(--paper-text);
 }
 
-.preview-exam-question__text {
+.preview-a4-paper .preview-exam-question__text {
   margin: 0;
   font-size: 15px;
   line-height: 1.7;
-  color: var(--text-primary);
+  color: var(--paper-text);
 }
 
-.preview-exam-question__marks {
+.preview-a4-paper .preview-exam-question__marks {
   padding-top: 2px;
   font-size: 12px;
   font-weight: var(--font-weight-medium);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  color: var(--text-muted);
+  color: var(--paper-text-meta);
 }
 
-.preview-exam-question__difficulty {
+.preview-a4-paper .preview-exam-question__difficulty {
   grid-column: 3;
   justify-self: end;
   margin-top: 2px;
@@ -1972,10 +1993,10 @@ body {
   font-weight: var(--font-weight-medium);
   letter-spacing: 0.04em;
   text-transform: capitalize;
-  color: color-mix(in srgb, var(--text-muted) 88%, transparent);
+  color: var(--paper-text-muted);
 }
 
-.preview-exam-question__answer-lines {
+.preview-a4-paper .preview-exam-question__answer-lines {
   margin-top: 10px;
   margin-left: 36px;
   display: flex;
@@ -1983,12 +2004,12 @@ body {
   gap: 14px;
 }
 
-.preview-exam-question__answer-line {
+.preview-a4-paper .preview-exam-question__answer-line {
   height: 1px;
-  border-bottom: 1px solid color-mix(in srgb, var(--border-light) 80%, #cccccc);
+  border-bottom: 1px solid var(--paper-border);
 }
 
-.preview-exam-question__options {
+.preview-a4-paper .preview-exam-question__options {
   margin: 10px 0 0 36px;
   padding: 0;
   list-style: none;
@@ -1997,64 +2018,77 @@ body {
   gap: 8px;
 }
 
-.preview-exam-question__option {
+.preview-a4-paper .preview-exam-question__option {
   display: flex;
   gap: 8px;
   align-items: flex-start;
   font-size: 14px;
   line-height: 1.55;
-  color: var(--text-primary);
+  color: var(--paper-text-mcq);
 }
 
-.preview-exam-question__option-label {
+.preview-a4-paper .preview-exam-question__option-label {
   min-width: 18px;
   font-weight: var(--font-weight-semibold);
+  color: var(--paper-text-mcq);
 }
 
-.preview-exam-question__option-text {
+.preview-a4-paper .preview-exam-question__option-text {
   flex: 1;
+  color: var(--paper-text-mcq);
 }
 
-.preview-exam-answer-key {
+.preview-a4-paper .preview-exam-answer-key {
   margin-top: 32px;
   padding-top: 14px;
-  border-top: 1px dashed color-mix(in srgb, var(--text-muted) 45%, transparent);
+  border-top: 1px dashed var(--paper-border);
 }
 
-.preview-exam-answer-key__title {
+.preview-a4-paper .preview-exam-answer-key__title {
   font-size: 11px;
   font-weight: var(--font-weight-semibold);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: var(--paper-text-meta);
 }
 
-.preview-exam-answer-key__grid {
+.preview-a4-paper .preview-exam-answer-key__grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   gap: 6px 12px;
   margin-top: 10px;
 }
 
-.preview-exam-answer-key__item {
+.preview-a4-paper .preview-exam-answer-key__item {
   display: flex;
   justify-content: space-between;
   gap: 8px;
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--paper-text-meta);
 }
 
-.preview-exam-answer-key__item strong {
+.preview-a4-paper .preview-exam-answer-key__item strong {
   font-weight: var(--font-weight-semibold);
-  color: var(--text-primary);
+  color: var(--paper-text);
 }
 
-.preview-exam-empty {
+.preview-a4-paper .preview-exam-empty {
   margin-top: 24px;
   padding: 32px 16px;
   text-align: center;
   font-size: 13px;
-  color: var(--text-secondary);
+  color: var(--paper-text-meta);
+}
+
+.preview-a4-paper .preview-exam-empty__title {
+  font-weight: var(--font-weight-medium);
+  color: var(--paper-text);
+}
+
+.preview-a4-paper .preview-exam-empty__hint {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--paper-text-meta);
 }
 
 /* Legacy aliases */

@@ -153,10 +153,10 @@ export function AssignmentPaper({
           </>
         ) : (
           <div className="preview-exam-empty">
-            <p className="font-medium text-[var(--text-primary)]">
+            <p className="preview-exam-empty__title">
               Paper preview not available yet
             </p>
-            <p className="mt-1 text-[12px]">
+            <p className="preview-exam-empty__hint">
               Generated content will appear here once processing completes.
             </p>
           </div>
