@@ -40,10 +40,9 @@ interface NavItem {
 
 const mainNavItems: NavItem[] = [
   { id: "dashboard", label: "Home", icon: Home },
-  { id: "groups", label: "My Groups", icon: Users, comingSoon: true },
+  { id: "groups", label: "My Groups", icon: Users },
   { id: "assignments", label: "Assignments", icon: BookOpen },
-  // { id: "generate", label: "AI Teacher's Toolkit", icon: Sparkles },
-  { id: "library", label: "My Library", icon: Library, comingSoon: true },
+  { id: "library", label: "My Library", icon: Library },
 ];
 
 interface SidebarProps {
@@ -192,7 +191,7 @@ export function Sidebar({
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <div className="sidebar-shell__profile-avatar flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--orange-primary)] text-[9px] font-bold text-[var(--black-primary)]">
+                <div className="sidebar-shell__profile-avatar flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--accent-primary)] text-[9px] font-bold text-white">
                   {initials}
                 </div>
               )}

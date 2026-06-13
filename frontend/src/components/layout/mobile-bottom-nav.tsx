@@ -21,7 +21,7 @@ interface MobileNavItem {
 const mobileNavItems: MobileNavItem[] = [
   { id: "dashboard", label: "Home", icon: Home },
   { id: "assignments", label: "Assignments", icon: BookOpen },
-  { id: "library", label: "Library", icon: Library, comingSoon: true },
+  { id: "library", label: "Library", icon: Library },
   { id: "generate", label: "AI Toolkit", icon: Sparkles },
 ];
 

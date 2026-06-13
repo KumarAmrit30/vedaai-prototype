@@ -27,16 +27,14 @@ export function AssignmentDetailTabs({
 
   return (
     <div className="assignment-detail-tabs">
-      <div className="assignment-detail-tabs__bar scrollbar-hide">
-        <div className="assignment-detail-tabs__inner">
+      <div className="detail-tab-bar">
+        <div className="detail-tab-bar__inner">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`filter-pill shrink-0${
-                activeTab === tab.id ? " filter-pill--active" : ""
-              }`}
+              className={`detail-tab${activeTab === tab.id ? " detail-tab--active" : ""}`}
             >
               {tab.label}
             </button>

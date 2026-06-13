@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 import { MobileNavDrawer } from "@/components/layout/mobile-nav-drawer";
@@ -9,6 +10,7 @@ import { UpgradeModal } from "@/components/billing/upgrade-modal";
 import { ComingSoonDialog } from "@/components/ui/coming-soon-dialog";
 import { useAssignmentSocket } from "@/hooks/use-assignment-socket";
 import type { ComingSoonState } from "@/hooks/use-coming-soon";
+import { ROUTES } from "@/lib/navigation/routes";
 
 interface AppShellProps {
   title?: string;
@@ -29,8 +31,13 @@ export function AppShell({
   onNavigate,
   comingSoon,
 }: AppShellProps) {
+  const router = useRouter();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   useAssignmentSocket();
+
+  function handleNotificationsClick(): void {
+    router.push(ROUTES.notifications);
+  }
 
   function handleMobileNavigate(id: NavItemId): void {
     onNavigate?.(id);
@@ -53,7 +60,7 @@ export function AppShell({
             <Topbar
               title={title}
               subtitle={subtitle}
-              onNotificationsClick={comingSoon?.showNotifications}
+              onNotificationsClick={handleNotificationsClick}
               onSearchInteract={comingSoon?.showSearch}
               onMenuClick={() => setMobileNavOpen(true)}
               menuOpen={mobileNavOpen}

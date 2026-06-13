@@ -1,132 +1,117 @@
 "use client";
 
+import {
+  Brain,
+  Calendar,
+  FileText,
+  Hash,
+  Layers,
+  LayoutTemplate,
+  Sparkles,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { getAssignmentTotalMarks } from "@/lib/utils/assignment-marks";
+import {
+  formatExamPatternLabel,
+  formatDurationMs,
+} from "@/lib/utils/assignment-insights";
+import { formatAssignmentDate, formatQuestionType } from "@/lib/utils/format-assignment";
 import type { Assignment } from "@/types/assignment";
-import { formatAssignmentDate } from "@/lib/utils/format-assignment";
-import {
-  formatMarksPerQuestionLabel,
-  getAssignmentTotalMarks,
-} from "@/lib/utils/assignment-marks";
-import {
-  estimateCompletionMinutes,
-  getWorkspaceStatusDetail,
-  getWorkspaceStatusLabel,
-} from "@/lib/utils/assignment-status";
 
 interface AssignmentMetadataPanelProps {
   assignment: Assignment;
 }
 
-function formatMaterialFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+interface MetadataCard {
+  label: string;
+  value: string;
+  icon: LucideIcon;
+}
+
+function resolveDifficulty(assignment: Assignment): string {
+  const level =
+    assignment.examBlueprint?.difficultyLevel ??
+    assignment.questionConfig.difficultyLevel;
+  if (!level) return "Medium";
+  return level.charAt(0) + level.slice(1).toLowerCase();
 }
 
 export function AssignmentMetadataPanel({
   assignment,
 }: AssignmentMetadataPanelProps) {
-  const statusDetail = getWorkspaceStatusDetail(assignment);
   const totalMarks = getAssignmentTotalMarks(assignment);
+  const pattern =
+    assignment.examBlueprint?.examPattern ??
+    assignment.questionConfig.examPattern;
+  const aiModel =
+    assignment.generationMetrics?.model ??
+    assignment.generationMetrics?.provider ??
+    "ExamForge AI";
+  const sourceMaterial =
+    assignment.materialSource?.fileName ??
+    assignment.originalFileName ??
+    "None attached";
+
+  const cards: MetadataCard[] = [
+    { label: "Subject", value: assignment.topic, icon: FileText },
+    { label: "Difficulty", value: resolveDifficulty(assignment), icon: Sparkles },
+    {
+      label: "Exam Pattern",
+      value: formatExamPatternLabel(pattern),
+      icon: LayoutTemplate,
+    },
+    {
+      label: "Question Count",
+      value: String(assignment.questionConfig.numberOfQuestions),
+      icon: Hash,
+    },
+    { label: "Marks", value: String(totalMarks), icon: Layers },
+    { label: "AI Model", value: aiModel, icon: Brain },
+    { label: "Source Material", value: sourceMaterial, icon: FileText },
+    {
+      label: "Question Style",
+      value: formatQuestionType(assignment.questionConfig.questionType),
+      icon: LayoutTemplate,
+    },
+    {
+      label: "Created",
+      value: formatAssignmentDate(assignment.createdAt, "long"),
+      icon: Calendar,
+    },
+  ];
+
+  const generationTime = formatDurationMs(
+    assignment.generationMetrics?.durationMs,
+  );
 
   return (
-    <div className="assignment-metadata-panel">
-      <dl className="assignment-metadata-panel__grid">
-        <div>
-          <dt>Status</dt>
-          <dd>{getWorkspaceStatusLabel(statusDetail)}</dd>
-        </div>
-        <div>
-          <dt>Created</dt>
-          <dd>{formatAssignmentDate(assignment.createdAt, "long")}</dd>
-        </div>
-        <div>
-          <dt>Last updated</dt>
-          <dd>{formatAssignmentDate(assignment.updatedAt, "long")}</dd>
-        </div>
-        <div>
-          <dt>Due date</dt>
-          <dd>{formatAssignmentDate(assignment.dueDate, "long")}</dd>
-        </div>
-        <div>
-          <dt>Topic</dt>
-          <dd>{assignment.topic}</dd>
-        </div>
-        <div>
-          <dt>Question type</dt>
-          <dd>{assignment.questionConfig.questionType}</dd>
-        </div>
-        <div>
-          <dt>Questions</dt>
-          <dd>{assignment.questionConfig.numberOfQuestions}</dd>
-        </div>
-        <div>
-          <dt>Marks per question</dt>
-          <dd>{formatMarksPerQuestionLabel(assignment)}</dd>
-        </div>
-        <div>
-          <dt>Total marks</dt>
-          <dd>{totalMarks}</dd>
-        </div>
-        <div>
-          <dt>Est. completion time</dt>
-          <dd>{estimateCompletionMinutes(assignment)} min</dd>
-        </div>
-        <div>
-          <dt>Generation source</dt>
-          <dd>ExamForge AI · AI assessment engine</dd>
-        </div>
-        {assignment.materialSource || assignment.originalFileName ? (
-          <>
-            <div>
-              <dt>Uploaded material</dt>
-              <dd>
-                {assignment.materialSource?.fileName ??
-                  assignment.originalFileName}
-              </dd>
+    <div className="metadata-panel">
+      <div className="metadata-panel__grid">
+        {cards.map((card) => (
+          <article key={card.label} className="metadata-card">
+            <div className="metadata-card__icon">
+              <card.icon className="h-3.5 w-3.5" strokeWidth={2} aria-hidden="true" />
             </div>
-            <div>
-              <dt>Material type</dt>
-              <dd>
-                {(
-                  assignment.materialSource?.fileType ??
-                  assignment.materialSourceType ??
-                  "file"
-                ).toUpperCase()}
-              </dd>
+            <div className="min-w-0">
+              <p className="metadata-card__label">{card.label}</p>
+              <p className="metadata-card__value truncate">{card.value}</p>
             </div>
-            {assignment.materialSource?.fileSize ? (
-              <div>
-                <dt>Material size</dt>
-                <dd>
-                  {formatMaterialFileSize(assignment.materialSource.fileSize)}
-                </dd>
-              </div>
-            ) : null}
-            {assignment.materialSource?.charCount ? (
-              <div>
-                <dt>Extracted characters</dt>
-                <dd>{assignment.materialSource.charCount.toLocaleString()}</dd>
-              </div>
-            ) : null}
-          </>
-        ) : (
-          <div>
-            <dt>Uploaded material</dt>
-            <dd>No source file attached</dd>
-          </div>
-        )}
-        <div>
-          <dt>Sections generated</dt>
-          <dd>{assignment.generatedPaper?.sections?.length ?? 0}</dd>
-        </div>
-      </dl>
+          </article>
+        ))}
+      </div>
+
+      {generationTime ? (
+        <p className="mt-4 text-[12px] text-[var(--text-muted)]">
+          Generated in {generationTime}
+        </p>
+      ) : null}
 
       {assignment.instructions ? (
-        <div className="assignment-metadata-panel__instructions">
+        <div className="stitch-card stitch-card--compact mt-4">
           <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
             Instructions
           </p>
-          <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--text-secondary)]">
+          <p className="mt-2 text-[14px] leading-relaxed text-[var(--text-secondary)]">
             {assignment.instructions}
           </p>
         </div>

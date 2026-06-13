@@ -66,6 +66,20 @@ export interface MaterialSource {
   charCount: number;
 }
 
+export interface GenerationMetrics {
+  provider?: string;
+  model?: string;
+  durationMs?: number;
+  retryCount?: number;
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+  thoughtsTokens?: number;
+  examType?: string;
+  questionCount?: number;
+  errorCategory?: string;
+}
+
 export interface Assignment {
   _id: string;
   title: string;
@@ -80,6 +94,8 @@ export interface Assignment {
   materialSource?: MaterialSource;
   materialSourceType?: "pdf" | "txt";
   originalFileName?: string;
+  materialSummary?: string;
+  generationMetrics?: GenerationMetrics;
   progress?: number;
   createdAt: string;
   updatedAt: string;

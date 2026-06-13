@@ -36,6 +36,12 @@ export function useShellNavigation() {
           next: ROUTES.createAssignment,
         });
         break;
+      case "library":
+        router.push(ROUTES.library);
+        break;
+      case "groups":
+        router.push(ROUTES.groups);
+        break;
       case "settings":
         requireAuth(() => router.push(ROUTES.settings), {
           next: ROUTES.settings,

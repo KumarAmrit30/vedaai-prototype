@@ -12,7 +12,7 @@ export default function AssignmentsWorkspacePage() {
   return (
     <AppShell
       title="Assignments"
-      subtitle="Search, filter, and manage your assessments"
+      subtitle="Manage, organize and export AI-generated assessments"
       activeNav="assignments"
       onNavigate={handleNavigate}
       onCreateClick={navigateToCreate}
@@ -21,6 +21,7 @@ export default function AssignmentsWorkspacePage() {
       <AssignmentWorkspace
         fetchError={loadError}
         onRetry={() => void retry()}
+        onCreateClick={navigateToCreate}
       />
     </AppShell>
   );

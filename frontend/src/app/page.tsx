@@ -17,7 +17,7 @@ export default function DashboardPage() {
   return (
     <AppShell
       title="Dashboard"
-      subtitle="Plan usage, assignment stats, and quick actions"
+      subtitle="Your educator workspace — metrics, activity, and quick actions"
       activeNav="dashboard"
       onNavigate={handleNavigate}
       onCreateClick={navigateToCreate}
@@ -27,6 +27,7 @@ export default function DashboardPage() {
         loading={loading}
         loadError={loadError}
         onRetry={() => void retry()}
+        onCreateClick={navigateToCreate}
       />
     </AppShell>
   );

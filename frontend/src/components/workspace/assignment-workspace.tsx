@@ -1,8 +1,11 @@
 "use client";
 
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AssignmentList } from "@/components/assignment/AssignmentList";
+import { WorkspaceStatsSkeleton } from "@/components/assignment/assignment-card-skeleton";
 import { AssignmentFilters } from "@/components/workspace/assignment-filters";
-import { AssignmentToolbar } from "@/components/workspace/assignment-toolbar";
+import { WorkspaceHeader } from "@/components/workspace/workspace-header";
+import { WorkspaceStatsBar } from "@/components/workspace/workspace-stats-bar";
 import { PageTransition } from "@/components/layout/page-transition";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useScrollRestore } from "@/hooks/use-scroll-restore";
@@ -12,19 +15,21 @@ import {
   type StatusFilter,
 } from "@/lib/utils/assignment-filters";
 import { sortAssignments } from "@/lib/utils/assignment-sort";
+import { computeWorkspaceStats } from "@/lib/utils/dashboard-analytics";
 import { getMostRecentlyOpenedId } from "@/lib/workspace/assignment-meta";
 import { useAssignmentStore } from "@/store/assignment.store";
 import { useWorkspaceStore } from "@/store/workspace.store";
-import { useEffect, useMemo, useRef, useState } from "react";
 
 interface AssignmentWorkspaceProps {
   fetchError?: string | null;
   onRetry?: () => void;
+  onCreateClick?: () => void;
 }
 
 export function AssignmentWorkspace({
   fetchError = null,
   onRetry,
+  onCreateClick,
 }: AssignmentWorkspaceProps) {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -68,6 +73,11 @@ export function AssignmentWorkspace({
     [filteredAssignments, sortOption],
   );
 
+  const workspaceStats = useMemo(
+    () => computeWorkspaceStats(assignments),
+    [assignments],
+  );
+
   const visibleAssignmentIds = useMemo(
     () => sortedAssignments.map((item) => item._id),
     [sortedAssignments],
@@ -91,28 +101,33 @@ export function AssignmentWorkspace({
 
   return (
     <PageTransition>
-      <section id="assignment-workspace" className="assignment-workspace">
+      <section id="assignment-workspace" className="assignment-workspace space-y-4">
         {showWorkspaceChrome ? (
-          <div className="assignment-workspace__controls space-y-3">
-            <AssignmentToolbar
+          <>
+            <WorkspaceHeader
               totalCount={assignments.length}
               visibleCount={sortedAssignments.length}
               selectedCount={selectedIds.length}
               sortOption={sortOption}
-              statusFilter={statusFilter}
               hasActiveFilters={hasActiveFilters}
-              searchQuery={debouncedSearch}
-              onSortChange={setSortOption}
-            />
-
-            <AssignmentFilters
               searchQuery={searchQuery}
-              statusFilter={statusFilter}
               searchInputRef={searchInputRef}
               onSearchChange={setSearchQuery}
+              onSortChange={setSortOption}
+              onCreateClick={onCreateClick}
+            />
+
+            {loading && assignments.length > 0 ? (
+              <WorkspaceStatsSkeleton />
+            ) : !loading && assignments.length > 0 ? (
+              <WorkspaceStatsBar stats={workspaceStats} />
+            ) : null}
+
+            <AssignmentFilters
+              statusFilter={statusFilter}
               onStatusFilterChange={setStatusFilter}
             />
-          </div>
+          </>
         ) : null}
 
         <div
@@ -138,6 +153,7 @@ export function AssignmentWorkspace({
               toggleSelected(id);
               setSelectionMode(true);
             }}
+            onCreateClick={onCreateClick}
           />
         </div>
       </section>

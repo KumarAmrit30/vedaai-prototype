@@ -186,6 +186,7 @@ export default function AssignmentDetailPage() {
           <AssignmentDetailView
             assignment={assignment}
             onRegenerate={handleRegenerate}
+            onDuplicate={handleRegenerate}
           />
         </PageTransition>
       ) : null}

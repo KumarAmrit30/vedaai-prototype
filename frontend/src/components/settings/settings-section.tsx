@@ -24,7 +24,7 @@ export function SettingsSection({
           </div>
         ) : null}
         <div className="min-w-0">
-          <h2 className="text-[15px] font-semibold text-[var(--text-primary)]">
+          <h2 className="font-display text-[15px] font-semibold text-[var(--text-primary)]">
             {title}
           </h2>
           {description ? (
