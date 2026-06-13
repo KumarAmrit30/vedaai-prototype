@@ -1,11 +1,11 @@
 import type {
   BlueprintSectionDefinition,
-  DifficultyDistribution,
   DifficultyLevel,
   ExamBlueprint,
   ExamPattern,
 } from "../../modules/assignment/exam-blueprint.types";
 import { getExamPromptGuidance } from "../../modules/assignment/exam-template";
+import type { DifficultyCounts } from "./generation-batch";
 import type { AssignmentGenerationInput } from "./assignment-generation.types";
 
 /** Aggressive cap for legacy raw-material fallback (compressed path is preferred). */
@@ -43,6 +43,16 @@ export interface BuildPromptSectionContext {
   globalQuestionOffset: number;
 }
 
+/** Optional batch slice when a large section is split for generation. */
+export interface BuildPromptBatchContext extends BuildPromptSectionContext {
+  batchIndex: number;
+  batchCount: number;
+  batchQuestionCount: number;
+  batchDifficultyCounts: DifficultyCounts;
+  /** Global question number offset for the first question in this batch. */
+  batchGlobalQuestionOffset: number;
+}
+
 function formatQuestionType(questionType: string): string {
   return QUESTION_TYPE_LABELS[questionType] ?? questionType;
 }
@@ -51,14 +61,23 @@ function isObjectiveType(questionType: string): boolean {
   return OBJECTIVE_QUESTION_TYPES.has(questionType);
 }
 
-function difficultyCounts(
-  total: number,
-  distribution: DifficultyDistribution,
-): { easy: number; medium: number; hard: number } {
-  const easy = Math.round((total * distribution.easy) / 100);
-  const hard = Math.round((total * distribution.hard) / 100);
-  const medium = Math.max(0, total - easy - hard);
-  return { easy, medium, hard };
+function buildDifficultyRequirement(
+  blueprint: ExamBlueprint,
+  questionCount: number,
+  batchDifficultyCounts?: DifficultyCounts,
+): string {
+  if (blueprint.difficultyLevel !== "MIXED") {
+    return `- ${DIFFICULTY_GUIDANCE[blueprint.difficultyLevel]}`;
+  }
+
+  if (batchDifficultyCounts) {
+    return (
+      `- Difficulty distribution for this batch (exact counts — do not approximate): ` +
+      `${batchDifficultyCounts.easy} easy, ${batchDifficultyCounts.medium} medium, ${batchDifficultyCounts.hard} hard`
+    );
+  }
+
+  return `- Include a mix of easy, medium, and hard questions (${questionCount} total)`;
 }
 
 /**
@@ -186,23 +205,34 @@ ${answerRule}
 function buildBlueprintSectionRequirements(
   blueprint: ExamBlueprint,
   context: BuildPromptSectionContext,
+  batch?: Pick<
+    BuildPromptBatchContext,
+    | "batchIndex"
+    | "batchCount"
+    | "batchQuestionCount"
+    | "batchDifficultyCounts"
+    | "batchGlobalQuestionOffset"
+  >,
 ): string {
-  const { section, sectionIndex, totalSections, globalQuestionOffset } = context;
+  const { section, sectionIndex, totalSections } = context;
   const sectionNumber = sectionIndex + 1;
-  const firstQuestionNumber = globalQuestionOffset + 1;
-  const lastQuestionNumber = globalQuestionOffset + section.numberOfQuestions;
+  const questionCount = batch?.batchQuestionCount ?? section.numberOfQuestions;
+  const batchOffset =
+    batch?.batchGlobalQuestionOffset ?? context.globalQuestionOffset;
+  const firstQuestionNumber = batchOffset + 1;
+  const lastQuestionNumber = batchOffset + questionCount;
   const includeOptions = isObjectiveType(section.questionType);
 
-  const distribution = blueprint.difficultyDistribution ?? {
-    easy: 30,
-    medium: 50,
-    hard: 20,
-  };
-  const counts = difficultyCounts(section.numberOfQuestions, distribution);
-  const difficultyLine =
-    blueprint.difficultyLevel === "MIXED"
-      ? `- Difficulty distribution for this section: ~${counts.easy} easy, ~${counts.medium} medium, ~${counts.hard} hard`
-      : `- ${DIFFICULTY_GUIDANCE[blueprint.difficultyLevel]}`;
+  const difficultyLine = buildDifficultyRequirement(
+    blueprint,
+    questionCount,
+    batch?.batchDifficultyCounts,
+  );
+
+  const batchLine =
+    batch && batch.batchCount > 1
+      ? `- Internal generation batch ${batch.batchIndex + 1} of ${batch.batchCount} for this section\n`
+      : "";
 
   const optionsRule = includeOptions
     ? section.questionType === "true-false"
@@ -217,14 +247,13 @@ function buildBlueprintSectionRequirements(
 - Section title (use exactly): ${section.title}
 - Section instruction (use exactly): ${section.instruction}
 - Question type for this section: ${formatQuestionType(section.questionType)}
-- Questions in this section: ${section.numberOfQuestions}
-- Marks per question in this section: ${section.marksPerQuestion}
-- Section marks total: ${section.numberOfQuestions * section.marksPerQuestion}
+${batchLine}- Questions to generate in this response: ${questionCount}
+- Marks per question: ${section.marksPerQuestion}
 
 Section requirements:
 - Return exactly 1 section in the "sections" array
 - The section title and instruction must match the blueprint values exactly
-- Generate exactly ${section.numberOfQuestions} questions for this section
+- Generate exactly ${questionCount} questions in this response
 - Every question must use ${section.marksPerQuestion} marks
 - Every question must follow the "${formatQuestionType(section.questionType)}" format${optionsRule}
 ${difficultyLine}
@@ -273,6 +302,7 @@ Output rules:
 export function buildBlueprintSectionPrompt(
   input: AssignmentGenerationInput,
   context: BuildPromptSectionContext,
+  batch?: BuildPromptBatchContext,
 ): string {
   const blueprint = input.examBlueprint;
   if (!blueprint) {
@@ -280,6 +310,15 @@ export function buildBlueprintSectionPrompt(
   }
 
   const includeOptions = isObjectiveType(context.section.questionType);
+  const batchRequirements = batch
+    ? {
+        batchIndex: batch.batchIndex,
+        batchCount: batch.batchCount,
+        batchQuestionCount: batch.batchQuestionCount,
+        batchDifficultyCounts: batch.batchDifficultyCounts,
+        batchGlobalQuestionOffset: batch.batchGlobalQuestionOffset,
+      }
+    : undefined;
 
   return `You are an academic assessment generator.
 
@@ -289,18 +328,19 @@ ${buildSharedContext(input)}
 
 ${buildExamGuidance(blueprint.examPattern)}
 
-${buildBlueprintSectionRequirements(blueprint, context)}
+${buildBlueprintSectionRequirements(blueprint, context, batchRequirements)}
 
 Output rules:
 - Return ONLY valid JSON
 - Do NOT use markdown or code fences
 - Do NOT include any text outside the JSON object
-- Do NOT add extra sections or questions beyond this section specification`;
+- Do NOT add extra sections or questions beyond this response specification`;
 }
 
 export function buildAssignmentPrompt(
   input: AssignmentGenerationInput,
   sectionContext?: BuildPromptSectionContext,
+  batchContext?: BuildPromptBatchContext,
 ): string {
   if (input.examBlueprint) {
     if (!sectionContext) {
@@ -309,7 +349,7 @@ export function buildAssignmentPrompt(
       );
     }
 
-    return buildBlueprintSectionPrompt(input, sectionContext);
+    return buildBlueprintSectionPrompt(input, sectionContext, batchContext);
   }
 
   return buildLegacyAssignmentPrompt(input);

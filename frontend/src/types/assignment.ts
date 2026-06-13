@@ -53,6 +53,7 @@ export interface QuestionConfig {
   questionType: string;
   numberOfQuestions: number;
   marksPerQuestion: number;
+  totalMarks?: number;
   examPattern?: ExamPattern;
   difficultyLevel?: DifficultyLevel;
 }

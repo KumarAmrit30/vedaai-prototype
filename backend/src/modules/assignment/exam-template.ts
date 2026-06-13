@@ -15,8 +15,14 @@ import type {
 export interface ExamTemplate {
   pattern: ExamPattern;
   label: string;
+  /** Cached question count — must equal the sum of `subjectDistribution[].questionCount`. */
   totalQuestions: number;
-  marksPerQuestion: number;
+  /**
+   * Default marks per question for sections that do not override in
+   * `subjectDistribution`. Not used for total-marks calculation when sections
+   * differ; use blueprint section marks instead.
+   */
+  defaultMarksPerQuestion: number;
   subjectDistribution: SubjectDistribution[];
   difficultyDistribution: DifficultyDistribution;
   answerKeyMode: AnswerKeyMode;
@@ -34,7 +40,7 @@ const NEET_TEMPLATE: ExamTemplate = {
   pattern: "NEET",
   label: "NEET (NTA)",
   totalQuestions: 180,
-  marksPerQuestion: 4,
+  defaultMarksPerQuestion: 4,
   defaultQuestionType: "multiple-choice",
   answerKeyMode: "BASIC",
   reasoningLevel: "application",
@@ -66,7 +72,7 @@ const JEE_TEMPLATE: ExamTemplate = {
   pattern: "JEE",
   label: "JEE Main (NTA)",
   totalQuestions: 75,
-  marksPerQuestion: 4,
+  defaultMarksPerQuestion: 4,
   defaultQuestionType: "multiple-choice",
   answerKeyMode: "BASIC",
   reasoningLevel: "analysis",
@@ -92,7 +98,7 @@ const CBSE_TEMPLATE: ExamTemplate = {
   pattern: "CBSE",
   label: "CBSE Board",
   totalQuestions: 35,
-  marksPerQuestion: 1,
+  defaultMarksPerQuestion: 1,
   defaultQuestionType: "mixed",
   answerKeyMode: "STANDARD",
   reasoningLevel: "application",
@@ -133,7 +139,7 @@ const ICSE_TEMPLATE: ExamTemplate = {
   pattern: "ICSE",
   label: "ICSE Board",
   totalQuestions: 30,
-  marksPerQuestion: 2,
+  defaultMarksPerQuestion: 2,
   defaultQuestionType: "mixed",
   answerKeyMode: "STANDARD",
   reasoningLevel: "application",
@@ -167,7 +173,7 @@ const UNIVERSITY_TEMPLATE: ExamTemplate = {
   pattern: "UNIVERSITY",
   label: "University Exam",
   totalQuestions: 18,
-  marksPerQuestion: 5,
+  defaultMarksPerQuestion: 5,
   defaultQuestionType: "mixed",
   answerKeyMode: "DETAILED",
   reasoningLevel: "evaluation",
@@ -208,7 +214,7 @@ const CUET_TEMPLATE: ExamTemplate = {
   pattern: "CUET",
   label: "CUET (UG)",
   totalQuestions: 50,
-  marksPerQuestion: 5,
+  defaultMarksPerQuestion: 5,
   defaultQuestionType: "multiple-choice",
   answerKeyMode: "BASIC",
   reasoningLevel: "application",
@@ -228,7 +234,7 @@ const SSC_TEMPLATE: ExamTemplate = {
   pattern: "SSC",
   label: "SSC (CGL Tier-1)",
   totalQuestions: 100,
-  marksPerQuestion: 2,
+  defaultMarksPerQuestion: 2,
   defaultQuestionType: "multiple-choice",
   answerKeyMode: "BASIC",
   reasoningLevel: "application",
@@ -252,7 +258,7 @@ const BANKING_TEMPLATE: ExamTemplate = {
   pattern: "BANKING",
   label: "Banking (IBPS PO Prelims)",
   totalQuestions: 100,
-  marksPerQuestion: 1,
+  defaultMarksPerQuestion: 1,
   defaultQuestionType: "multiple-choice",
   answerKeyMode: "BASIC",
   reasoningLevel: "application",
@@ -275,7 +281,7 @@ const CAT_TEMPLATE: ExamTemplate = {
   pattern: "CAT",
   label: "CAT (MBA)",
   totalQuestions: 66,
-  marksPerQuestion: 3,
+  defaultMarksPerQuestion: 3,
   defaultQuestionType: "multiple-choice",
   answerKeyMode: "BASIC",
   reasoningLevel: "analysis",
@@ -298,7 +304,7 @@ const RAILWAYS_TEMPLATE: ExamTemplate = {
   pattern: "RAILWAYS",
   label: "Railways (RRB NTPC)",
   totalQuestions: 100,
-  marksPerQuestion: 1,
+  defaultMarksPerQuestion: 1,
   defaultQuestionType: "multiple-choice",
   answerKeyMode: "BASIC",
   reasoningLevel: "application",
@@ -321,7 +327,7 @@ const QUIZ_TEMPLATE: ExamTemplate = {
   pattern: "QUIZ",
   label: "Quiz",
   totalQuestions: 10,
-  marksPerQuestion: 1,
+  defaultMarksPerQuestion: 1,
   defaultQuestionType: "multiple-choice",
   answerKeyMode: "STANDARD",
   reasoningLevel: "recall",
@@ -344,7 +350,7 @@ const ASSIGNMENT_TEMPLATE: ExamTemplate = {
   pattern: "ASSIGNMENT",
   label: "Assignment",
   totalQuestions: 5,
-  marksPerQuestion: 10,
+  defaultMarksPerQuestion: 10,
   defaultQuestionType: "long-answer",
   answerKeyMode: "DETAILED",
   reasoningLevel: "analysis",
@@ -368,7 +374,7 @@ const MIDTERM_TEMPLATE: ExamTemplate = {
   pattern: "MIDTERM",
   label: "Midterm",
   totalQuestions: 12,
-  marksPerQuestion: 1,
+  defaultMarksPerQuestion: 1,
   defaultQuestionType: "mixed",
   answerKeyMode: "STANDARD",
   reasoningLevel: "application",
@@ -404,7 +410,7 @@ const ENDSEM_TEMPLATE: ExamTemplate = {
   pattern: "ENDSEM",
   label: "End Semester",
   totalQuestions: 22,
-  marksPerQuestion: 1,
+  defaultMarksPerQuestion: 1,
   defaultQuestionType: "mixed",
   answerKeyMode: "DETAILED",
   reasoningLevel: "analysis",
@@ -484,7 +490,7 @@ function buildCustomTemplate(input: CustomTemplateInput): ExamTemplate {
     pattern: "CUSTOM",
     label: "Custom",
     totalQuestions: input.numberOfQuestions,
-    marksPerQuestion: input.marksPerQuestion,
+    defaultMarksPerQuestion: input.marksPerQuestion,
     defaultQuestionType: input.questionType,
     answerKeyMode: "STANDARD",
     reasoningLevel: "application",

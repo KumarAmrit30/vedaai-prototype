@@ -3,6 +3,10 @@
 import type { CSSProperties } from "react";
 import { formatAssignmentDate } from "@/lib/utils/format-assignment";
 import {
+  formatMarksPerQuestionLabel,
+  getAssignmentTotalMarks,
+} from "@/lib/utils/assignment-marks";
+import {
   PDF_COLORS,
   PDF_EXPORT_WIDTH_PX,
   PDF_FONT_FAMILY,
@@ -27,8 +31,7 @@ interface AssignmentPdfExportProps {
  */
 export function AssignmentPdfExport({ assignment }: AssignmentPdfExportProps) {
   const { generatedPaper, questionConfig } = assignment;
-  const totalMarks =
-    questionConfig.numberOfQuestions * questionConfig.marksPerQuestion;
+  const totalMarks = getAssignmentTotalMarks(assignment);
 
   const answerKey = [...(assignment.answerKey ?? [])].sort(
     (a, b) => a.questionNumber - b.questionNumber,

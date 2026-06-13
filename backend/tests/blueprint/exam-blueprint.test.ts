@@ -122,6 +122,7 @@ describe("deriveLegacyQuestionConfig", () => {
       questionType: "long-answer",
       numberOfQuestions: 4,
       marksPerQuestion: 10,
+      totalMarks: 40,
     });
   });
 
@@ -135,6 +136,7 @@ describe("deriveLegacyQuestionConfig", () => {
       questionType: "multiple-choice",
       numberOfQuestions: 180,
       marksPerQuestion: 4,
+      totalMarks: 720,
     });
   });
 });
@@ -196,6 +198,9 @@ describe("resolveAssignmentConfig", () => {
     expect(resolved.questionConfig.examPattern).toBe("MIDTERM");
     expect(resolved.questionConfig.numberOfQuestions).toBe(
       resolved.examBlueprint.totalQuestions,
+    );
+    expect(resolved.questionConfig.totalMarks).toBe(
+      resolved.examBlueprint.totalMarks,
     );
   });
 });

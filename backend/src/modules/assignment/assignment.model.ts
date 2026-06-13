@@ -52,6 +52,7 @@ const questionConfigSchema = new Schema(
     questionType: { type: String, required: true, trim: true },
     numberOfQuestions: { type: Number, required: true, min: 1 },
     marksPerQuestion: { type: Number, required: true, min: 1 },
+    totalMarks: { type: Number, required: false, min: 1 },
     examPattern: { type: String, enum: EXAM_PATTERNS, required: false },
     difficultyLevel: { type: String, enum: DIFFICULTY_LEVELS, required: false },
     answerKeyMode: { type: String, enum: ANSWER_KEY_MODES, required: false },

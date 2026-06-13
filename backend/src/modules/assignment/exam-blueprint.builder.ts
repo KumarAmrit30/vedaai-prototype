@@ -3,6 +3,11 @@ import {
   resolveDifficultyDistribution,
   type ExamTemplate,
 } from "./exam-template";
+import {
+  assertBlueprintTotalsMatchSections,
+  computeBlueprintTotalMarks,
+  deriveDefaultMarksPerQuestion,
+} from "./exam-marks.utils";
 import type {
   BlueprintSectionDefinition,
   BuildExamBlueprintInput,
@@ -33,7 +38,7 @@ function sectionsFromTemplate(
   return template.subjectDistribution.map((entry, index) => {
     const questionType = entry.questionType ?? template.defaultQuestionType;
     const marksPerQuestion =
-      entry.marksPerQuestion ?? template.marksPerQuestion;
+      entry.marksPerQuestion ?? template.defaultMarksPerQuestion;
 
     return {
       sectionId: `section-${index + 1}`,
@@ -51,14 +56,15 @@ function computeTotals(sections: BlueprintSectionDefinition[]): {
   totalQuestions: number;
   totalMarks: number;
 } {
-  return sections.reduce(
-    (acc, section) => ({
-      totalQuestions: acc.totalQuestions + section.numberOfQuestions,
-      totalMarks:
-        acc.totalMarks + section.numberOfQuestions * section.marksPerQuestion,
-    }),
-    { totalQuestions: 0, totalMarks: 0 },
+  const totalQuestions = sections.reduce(
+    (acc, section) => acc + section.numberOfQuestions,
+    0,
   );
+
+  return {
+    totalQuestions,
+    totalMarks: computeBlueprintTotalMarks({ sections }),
+  };
 }
 
 export function buildExamBlueprint(input: BuildExamBlueprintInput): ExamBlueprint {
@@ -77,7 +83,7 @@ export function buildExamBlueprint(input: BuildExamBlueprintInput): ExamBlueprin
   const sections = sectionsFromTemplate(template);
   const { totalQuestions, totalMarks } = computeTotals(sections);
 
-  return {
+  const blueprint: ExamBlueprint = {
     examPattern: input.examPattern,
     difficultyLevel: input.difficultyLevel,
     sections,
@@ -91,6 +97,10 @@ export function buildExamBlueprint(input: BuildExamBlueprintInput): ExamBlueprin
     questionStyle: template.questionStyle,
     reasoningLevel: template.reasoningLevel,
   };
+
+  assertBlueprintTotalsMatchSections(blueprint);
+
+  return blueprint;
 }
 
 export function deriveLegacyQuestionConfig(
@@ -104,21 +114,26 @@ export function deriveLegacyQuestionConfig(
   questionType: string;
   numberOfQuestions: number;
   marksPerQuestion: number;
+  totalMarks: number;
 } {
   if (blueprint.examPattern === "CUSTOM" && fallback) {
+    const totalMarks =
+      fallback.numberOfQuestions! * fallback.marksPerQuestion!;
     return {
       questionType: fallback.questionType!,
       numberOfQuestions: fallback.numberOfQuestions!,
       marksPerQuestion: fallback.marksPerQuestion!,
+      totalMarks,
     };
   }
 
-  const primarySection = blueprint.sections[0];
-
   return {
-    questionType: primarySection?.questionType ?? fallback?.questionType ?? "mixed",
+    questionType:
+      blueprint.sections[0]?.questionType ??
+      fallback?.questionType ??
+      "mixed",
     numberOfQuestions: blueprint.totalQuestions,
-    marksPerQuestion:
-      primarySection?.marksPerQuestion ?? fallback?.marksPerQuestion ?? 1,
+    marksPerQuestion: deriveDefaultMarksPerQuestion(blueprint),
+    totalMarks: blueprint.totalMarks,
   };
 }

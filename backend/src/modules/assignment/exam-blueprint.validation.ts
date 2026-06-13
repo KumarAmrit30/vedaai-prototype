@@ -74,6 +74,7 @@ export interface ResolvedAssignmentConfig {
     questionType: string;
     numberOfQuestions: number;
     marksPerQuestion: number;
+    totalMarks: number;
     examPattern: ExamPattern;
     difficultyLevel: (typeof DIFFICULTY_LEVELS)[number];
   };

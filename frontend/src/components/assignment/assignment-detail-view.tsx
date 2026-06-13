@@ -4,6 +4,7 @@ import { ArrowLeft, Calendar, ClipboardList, Clock3, Hash, Layers, Sparkles } fr
 import Link from "next/link";
 import { AssignmentDetailTabs } from "@/components/assignment/assignment-detail-tabs";
 import { getAssignmentMeta } from "@/lib/workspace/assignment-meta";
+import { getAssignmentTotalMarks } from "@/lib/utils/assignment-marks";
 import {
   estimateCompletionMinutes,
   getStatusBadgeModifier,
@@ -29,9 +30,7 @@ export function AssignmentDetailView({
   const meta = getAssignmentMeta(assignment._id);
   const statusDetail = getWorkspaceStatusDetail(assignment);
   const statusLabel = getWorkspaceStatusLabel(statusDetail);
-  const totalMarks =
-    assignment.questionConfig.numberOfQuestions *
-    assignment.questionConfig.marksPerQuestion;
+  const totalMarks = getAssignmentTotalMarks(assignment);
 
   return (
     <div className="assignment-detail-view">

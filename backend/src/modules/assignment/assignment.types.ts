@@ -84,7 +84,13 @@ export interface AnswerKeyEntry {
 export interface QuestionConfig {
   questionType: string;
   numberOfQuestions: number;
+  /**
+   * Default / uniform marks per question for legacy consumers. For multi-section
+   * exams with varying marks, use `totalMarks` for paper totals.
+   */
   marksPerQuestion: number;
+  /** Authoritative paper total derived from blueprint sections. */
+  totalMarks?: number | undefined;
   examPattern?: ExamPattern;
   difficultyLevel?: DifficultyLevel;
   answerKeyMode?: AnswerKeyMode;

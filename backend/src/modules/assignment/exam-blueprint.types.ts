@@ -59,6 +59,7 @@ export interface SubjectDistribution {
   subject: string;
   questionCount: number;
   questionType?: string;
+  /** Overrides template `defaultMarksPerQuestion` for this section. */
   marksPerQuestion?: number;
   instruction?: string;
 }

@@ -13,15 +13,17 @@ import {
   classifyGenerationError,
 } from "./ai/generation-metrics";
 import { buildAssignmentPrompt } from "./ai/assignment-prompt.builder";
+import type { BuildPromptBatchContext } from "./ai/assignment-prompt.builder";
 import type {
   AssignmentGenerationInput,
   AssignmentGenerationResult,
 } from "./ai/assignment-generation.types";
 import {
   normalizeSectionFromBlueprint,
+  validateBatchResponseAgainstBlueprint,
   validateMergedPaperAgainstBlueprint,
-  validateSectionResponseAgainstBlueprint,
 } from "./ai/blueprint-response.validator";
+import { buildGenerationBatches } from "./ai/generation-batch";
 import { parseAIResponse } from "./ai/response-parser";
 import { logDebug, logError, logInfo } from "../utils/logger";
 
@@ -157,48 +159,149 @@ async function generateBlueprintAssignmentPaper(
   const mergedAnswerKey: AnswerKeyEntry[] = [];
   const providerResults: ProviderGenerationResult[] = [];
   let retryCount = 0;
-  let globalQuestionOffset = 0;
+
+  // Flat batch plan — sections with >20 questions are split into 15-question
+  // slices. Execution is sequential today; each batch is an independent retry
+  // unit. Future parallel workers can claim batches by index without changing
+  // merge semantics (preserve sectionIndex + batchIndex ordering).
+  const generationBatches = buildGenerationBatches(blueprint);
+  const batchesBySection = new Map<number, typeof generationBatches>();
+
+  for (const batch of generationBatches) {
+    const existing = batchesBySection.get(batch.sectionIndex) ?? [];
+    existing.push(batch);
+    batchesBySection.set(batch.sectionIndex, existing);
+  }
 
   for (let sectionIndex = 0; sectionIndex < blueprint.sections.length; sectionIndex += 1) {
     if (sectionIndex > 0 && env.vertexSectionDelayMs > 0) {
       await sleep(env.vertexSectionDelayMs);
     }
+
     const section = blueprint.sections[sectionIndex];
     if (!section) continue;
 
-    const prompt = buildAssignmentPrompt(input, {
-      section,
-      sectionIndex,
-      totalSections: blueprint.sections.length,
-      globalQuestionOffset,
-    });
+    const sectionBatches = batchesBySection.get(sectionIndex) ?? [];
+    const sectionStartedAt = Date.now();
+    let sectionPromptTokens = 0;
+    let sectionCompletionTokens = 0;
+    let sectionDurationMs = 0;
+    let sectionRetryCount = 0;
+    let hasSectionPromptTokens = false;
+    let hasSectionCompletionTokens = false;
 
-    const providerResult = await provider.generateAssignment(prompt);
-    providerResults.push(providerResult);
-    retryCount += providerResult.retryCount;
+    const mergedQuestions: GeneratedPaper["sections"][number]["questions"] = [];
 
-    const structured = parseAIResponse(providerResult.text);
-    validateSectionResponseAgainstBlueprint(structured, blueprint, sectionIndex);
+    for (const batch of sectionBatches) {
+      const batchStartedAt = Date.now();
 
-    const parsedSection = structured.sections[0];
-    if (!parsedSection) {
-      throw new Error(
-        `AI response validation failed: Section ${sectionIndex + 1} is missing from provider response`,
+      const sectionContext = {
+        section: batch.section,
+        sectionIndex: batch.sectionIndex,
+        totalSections: blueprint.sections.length,
+        globalQuestionOffset: batch.globalQuestionOffset,
+      };
+
+      let batchContext: BuildPromptBatchContext | undefined;
+      if (batch.batchCount > 1) {
+        batchContext = {
+          ...sectionContext,
+          batchIndex: batch.batchIndex,
+          batchCount: batch.batchCount,
+          batchQuestionCount: batch.questionCount,
+          batchDifficultyCounts: batch.difficultyCounts,
+          batchGlobalQuestionOffset: batch.globalQuestionOffset,
+        };
+      }
+
+      const prompt = buildAssignmentPrompt(input, sectionContext, batchContext);
+
+      // Each batch is one provider call; retryAIRequest inside the provider
+      // retries only this batch on transient failure — never the whole section.
+      const providerResult = await provider.generateAssignment(prompt);
+      providerResults.push(providerResult);
+      retryCount += providerResult.retryCount;
+      sectionRetryCount += providerResult.retryCount;
+
+      const structured = parseAIResponse(providerResult.text);
+      validateBatchResponseAgainstBlueprint(
+        structured,
+        blueprint,
+        batch.sectionIndex,
+        batch.questionCount,
       );
+
+      const parsedSection = structured.sections[0];
+      if (!parsedSection) {
+        throw new Error(
+          `AI response validation failed: Section ${batch.sectionIndex + 1} batch ${batch.batchIndex + 1} is missing from provider response`,
+        );
+      }
+
+      mergedQuestions.push(...parsedSection.questions);
+      mergedAnswerKey.push(
+        ...offsetAnswerKeyEntries(
+          structured.answerKey,
+          batch.globalQuestionOffset,
+        ),
+      );
+
+      const batchDurationMs = Date.now() - batchStartedAt;
+      sectionDurationMs += batchDurationMs;
+
+      if (providerResult.promptTokens !== undefined) {
+        sectionPromptTokens += providerResult.promptTokens;
+        hasSectionPromptTokens = true;
+      }
+      if (providerResult.completionTokens !== undefined) {
+        sectionCompletionTokens += providerResult.completionTokens;
+        hasSectionCompletionTokens = true;
+      }
+
+      logInfo("[TELEMETRY][BATCH]", {
+        assignmentId: input.assignmentId,
+        sectionIndex: batch.sectionIndex + 1,
+        sectionTitle: batch.section.title,
+        batchIndex: batch.batchIndex + 1,
+        batchCount: batch.batchCount,
+        questionsInBatch: batch.questionCount,
+        promptTokens: providerResult.promptTokens,
+        completionTokens: providerResult.completionTokens,
+        durationMs: batchDurationMs,
+        retryCount: providerResult.retryCount,
+      });
+
+      logDebug(`[AI][${provider.name}] Blueprint batch validated`, {
+        sectionIndex: batch.sectionIndex + 1,
+        batchIndex: batch.batchIndex + 1,
+        batchCount: batch.batchCount,
+        questions: batch.questionCount,
+      });
     }
 
     mergedSections.push(
-      normalizeSectionFromBlueprint(parsedSection, section),
+      normalizeSectionFromBlueprint(
+        {
+          title: section.title,
+          instruction: section.instruction,
+          questions: mergedQuestions,
+        },
+        section,
+      ),
     );
-    mergedAnswerKey.push(
-      ...offsetAnswerKeyEntries(structured.answerKey, globalQuestionOffset),
-    );
-    globalQuestionOffset += section.numberOfQuestions;
 
-    logDebug(`[AI][${provider.name}] Blueprint section validated`, {
+    logInfo("[TELEMETRY][SECTION]", {
+      assignmentId: input.assignmentId,
       sectionIndex: sectionIndex + 1,
       sectionTitle: section.title,
-      questions: section.numberOfQuestions,
+      batchCount: sectionBatches.length,
+      totalQuestions: section.numberOfQuestions,
+      promptTokens: hasSectionPromptTokens ? sectionPromptTokens : undefined,
+      completionTokens: hasSectionCompletionTokens
+        ? sectionCompletionTokens
+        : undefined,
+      durationMs: sectionDurationMs,
+      retryCount: sectionRetryCount,
     });
   }
 
@@ -208,6 +311,7 @@ async function generateBlueprintAssignmentPaper(
     sections: mergedSections.length,
     questions: blueprint.totalQuestions,
     answerKeyEntries: mergedAnswerKey.length,
+    generationBatches: generationBatches.length,
   });
 
   return {

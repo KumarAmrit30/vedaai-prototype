@@ -43,6 +43,68 @@ function validateSectionStructure(
   }
 }
 
+export function validateBatchResponseAgainstBlueprint(
+  response: AssignmentResponse,
+  blueprint: ExamBlueprint,
+  sectionIndex: number,
+  expectedQuestionCount: number,
+): void {
+  const blueprintSection = blueprint.sections[sectionIndex];
+  if (!blueprintSection) {
+    throw new Error(
+      `AI response validation failed: blueprint section ${sectionIndex + 1} is missing`,
+    );
+  }
+
+  if (response.sections.length !== 1) {
+    throw new Error(
+      `AI response validation failed: expected 1 section for ${formatSectionLabel(sectionIndex)} batch but generated ${response.sections.length}`,
+    );
+  }
+
+  const section = response.sections[0];
+  if (!section) {
+    throw new Error(
+      `AI response validation failed: ${formatSectionLabel(sectionIndex)} batch is empty`,
+    );
+  }
+
+  if (section.title.trim() !== blueprintSection.title.trim()) {
+    throw new Error(
+      `AI response validation failed: ${formatSectionLabel(sectionIndex)} batch title must be "${blueprintSection.title}"`,
+    );
+  }
+
+  if (section.instruction.trim() !== blueprintSection.instruction.trim()) {
+    throw new Error(
+      `AI response validation failed: ${formatSectionLabel(sectionIndex)} batch instruction must match the blueprint`,
+    );
+  }
+
+  if (section.questions.length !== expectedQuestionCount) {
+    throw new Error(
+      `AI response validation failed: ${formatSectionLabel(sectionIndex)} batch expected ${expectedQuestionCount} questions but generated ${section.questions.length}`,
+    );
+  }
+
+  for (let questionIndex = 0; questionIndex < section.questions.length; questionIndex += 1) {
+    const question = section.questions[questionIndex];
+    if (!question) continue;
+
+    if (question.marks !== blueprintSection.marksPerQuestion) {
+      throw new Error(
+        `AI response validation failed: ${formatSectionLabel(sectionIndex)} batch question ${questionIndex + 1} must use ${blueprintSection.marksPerQuestion} marks`,
+      );
+    }
+  }
+
+  if (response.answerKey.length !== expectedQuestionCount) {
+    throw new Error(
+      `AI response validation failed: ${formatSectionLabel(sectionIndex)} batch answerKey must contain ${expectedQuestionCount} entries`,
+    );
+  }
+}
+
 export function validateSectionResponseAgainstBlueprint(
   response: AssignmentResponse,
   blueprint: ExamBlueprint,

@@ -4,6 +4,10 @@ import { generateAssignmentPaper } from "../../src/services/ai.service";
 import { getAIProvider } from "../../src/services/ai/providers";
 import { AssignmentGenerationError } from "../../src/services/ai/generation-metrics";
 import type { AssignmentResponse } from "../../src/services/ai/response-parser";
+import {
+  buildGenerationBatches,
+  type GenerationBatch,
+} from "../../src/services/ai/generation-batch";
 
 jest.mock("../../src/services/ai/providers", () => ({
   getAIProvider: jest.fn(),
@@ -13,33 +17,26 @@ const mockGetAIProvider = getAIProvider as jest.MockedFunction<
   typeof getAIProvider
 >;
 
-function buildSectionResponse(
-  blueprintSection: ExamBlueprint["sections"][number],
-): AssignmentResponse {
+function buildBatchResponse(batch: GenerationBatch): AssignmentResponse {
   const questions = Array.from(
-    { length: blueprintSection.numberOfQuestions },
+    { length: batch.questionCount },
     (_, index) => ({
-      question: `${blueprintSection.title} — Question ${index + 1}`,
+      question: `${batch.section.title} — Question ${index + 1}`,
       difficulty: "medium" as const,
-      marks: blueprintSection.marksPerQuestion,
+      marks: batch.section.marksPerQuestion,
     }),
   );
 
-  const answerKey = Array.from(
-    { length: blueprintSection.numberOfQuestions },
-    (_, index) => ({
-      questionNumber: index + 1,
-      answer: `Answer ${index + 1}`,
-      explanation: `Explanation ${index + 1}`,
-      markingGuide: `Guide ${index + 1}`,
-    }),
-  );
+  const answerKey = Array.from({ length: batch.questionCount }, (_, index) => ({
+    questionNumber: index + 1,
+    answer: `Answer ${index + 1}`,
+  }));
 
   return {
     sections: [
       {
-        title: blueprintSection.title,
-        instruction: blueprintSection.instruction,
+        title: batch.section.title,
+        instruction: batch.section.instruction,
         questions,
       },
     ],
@@ -48,21 +45,21 @@ function buildSectionResponse(
 }
 
 function mockProviderForBlueprint(blueprint: ExamBlueprint) {
-  const generateAssignment = jest
-    .fn()
-    .mockImplementation(async () => {
-      const callIndex = generateAssignment.mock.calls.length - 1;
-      const section = blueprint.sections[callIndex];
+  const batches = buildGenerationBatches(blueprint);
 
-      if (!section) {
-        throw new Error("Unexpected provider call");
-      }
+  const generateAssignment = jest.fn().mockImplementation(async () => {
+    const callIndex = generateAssignment.mock.calls.length - 1;
+    const batch = batches[callIndex];
 
-      return {
-        text: JSON.stringify(buildSectionResponse(section)),
-        retryCount: 0,
-      };
-    });
+    if (!batch) {
+      throw new Error("Unexpected provider call");
+    }
+
+    return {
+      text: JSON.stringify(buildBatchResponse(batch)),
+      retryCount: 0,
+    };
+  });
 
   mockGetAIProvider.mockReturnValue({
     name: "GEMINI",
@@ -116,6 +113,41 @@ describe("generateAssignmentPaper blueprint generation", () => {
     expect(result.answerKey.at(-1)?.questionNumber).toBe(
       examBlueprint.totalQuestions,
     );
+  });
+
+  it("generates a NEET blueprint with internal batching while preserving section structure", async () => {
+    const examBlueprint = buildExamBlueprint({
+      examPattern: "NEET",
+      difficultyLevel: "MIXED",
+    });
+    const generateAssignment = mockProviderForBlueprint(examBlueprint);
+    const batches = buildGenerationBatches(examBlueprint);
+
+    const result = await generateAssignmentPaper({
+      ...baseInput,
+      questionConfig: {
+        questionType: "multiple-choice",
+        numberOfQuestions: examBlueprint.totalQuestions,
+        marksPerQuestion: 4,
+        examPattern: "NEET",
+        difficultyLevel: "MIXED",
+      },
+      examBlueprint,
+    });
+
+    expect(batches).toHaveLength(12);
+    expect(generateAssignment).toHaveBeenCalledTimes(12);
+    expect(result.generatedPaper.sections).toHaveLength(3);
+    expect(result.generatedPaper.sections[0]?.questions).toHaveLength(45);
+    expect(result.generatedPaper.sections[1]?.questions).toHaveLength(45);
+    expect(result.generatedPaper.sections[2]?.questions).toHaveLength(90);
+    expect(result.answerKey).toHaveLength(180);
+    expect(result.answerKey[0]?.questionNumber).toBe(1);
+    expect(result.answerKey[44]?.questionNumber).toBe(45);
+    expect(result.answerKey[45]?.questionNumber).toBe(46);
+    expect(result.answerKey[89]?.questionNumber).toBe(90);
+    expect(result.answerKey[90]?.questionNumber).toBe(91);
+    expect(result.answerKey.at(-1)?.questionNumber).toBe(180);
   });
 
   it("generates a UNIVERSITY blueprint paper section-by-section", async () => {
@@ -183,7 +215,8 @@ describe("generateAssignmentPaper blueprint generation", () => {
       marksPerQuestion: 3,
     });
     const section = examBlueprint.sections[0]!;
-    const validSection = buildSectionResponse(section).sections[0]!;
+    const batch = buildGenerationBatches(examBlueprint)[0]!;
+    const validSection = buildBatchResponse(batch).sections[0]!;
 
     mockGetAIProvider.mockReturnValue({
       name: "GEMINI",
@@ -256,17 +289,29 @@ describe("generateAssignmentPaper blueprint generation", () => {
       marksPerQuestion: 2,
     });
     const section = examBlueprint.sections[0]!;
+    const batch = buildGenerationBatches(examBlueprint)[0]!;
 
     mockGetAIProvider.mockReturnValue({
       name: "GEMINI",
       model: "gemini-2.5-flash",
       generateAssignment: jest.fn().mockResolvedValue({
-        text: JSON.stringify(
-          buildSectionResponse({
-            ...section,
-            numberOfQuestions: 1,
-          }),
-        ),
+        text: JSON.stringify({
+          ...buildBatchResponse({ ...batch, questionCount: 1 }),
+          sections: [
+            {
+              title: section.title,
+              instruction: section.instruction,
+              questions: [
+                {
+                  question: "Only one question",
+                  difficulty: "easy" as const,
+                  marks: section.marksPerQuestion,
+                },
+              ],
+            },
+          ],
+          answerKey: [{ questionNumber: 1, answer: "A" }],
+        }),
         retryCount: 0,
       }),
     });
@@ -293,7 +338,7 @@ describe("generateAssignmentPaper blueprint generation", () => {
         },
         examBlueprint,
       }),
-    ).rejects.toThrow(/expected 3 questions but generated 1/i);
+    ).rejects.toThrow(/batch expected 3 questions but generated 1/i);
   });
 });
 

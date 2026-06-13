@@ -3,6 +3,10 @@
 import type { Assignment } from "@/types/assignment";
 import { formatAssignmentDate } from "@/lib/utils/format-assignment";
 import {
+  formatMarksPerQuestionLabel,
+  getAssignmentTotalMarks,
+} from "@/lib/utils/assignment-marks";
+import {
   estimateCompletionMinutes,
   getWorkspaceStatusDetail,
   getWorkspaceStatusLabel,
@@ -22,9 +26,7 @@ export function AssignmentMetadataPanel({
   assignment,
 }: AssignmentMetadataPanelProps) {
   const statusDetail = getWorkspaceStatusDetail(assignment);
-  const totalMarks =
-    assignment.questionConfig.numberOfQuestions *
-    assignment.questionConfig.marksPerQuestion;
+  const totalMarks = getAssignmentTotalMarks(assignment);
 
   return (
     <div className="assignment-metadata-panel">
@@ -59,7 +61,7 @@ export function AssignmentMetadataPanel({
         </div>
         <div>
           <dt>Marks per question</dt>
-          <dd>{assignment.questionConfig.marksPerQuestion}</dd>
+          <dd>{formatMarksPerQuestionLabel(assignment)}</dd>
         </div>
         <div>
           <dt>Total marks</dt>

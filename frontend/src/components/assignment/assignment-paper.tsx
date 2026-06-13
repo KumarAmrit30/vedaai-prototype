@@ -2,6 +2,7 @@
 
 import type { Assignment } from "@/types/assignment";
 import { formatAssignmentDate } from "@/lib/utils/format-assignment";
+import { getAssignmentTotalMarks } from "@/lib/utils/assignment-marks";
 
 function answerLineCount(questionType: string): number {
   if (questionType === "long-answer") return 3;
@@ -19,8 +20,7 @@ export function AssignmentPaper({
   variant = "preview",
 }: AssignmentPaperProps) {
   const { generatedPaper, questionConfig } = assignment;
-  const totalMarks =
-    questionConfig.numberOfQuestions * questionConfig.marksPerQuestion;
+  const totalMarks = getAssignmentTotalMarks(assignment);
 
   const paperClassName =
     variant === "print" ? "assignment-print-paper" : "preview-a4-paper";
