@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { AssignmentAnswerKey } from "@/components/assignment/assignment-answer-key";
 import { AssignmentMetadataPanel } from "@/components/assignment/assignment-metadata-panel";
 import { AssignmentPreview } from "@/components/assignment/assignment-preview";
+import { AssignmentSolutionsComingSoon } from "@/components/assignment/assignment-solutions-coming-soon";
 import type { Assignment } from "@/types/assignment";
 
-type DetailTab = "preview" | "answer-key" | "metadata";
+type DetailTab = "preview" | "solutions" | "metadata";
 
 interface AssignmentDetailTabsProps {
   assignment: Assignment;
@@ -15,7 +15,7 @@ interface AssignmentDetailTabsProps {
 
 const TABS: { id: DetailTab; label: string }[] = [
   { id: "preview", label: "Preview" },
-  { id: "answer-key", label: "Answer Key" },
+  { id: "solutions", label: "Solutions" },
   { id: "metadata", label: "Metadata" },
 ];
 
@@ -52,9 +52,7 @@ export function AssignmentDetailTabs({
             showDone={false}
           />
         ) : null}
-        {activeTab === "answer-key" ? (
-          <AssignmentAnswerKey assignment={assignment} />
-        ) : null}
+        {activeTab === "solutions" ? <AssignmentSolutionsComingSoon /> : null}
         {activeTab === "metadata" ? (
           <AssignmentMetadataPanel assignment={assignment} />
         ) : null}

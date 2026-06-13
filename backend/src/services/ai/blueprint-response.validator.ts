@@ -1,5 +1,9 @@
 import type { ExamBlueprint } from "../../modules/assignment/exam-blueprint.types";
 import type { QuestionSection } from "../../modules/assignment/assignment.types";
+import {
+  firstQuestionNumberForBlueprintSection,
+  validateObjectiveQuestionsInResponse,
+} from "./mcq-validation";
 import type { AssignmentResponse, Section } from "./response-parser";
 
 function formatSectionLabel(sectionIndex: number): string {
@@ -48,6 +52,7 @@ export function validateBatchResponseAgainstBlueprint(
   blueprint: ExamBlueprint,
   sectionIndex: number,
   expectedQuestionCount: number,
+  batchFirstQuestionNumber?: number,
 ): void {
   const blueprintSection = blueprint.sections[sectionIndex];
   if (!blueprintSection) {
@@ -103,6 +108,22 @@ export function validateBatchResponseAgainstBlueprint(
       `AI response validation failed: ${formatSectionLabel(sectionIndex)} batch answerKey must contain ${expectedQuestionCount} entries`,
     );
   }
+
+  validateObjectiveQuestionsInResponse(
+    [
+      {
+        questionType: blueprintSection.questionType,
+        questions: section.questions,
+        firstQuestionNumber:
+          batchFirstQuestionNumber ??
+          firstQuestionNumberForBlueprintSection(
+            blueprint.sections,
+            sectionIndex,
+          ),
+      },
+    ],
+    response.answerKey,
+  );
 }
 
 export function validateSectionResponseAgainstBlueprint(
@@ -137,6 +158,20 @@ export function validateSectionResponseAgainstBlueprint(
       `AI response validation failed: ${formatSectionLabel(sectionIndex)} answerKey must contain ${blueprintSection.numberOfQuestions} entries`,
     );
   }
+
+  validateObjectiveQuestionsInResponse(
+    [
+      {
+        questionType: blueprintSection.questionType,
+        questions: section.questions,
+        firstQuestionNumber: firstQuestionNumberForBlueprintSection(
+          blueprint.sections,
+          sectionIndex,
+        ),
+      },
+    ],
+    response.answerKey,
+  );
 }
 
 export function validateMergedPaperAgainstBlueprint(

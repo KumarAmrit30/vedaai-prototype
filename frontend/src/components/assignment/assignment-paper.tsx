@@ -3,12 +3,12 @@
 import type { Assignment } from "@/types/assignment";
 import { formatAssignmentDate } from "@/lib/utils/format-assignment";
 import { getAssignmentTotalMarks } from "@/lib/utils/assignment-marks";
-
-function answerLineCount(questionType: string): number {
-  if (questionType === "long-answer") return 3;
-  if (questionType === "short-answer") return 2;
-  return 1;
-}
+import {
+  answerLineCountForQuestionType,
+  formatOptionLabel,
+  hasDisplayableOptions,
+  resolveSectionQuestionType,
+} from "@/lib/utils/question-display";
 
 interface AssignmentPaperProps {
   assignment: Assignment;
@@ -66,57 +66,90 @@ export function AssignmentPaper({
 
         {generatedPaper?.sections?.length ? (
           <>
-            {generatedPaper.sections.map((section, sectionIndex) => (
-              <section
-                key={`${section.title}-${sectionIndex}`}
-                className="preview-exam-section"
-              >
-                <h3 className="preview-exam-section__heading">
-                  Section {String.fromCharCode(65 + sectionIndex)}
-                </h3>
-                <p className="preview-exam-section__subtitle">
-                  ({section.title}
-                  {section.instruction ? ` — ${section.instruction}` : ""})
-                </p>
+            {generatedPaper.sections.map((section, sectionIndex) => {
+              const sectionQuestionType = resolveSectionQuestionType(
+                assignment,
+                sectionIndex,
+              );
 
-                <ol className="list-none">
-                  {section.questions.map((question, questionIndex) => {
-                    const lines = answerLineCount(questionConfig.questionType);
+              return (
+                <section
+                  key={`${section.title}-${sectionIndex}`}
+                  className="preview-exam-section"
+                >
+                  <h3 className="preview-exam-section__heading">
+                    Section {String.fromCharCode(65 + sectionIndex)}
+                  </h3>
+                  <p className="preview-exam-section__subtitle">
+                    ({section.title}
+                    {section.instruction ? ` — ${section.instruction}` : ""})
+                  </p>
 
-                    return (
-                      <li
-                        key={`${sectionIndex}-${questionIndex}`}
-                        className="preview-exam-question"
-                      >
-                        <div className="preview-exam-question__row">
-                          <span className="preview-exam-question__num">
-                            {questionIndex + 1}.
-                          </span>
-                          <p className="preview-exam-question__text">
-                            {question.question}
-                          </p>
-                          <span className="preview-exam-question__marks">
-                            [{question.marks} marks]
-                          </span>
-                          <span className="preview-exam-question__difficulty">
-                            {question.difficulty}
-                          </span>
-                        </div>
-                        <div className="preview-exam-question__answer-lines">
-                          {Array.from({ length: lines }).map((_, lineIndex) => (
-                            <div
-                              key={lineIndex}
-                              className="preview-exam-question__answer-line"
-                              aria-hidden
-                            />
-                          ))}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ol>
-              </section>
-            ))}
+                  <ol className="list-none">
+                    {section.questions.map((question, questionIndex) => {
+                      const showOptions = hasDisplayableOptions(question);
+                      const lines = showOptions
+                        ? 0
+                        : answerLineCountForQuestionType(sectionQuestionType);
+
+                      return (
+                        <li
+                          key={`${sectionIndex}-${questionIndex}`}
+                          className="preview-exam-question"
+                        >
+                          <div className="preview-exam-question__row">
+                            <span className="preview-exam-question__num">
+                              {questionIndex + 1}.
+                            </span>
+                            <p className="preview-exam-question__text">
+                              {question.question}
+                            </p>
+                            <span className="preview-exam-question__marks">
+                              [{question.marks} marks]
+                            </span>
+                            <span className="preview-exam-question__difficulty">
+                              {question.difficulty}
+                            </span>
+                          </div>
+
+                          {showOptions ? (
+                            <ul className="preview-exam-question__options">
+                              {question.options!.map((option, optionIndex) => (
+                                <li
+                                  key={`${sectionIndex}-${questionIndex}-${optionIndex}`}
+                                  className="preview-exam-question__option"
+                                >
+                                  <span className="preview-exam-question__option-label">
+                                    {formatOptionLabel(optionIndex)}.
+                                  </span>
+                                  <span className="preview-exam-question__option-text">
+                                    {option}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : null}
+
+                          {lines > 0 ? (
+                            <div className="preview-exam-question__answer-lines">
+                              {Array.from({ length: lines }).map(
+                                (_, lineIndex) => (
+                                  <div
+                                    key={lineIndex}
+                                    className="preview-exam-question__answer-line"
+                                    aria-hidden
+                                  />
+                                ),
+                              )}
+                            </div>
+                          ) : null}
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </section>
+              );
+            })}
           </>
         ) : (
           <div className="preview-exam-empty">

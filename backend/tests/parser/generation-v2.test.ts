@@ -8,6 +8,7 @@ import {
   buildGenerationBatches,
   type GenerationBatch,
 } from "../../src/services/ai/generation-batch";
+import { isObjectiveQuestionType } from "../../src/services/ai/mcq-validation";
 
 jest.mock("../../src/services/ai/providers", () => ({
   getAIProvider: jest.fn(),
@@ -17,19 +18,41 @@ const mockGetAIProvider = getAIProvider as jest.MockedFunction<
   typeof getAIProvider
 >;
 
+const DEFAULT_MCQ_OPTIONS = [
+  "Option A",
+  "Option B",
+  "Option C",
+  "Option D",
+] as const;
+
+function optionsForSection(questionType: string): string[] | undefined {
+  if (!isObjectiveQuestionType(questionType)) {
+    return undefined;
+  }
+
+  if (questionType === "true-false") {
+    return ["True", "False"];
+  }
+
+  return [...DEFAULT_MCQ_OPTIONS];
+}
+
 function buildBatchResponse(batch: GenerationBatch): AssignmentResponse {
+  const options = optionsForSection(batch.section.questionType);
+
   const questions = Array.from(
     { length: batch.questionCount },
     (_, index) => ({
       question: `${batch.section.title} — Question ${index + 1}`,
       difficulty: "medium" as const,
       marks: batch.section.marksPerQuestion,
+      ...(options ? { options: [...options] } : {}),
     }),
   );
 
   const answerKey = Array.from({ length: batch.questionCount }, (_, index) => ({
     questionNumber: batch.globalQuestionOffset + index + 1,
-    answer: `Answer ${batch.globalQuestionOffset + index + 1}`,
+    answer: options?.[0] ?? `Answer ${batch.globalQuestionOffset + index + 1}`,
   }));
 
   return {
@@ -113,6 +136,61 @@ describe("generateAssignmentPaper blueprint generation", () => {
     expect(result.answerKey.at(-1)?.questionNumber).toBe(
       examBlueprint.totalQuestions,
     );
+  });
+
+  it("generates a JEE blueprint with batched MCQ sections", async () => {
+    const examBlueprint = buildExamBlueprint({
+      examPattern: "JEE",
+      difficultyLevel: "MIXED",
+    });
+    const generateAssignment = mockProviderForBlueprint(examBlueprint);
+
+    const result = await generateAssignmentPaper({
+      ...baseInput,
+      questionConfig: {
+        questionType: "multiple-choice",
+        numberOfQuestions: examBlueprint.totalQuestions,
+        marksPerQuestion: 4,
+        examPattern: "JEE",
+        difficultyLevel: "MIXED",
+      },
+      examBlueprint,
+    });
+
+    expect(generateAssignment).toHaveBeenCalledTimes(6);
+    expect(result.generatedPaper.sections).toHaveLength(3);
+    expect(result.answerKey).toHaveLength(75);
+    expect(result.generatedPaper.sections[0]?.questions[0]?.options).toHaveLength(
+      4,
+    );
+  });
+
+  it("generates a QUIZ blueprint with MCQ options on every question", async () => {
+    const examBlueprint = buildExamBlueprint({
+      examPattern: "QUIZ",
+      difficultyLevel: "MIXED",
+    });
+    const generateAssignment = mockProviderForBlueprint(examBlueprint);
+
+    const result = await generateAssignmentPaper({
+      ...baseInput,
+      questionConfig: {
+        questionType: "multiple-choice",
+        numberOfQuestions: examBlueprint.totalQuestions,
+        marksPerQuestion: 1,
+        examPattern: "QUIZ",
+        difficultyLevel: "MIXED",
+      },
+      examBlueprint,
+    });
+
+    expect(generateAssignment).toHaveBeenCalledTimes(1);
+    expect(result.generatedPaper.sections[0]?.questions).toHaveLength(10);
+    expect(
+      result.generatedPaper.sections[0]?.questions.every(
+        (question) => (question.options?.length ?? 0) === 4,
+      ),
+    ).toBe(true);
   });
 
   it("generates a NEET blueprint with internal batching while preserving section structure", async () => {

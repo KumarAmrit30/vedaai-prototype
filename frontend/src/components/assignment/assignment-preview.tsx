@@ -8,27 +8,10 @@ import {
   AssignmentPreviewError,
   type PreviewErrorKind,
 } from "@/components/assignment/assignment-preview-error";
-import apiClient from "@/lib/api/axios";
-import { ASSIGNMENT_STATUS } from "@/lib/constants";
 import { exportAssignmentPdf } from "@/lib/utils/export-assignment-pdf";
+import { ASSIGNMENT_STATUS } from "@/lib/constants";
 import { useRequireAuth } from "@/hooks/use-require-auth";
 import type { Assignment } from "@/types/assignment";
-
-async function resolveAssignmentForPdfExport(
-  assignment: Assignment,
-): Promise<Assignment> {
-  if (assignment.answerKey?.length) return assignment;
-  if (!assignment.generatedPaper?.sections?.length) return assignment;
-
-  try {
-    const response = await apiClient.get<{ data: Assignment }>(
-      `/assignments/${assignment._id}`,
-    );
-    return response.data.data;
-  } catch {
-    return assignment;
-  }
-}
 
 interface AssignmentPreviewProps {
   assignment: Assignment;
@@ -83,8 +66,7 @@ export function AssignmentPreview({
     setIsGeneratingPdf(true);
 
     try {
-      const exportTarget = await resolveAssignmentForPdfExport(assignment);
-      await exportAssignmentPdf(exportTarget);
+      await exportAssignmentPdf(assignment);
       toast.success("PDF downloaded successfully.");
     } catch {
       toast.error("Unable to generate PDF. Please try again.");

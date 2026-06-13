@@ -12,6 +12,7 @@ import { ASSIGNMENT_STATUS } from "@/lib/constants";
 import { ROUTES } from "@/lib/navigation/routes";
 import { deleteAssignmentsWithUndo } from "@/lib/utils/delete-with-undo";
 import { getApiErrorMessage } from "@/lib/utils/get-api-error-message";
+import { assignmentHasGeneratedPaper } from "@/lib/utils/question-display";
 import { removeManyAssignmentMeta } from "@/lib/workspace/assignment-meta";
 import { storeDuplicateAssignment } from "@/lib/utils/duplicate-assignment";
 import { useRequireAuth } from "@/hooks/use-require-auth";
@@ -38,6 +39,11 @@ export function BulkActionBar() {
     selectedIds.includes(item._id),
   );
 
+  const eligibleForCompletion = selectedAssignments.filter((item) =>
+    assignmentHasGeneratedPaper(item),
+  );
+  const canMarkCompleted = eligibleForCompletion.length > 0;
+
   function handleDelete(): void {
     if (!requireAuth()) return;
 
@@ -60,15 +66,32 @@ export function BulkActionBar() {
     if (isUpdating) return;
     if (!requireAuth()) return;
 
-    const ids = [...selectedIds];
-    const snapshots = ids
-      .map((id) => assignments.find((item) => item._id === id))
-      .filter((item): item is Assignment => Boolean(item));
+    const snapshots = selectedAssignments;
+    const eligible = snapshots.filter((item) =>
+      assignmentHasGeneratedPaper(item),
+    );
+    const skippedCount = snapshots.length - eligible.length;
 
-    snapshots.forEach((assignment) => {
+    if (eligible.length === 0) {
+      toast.error(
+        "Only assignments with a generated paper can be marked completed.",
+      );
+      return;
+    }
+
+    if (skippedCount > 0) {
+      toast(
+        `${skippedCount} selected assignment${skippedCount === 1 ? "" : "s"} skipped — no generated paper yet.`,
+        { icon: "ℹ️" },
+      );
+    }
+
+    const ids = eligible.map((item) => item._id);
+
+    eligible.forEach((assignment) => {
       updateAssignment(assignment._id, {
         status: ASSIGNMENT_STATUS.COMPLETED,
-        generatedPaper: assignment.generatedPaper ?? { sections: [] },
+        generatedPaper: assignment.generatedPaper,
       });
     });
 
@@ -81,7 +104,7 @@ export function BulkActionBar() {
         `${ids.length} assignment${ids.length === 1 ? "" : "s"} marked completed.`,
       );
     } catch (error) {
-      snapshots.forEach((assignment) => {
+      eligible.forEach((assignment) => {
         updateAssignment(assignment._id, {
           status: assignment.status,
           generatedPaper: assignment.generatedPaper,
@@ -123,9 +146,14 @@ export function BulkActionBar() {
         <button
           type="button"
           onClick={() => void handleMarkCompleted()}
-          disabled={isUpdating}
+          disabled={isUpdating || !canMarkCompleted}
           className="outline-pill-btn !px-3 !py-1.5 text-[11px]"
           aria-busy={isUpdating}
+          title={
+            canMarkCompleted
+              ? undefined
+              : "Only assignments with a generated paper can be marked completed"
+          }
         >
           {isUpdating ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={2} />

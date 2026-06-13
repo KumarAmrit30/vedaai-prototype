@@ -73,6 +73,14 @@ interface PatchStatusBody {
   status: ManualAssignmentStatus;
 }
 
+function assignmentHasGeneratedPaper(
+  generatedPaper?: GeneratedPaper | null,
+): boolean {
+  return Boolean(
+    generatedPaper?.sections?.some((section) => section.questions.length > 0),
+  );
+}
+
 function parseQuestionConfig(
   value: ValidatedQuestionConfig | string,
 ): ValidatedQuestionConfig {
@@ -671,6 +679,18 @@ export async function patchAssignmentStatus(
       return;
     }
 
+    if (
+      status === "completed" &&
+      !assignmentHasGeneratedPaper(assignment.generatedPaper)
+    ) {
+      res.status(409).json({
+        success: false,
+        message:
+          "Assignments without a generated paper cannot be marked completed.",
+      });
+      return;
+    }
+
     assignment.status = status;
     await assignment.save();
 
@@ -721,6 +741,22 @@ export async function bulkUpdateAssignmentStatus(
         message: "One or more assignments not found",
       });
       return;
+    }
+
+    if (status === "completed") {
+      const ineligible = owned.filter(
+        (assignment) => !assignmentHasGeneratedPaper(assignment.generatedPaper),
+      );
+
+      if (ineligible.length > 0) {
+        res.status(409).json({
+          success: false,
+          message:
+            "One or more assignments cannot be marked completed because they have no generated paper.",
+          ineligibleIds: ineligible.map((assignment) => assignment._id.toString()),
+        });
+        return;
+      }
     }
 
     const result = await Assignment.updateMany(

@@ -30,6 +30,7 @@ export interface Question {
   question: string;
   difficulty: Difficulty;
   marks: number;
+  options?: string[];
 }
 
 export interface QuestionSection {

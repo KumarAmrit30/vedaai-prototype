@@ -1943,6 +1943,33 @@ body {
   border-bottom: 1px solid color-mix(in srgb, var(--border-light) 80%, #cccccc);
 }
 
+.preview-exam-question__options {
+  margin: 10px 0 0 36px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.preview-exam-question__option {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text-primary);
+}
+
+.preview-exam-question__option-label {
+  min-width: 18px;
+  font-weight: var(--font-weight-semibold);
+}
+
+.preview-exam-question__option-text {
+  flex: 1;
+}
+
 .preview-exam-answer-key {
   margin-top: 32px;
   padding-top: 14px;

@@ -25,6 +25,7 @@ import {
 } from "./ai/blueprint-response.validator";
 import { buildGenerationBatches } from "./ai/generation-batch";
 import { parseAIResponse } from "./ai/response-parser";
+import { validateObjectiveQuestionsInResponse } from "./ai/mcq-validation";
 import { logDebug, logError, logInfo } from "../utils/logger";
 
 export type { AssignmentGenerationInput, AssignmentGenerationResult } from "./ai/assignment-generation.types";
@@ -119,6 +120,21 @@ async function generateLegacyAssignmentPaper(
     throw new Error(
       `AI response validation failed: generated ${questionCount} questions but ${requestedCount} were requested`,
     );
+  }
+
+  let firstQuestionNumber = 1;
+  for (const section of structured.sections) {
+    validateObjectiveQuestionsInResponse(
+      [
+        {
+          questionType: input.questionConfig.questionType,
+          questions: section.questions,
+          firstQuestionNumber,
+        },
+      ],
+      structured.answerKey,
+    );
+    firstQuestionNumber += section.questions.length;
   }
 
   logDebug(`[AI][${provider.name}] Structured response validated`, {
@@ -222,6 +238,7 @@ async function generateBlueprintAssignmentPaper(
         blueprint,
         batch.sectionIndex,
         batch.questionCount,
+        answerKeyStartNumber,
       );
 
       const parsedSection = structured.sections[0];
