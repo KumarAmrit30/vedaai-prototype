@@ -5,7 +5,6 @@ import { AppToaster } from "@/components/layout/app-toaster";
 import { AuthProvider } from "@/providers/auth-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { APP_URL } from "@/lib/app-metadata";
-import { BRANDING } from "@/lib/branding";
 import { THEME_STORAGE_KEY } from "@/lib/preferences/theme";
 import "./globals.css";
 
@@ -20,8 +19,9 @@ export const metadata: Metadata = {
   description:
     "AI-powered assessment and exam generation platform with real-time processing, study material grounding, and PDF export.",
   icons: {
-    icon: BRANDING.favicon,
-    apple: BRANDING.icon,
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/apple-icon.png",
   },
   openGraph: {
     title: "ExamForge AI",
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
       "AI-powered assessment and exam generation platform with real-time processing, study material grounding, and PDF export.",
     images: [
       {
-        url: BRANDING.icon,
+        url: "/icon.png",
         width: 512,
         height: 512,
         alt: "ExamForge AI",
@@ -41,7 +41,7 @@ export const metadata: Metadata = {
     title: "ExamForge AI",
     description:
       "AI-powered assessment and exam generation platform with real-time processing, study material grounding, and PDF export.",
-    images: [BRANDING.icon],
+    images: ["/icon.png"],
   },
 };
 
